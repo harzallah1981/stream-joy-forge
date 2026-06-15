@@ -234,16 +234,18 @@ function Form() {
 
   const stats = useMemo(() => {
     let yes = 0, no = 0, na = 0, audited = 0, total = 0;
+    const findings: { ref: string; text: string; remark: string }[] = [];
     for (const s of SECTIONS) for (const i of s.items) {
       total++;
-      const c = answers[i.ref].conformity;
+      const a = answers[i.ref];
+      const c = a.conformity;
       if (c === "Yes") { yes++; audited++; }
-      else if (c === "No") { no++; audited++; }
+      else if (c === "No") { no++; audited++; findings.push({ ref: i.ref, text: i.text, remark: a.remark }); }
       else if (c === "Not Applicable" || c === "Not Audited") na++;
     }
-    // Conformity rate based on TOTAL items (147), not only audited.
-    const rate = total ? Math.round((yes / total) * 100) : 0;
-    return { yes, no, na, total, rate };
+    // Conformity rate over audited items only (excludes N/A and unanswered).
+    const rate = audited > 0 ? Math.round((yes / audited) * 100) : 0;
+    return { yes, no, na, total, audited, rate, findings };
   }, [answers]);
 
   const setA = (ref: string, patch: Partial<Answer>) =>
@@ -253,8 +255,15 @@ function Form() {
 
 
   return (
-    <PageShell title="IOS 428-01 — Check-list" subtitle="Inspection Opérationnelle Sol — Passengers & Ramp">
+    <PageShell title="IOS 428-01 — Check-list" subtitle="Inspection Opérationnelle Sol — Passengers & Ramp / Réf. réglementaire : IOS428-02#a5">
       <div className="space-y-5">
+        <div className="flex items-center gap-3 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3">
+          <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/2/2e/Tunisair_Logo.svg/320px-Tunisair_Logo.svg.png" alt="Tunisair" className="h-10 w-auto" />
+          <div className="text-xs text-blue-900">
+            <div className="font-bold uppercase tracking-wide">Tunisair Ground Operations</div>
+            <div>IOS 428-01 — Inspection Opérationnelle Sol · Réf. : <span className="font-mono font-bold">IOS428-02#a5</span></div>
+          </div>
+        </div>
         <Card>
           <CardHeader><CardTitle className="text-primary">En-tête / Header</CardTitle></CardHeader>
           <CardContent className="grid gap-3 md:grid-cols-5">
