@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { BookOpen, CheckCircle2, AlertCircle, X, ArrowRight } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
@@ -159,5 +159,3 @@ function KpiCard({
     </div>
   );
 }
-// keep effect deps lint-friendly
-void useEffect;
