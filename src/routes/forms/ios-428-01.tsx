@@ -380,9 +380,22 @@ function Form() {
         })}
 
         <Card>
-          <CardHeader><CardTitle className="text-primary">Synthèse / Findings</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="text-primary">Synthèse / Findings ({stats.findings.length})</CardTitle></CardHeader>
           <CardContent>
-            <Textarea rows={4} placeholder="Observations générales, plan d'actions correctives..." id="findings" />
+            <div className="min-h-[120px] rounded-md border-2 border-dashed border-slate-300 bg-slate-50 p-4">
+              {stats.findings.length === 0 ? (
+                <p className="text-sm italic text-slate-500">Aucun écart relevé. Les items répondus « No » apparaîtront ici automatiquement.</p>
+              ) : (
+                <ul className="space-y-1.5 text-sm text-slate-800">
+                  {stats.findings.map((f) => (
+                    <li key={f.ref} className="flex gap-2">
+                      <span className="font-mono font-bold text-red-600">— {f.ref}</span>
+                      <span>{f.text}{f.remark ? ` — ${f.remark}` : ""}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
           </CardContent>
         </Card>
 
