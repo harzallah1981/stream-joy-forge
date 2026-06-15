@@ -257,11 +257,21 @@ function Form() {
   return (
     <PageShell title="IOS 428-01 — Check-list" subtitle="Inspection Opérationnelle Sol — Passengers & Ramp / Réf. réglementaire : IOS428-02#a5">
       <div className="space-y-5">
-        <div className="flex items-center gap-3 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3">
-          <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/2/2e/Tunisair_Logo.svg/320px-Tunisair_Logo.svg.png" alt="Tunisair" className="h-10 w-auto" />
-          <div className="text-xs text-blue-900">
-            <div className="font-bold uppercase tracking-wide">Tunisair Ground Operations</div>
-            <div>IOS 428-01 — Inspection Opérationnelle Sol · Réf. : <span className="font-mono font-bold">IOS428-02#a5</span></div>
+        <div className="flex items-center gap-3 rounded-lg border border-blue-200 bg-gradient-to-r from-blue-50 to-white px-4 py-3 shadow-sm">
+          <div className="flex items-center gap-2">
+            <svg viewBox="0 0 64 64" className="h-12 w-12" aria-hidden="true">
+              <circle cx="32" cy="32" r="30" fill="#003a7a" />
+              <path d="M14 38 L50 22 L46 32 L24 36 L20 42 Z" fill="#e30613" />
+              <path d="M20 42 L46 32 L34 44 Z" fill="#ffffff" />
+            </svg>
+            <div className="leading-tight">
+              <div className="text-base font-extrabold tracking-wider text-[#003a7a]">TUNISAIR</div>
+              <div className="text-[10px] font-semibold uppercase tracking-widest text-slate-500">Ground Operations</div>
+            </div>
+          </div>
+          <div className="ml-auto text-right text-xs text-blue-900">
+            <div className="font-bold uppercase tracking-wide">IOS 428-01</div>
+            <div>Réf. : <span className="font-mono font-bold">IOS428-02#a5</span></div>
           </div>
         </div>
         <Card>
