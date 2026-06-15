@@ -1,0 +1,163 @@
+import { useEffect, useMemo, useState } from "react";
+import { BookOpen, CheckCircle2, AlertCircle, X, ArrowRight } from "lucide-react";
+import { useAuth } from "@/lib/auth";
+import { useI18n } from "@/lib/i18n";
+import { SAMPLE_DOCS, type DocItem } from "@/lib/documents";
+import { loadReads, markRead, unreadDocs } from "@/lib/notifications";
+import { addAck } from "@/lib/acknowledgements";
+import { HoverCard, HoverCardTrigger, HoverCardContent } from "@/components/ui/hover-card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+
+export function UserDashboard() {
+  const { t } = useI18n();
+  const { user } = useAuth();
+  const [tick, setTick] = useState(0);
+  const refresh = () => setTick((x) => x + 1);
+
+  const stats = useMemo(() => {
+    if (!user) return { total: 0, read: 0, unread: [] as DocItem[] };
+    const reads = loadReads(user.email);
+    const total = SAMPLE_DOCS.length;
+    const read = Object.keys(reads).filter((id) => SAMPLE_DOCS.some((d) => d.id === id)).length;
+    return { total, read, unread: unreadDocs(user.email) };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, tick]);
+
+  const [reading, setReading] = useState<DocItem[] | null>(null);
+  const [idx, setIdx] = useState(0);
+
+  const startReading = (queue: DocItem[]) => { setReading(queue); setIdx(0); };
+  const current = reading?.[idx];
+
+  const handleMarkRead = () => {
+    if (!user || !current) return;
+    markRead(user.email, current.id);
+    addAck({
+      userEmail: user.email,
+      userName: user.username,
+      docId: current.id,
+      docTitle: current.title,
+      docReference: current.reference,
+      category: current.category,
+      action: "view",
+    });
+    if (reading && idx < reading.length - 1) setIdx(idx + 1);
+    else { setReading(null); refresh(); }
+  };
+
+  return (
+    <div className="p-4 md:p-6 lg:p-8">
+      <div className="mb-6">
+        <h2 className="text-2xl font-bold text-slate-900">{t("my_dashboard")}</h2>
+        <p className="text-sm text-slate-500">{t("my_dashboard_desc")}</p>
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <KpiCard icon={BookOpen} iconBg="bg-blue-100 text-blue-600" label={t("docs_total")} value={stats.total} />
+        <KpiCard icon={CheckCircle2} iconBg="bg-green-100 text-green-600" label={t("docs_read")} value={stats.read} />
+
+        <HoverCard openDelay={120}>
+          <HoverCardTrigger asChild>
+            <div className={
+              "relative cursor-pointer rounded-xl border bg-white p-4 shadow-sm " +
+              (stats.unread.length > 0 ? "border-red-300 ring-2 ring-red-300 animate-pulse" : "border-slate-200")
+            }>
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">{t("docs_unread")}</div>
+                  <div className="mt-2 text-3xl font-bold text-red-600">{stats.unread.length}</div>
+                </div>
+                <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-red-100 text-red-600">
+                  <AlertCircle className="h-5 w-5" />
+                </span>
+              </div>
+              {stats.unread.length > 0 && (
+                <div className="mt-3 text-xs font-medium text-red-600">⚠ {t("unread_alert")}</div>
+              )}
+            </div>
+          </HoverCardTrigger>
+          {stats.unread.length > 0 && (
+            <HoverCardContent align="end" className="w-80 p-0">
+              <div className="border-b px-4 py-2 text-sm font-semibold">{t("docs_unread")} ({stats.unread.length})</div>
+              <div className="max-h-72 overflow-y-auto">
+                {stats.unread.map((d) => (
+                  <button
+                    key={d.id}
+                    type="button"
+                    onClick={() => startReading([d])}
+                    className="flex w-full items-center justify-between gap-2 border-b px-4 py-2 text-left text-sm hover:bg-slate-50"
+                  >
+                    <div className="min-w-0">
+                      <div className="truncate font-medium">{d.title}</div>
+                      <div className="text-[11px] text-slate-500">{d.reference} · {d.version}</div>
+                    </div>
+                    <ArrowRight className="h-4 w-4 shrink-0 text-slate-400" />
+                  </button>
+                ))}
+              </div>
+              <div className="border-t p-2">
+                <Button size="sm" className="w-full" onClick={() => startReading(stats.unread)}>
+                  {t("read_now")} ({stats.unread.length})
+                </Button>
+              </div>
+            </HoverCardContent>
+          )}
+        </HoverCard>
+      </div>
+
+      <Dialog open={!!reading} onOpenChange={(v) => !v && setReading(null)}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center justify-between gap-3">
+              <span className="truncate">{current?.title}</span>
+              {reading && reading.length > 1 && (
+                <span className="text-xs font-normal text-slate-500">{idx + 1} / {reading.length}</span>
+              )}
+            </DialogTitle>
+          </DialogHeader>
+          {current && (
+            <div className="space-y-2">
+              <div className="text-xs text-slate-500">{current.reference} · {current.version} · {current.date}</div>
+              <iframe src={current.url} title={current.title} className="h-[55vh] w-full rounded border" />
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setReading(null)}>
+              <X className="mr-1 h-4 w-4" /> {t("close")}
+            </Button>
+            <Button onClick={handleMarkRead}>
+              <CheckCircle2 className="mr-1 h-4 w-4" />
+              {reading && idx < reading.length - 1 ? `${t("mark_read")} · ${t("next_doc")}` : t("mark_read")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+function KpiCard({
+  icon: Icon, iconBg, label, value,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  iconBg: string;
+  label: string;
+  value: number;
+}) {
+  return (
+    <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">{label}</div>
+          <div className="mt-2 text-3xl font-bold text-slate-900">{value}</div>
+        </div>
+        <span className={"grid h-10 w-10 shrink-0 place-items-center rounded-lg " + iconBg}>
+          <Icon className="h-5 w-5" />
+        </span>
+      </div>
+    </div>
+  );
+}
+// keep effect deps lint-friendly
+void useEffect;
