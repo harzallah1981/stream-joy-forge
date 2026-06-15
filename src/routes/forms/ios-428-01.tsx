@@ -234,16 +234,18 @@ function Form() {
 
   const stats = useMemo(() => {
     let yes = 0, no = 0, na = 0, audited = 0, total = 0;
+    const findings: { ref: string; text: string; remark: string }[] = [];
     for (const s of SECTIONS) for (const i of s.items) {
       total++;
-      const c = answers[i.ref].conformity;
+      const a = answers[i.ref];
+      const c = a.conformity;
       if (c === "Yes") { yes++; audited++; }
-      else if (c === "No") { no++; audited++; }
+      else if (c === "No") { no++; audited++; findings.push({ ref: i.ref, text: i.text, remark: a.remark }); }
       else if (c === "Not Applicable" || c === "Not Audited") na++;
     }
-    // Conformity rate based on TOTAL items (147), not only audited.
-    const rate = total ? Math.round((yes / total) * 100) : 0;
-    return { yes, no, na, total, rate };
+    // Conformity rate over audited items only (excludes N/A and unanswered).
+    const rate = audited > 0 ? Math.round((yes / audited) * 100) : 0;
+    return { yes, no, na, total, audited, rate, findings };
   }, [answers]);
 
   const setA = (ref: string, patch: Partial<Answer>) =>
@@ -253,8 +255,25 @@ function Form() {
 
 
   return (
-    <PageShell title="IOS 428-01 — Check-list" subtitle="Inspection Opérationnelle Sol — Passengers & Ramp">
+    <PageShell title="IOS 428-01 — Check-list" subtitle="Inspection Opérationnelle Sol — Passengers & Ramp / Réf. réglementaire : IOS428-02#a5">
       <div className="space-y-5">
+        <div className="flex items-center gap-3 rounded-lg border border-blue-200 bg-gradient-to-r from-blue-50 to-white px-4 py-3 shadow-sm">
+          <div className="flex items-center gap-2">
+            <svg viewBox="0 0 64 64" className="h-12 w-12" aria-hidden="true">
+              <circle cx="32" cy="32" r="30" fill="#003a7a" />
+              <path d="M14 38 L50 22 L46 32 L24 36 L20 42 Z" fill="#e30613" />
+              <path d="M20 42 L46 32 L34 44 Z" fill="#ffffff" />
+            </svg>
+            <div className="leading-tight">
+              <div className="text-base font-extrabold tracking-wider text-[#003a7a]">TUNISAIR</div>
+              <div className="text-[10px] font-semibold uppercase tracking-widest text-slate-500">Ground Operations</div>
+            </div>
+          </div>
+          <div className="ml-auto text-right text-xs text-blue-900">
+            <div className="font-bold uppercase tracking-wide">IOS 428-01</div>
+            <div>Réf. : <span className="font-mono font-bold">IOS428-02#a5</span></div>
+          </div>
+        </div>
         <Card>
           <CardHeader><CardTitle className="text-primary">En-tête / Header</CardTitle></CardHeader>
           <CardContent className="grid gap-3 md:grid-cols-5">
@@ -371,9 +390,22 @@ function Form() {
         })}
 
         <Card>
-          <CardHeader><CardTitle className="text-primary">Synthèse / Findings</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="text-primary">Synthèse / Findings ({stats.findings.length})</CardTitle></CardHeader>
           <CardContent>
-            <Textarea rows={4} placeholder="Observations générales, plan d'actions correctives..." id="findings" />
+            <div className="min-h-[120px] rounded-md border-2 border-dashed border-slate-300 bg-slate-50 p-4">
+              {stats.findings.length === 0 ? (
+                <p className="text-sm italic text-slate-500">Aucun écart relevé. Les items répondus « No » apparaîtront ici automatiquement.</p>
+              ) : (
+                <ul className="space-y-1.5 text-sm text-slate-800">
+                  {stats.findings.map((f) => (
+                    <li key={f.ref} className="flex gap-2">
+                      <span className="font-mono font-bold text-red-600">— {f.ref}</span>
+                      <span>{f.text}{f.remark ? ` — ${f.remark}` : ""}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
           </CardContent>
         </Card>
 

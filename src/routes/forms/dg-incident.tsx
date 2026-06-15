@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SubmitEmailDialog } from "@/components/submit-email-dialog";
 import { Send, RotateCcw, AlertTriangle } from "lucide-react";
+import { iataDgrEdition } from "@/lib/iata";
 
 export const Route = createFileRoute("/forms/dg-incident")({
   head: () => ({ meta: [{ title: "DG Incident / Accident Report — IATA DGR" }] }),
@@ -76,7 +77,7 @@ function Form() {
   return (
     <PageShell
       title="DG Incident / Accident Report"
-      subtitle="Rapport d'incident / accident marchandises dangereuses — IATA DGR 65th Ed., Jan 2024"
+      subtitle={iataDgrEdition().label}
     >
       <div className="space-y-5">
         {/* Banner */}

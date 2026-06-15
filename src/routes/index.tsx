@@ -1,13 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
-import {
-  FileText,
-  Users,
-  Shield,
-  BookOpen,
-  TrendingUp,
-} from "lucide-react";
+import { FileText, Users, Shield, BookOpen, TrendingUp } from "lucide-react";
 import { usePageTitle } from "@/lib/page-title";
 import { events } from "@/lib/safety-data";
+import { useAuth } from "@/lib/auth";
+import { UserDashboard } from "@/components/user-dashboard";
+import { useI18n } from "@/lib/i18n";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -28,7 +25,13 @@ interface Kpi {
 }
 
 function Home() {
-  usePageTitle("Tableau de Bord", "Vue d'ensemble des operations sol & conformite");
+  const { t } = useI18n();
+  const { user } = useAuth();
+  usePageTitle(t("welcome"), t("welcome_desc"));
+
+  if (user && user.role !== "admin") {
+    return <UserDashboard />;
+  }
 
   const open = events.filter((e) => e.statut === "EN COURS").length;
   const closed = events.filter((e) => e.statut === "CLÔTURÉ").length;

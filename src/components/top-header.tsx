@@ -1,9 +1,12 @@
-import { useEffect, useState } from "react";
-import { Bell, Clock, LogOut, Plane } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Bell, Clock, LogOut, Plane, FileText, RefreshCw, BookOpen } from "lucide-react";
 import { usePageMeta } from "@/lib/page-title";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { useAuth } from "@/lib/auth";
-import { useNavigate } from "@tanstack/react-router";
+import { useNavigate, useRouterState } from "@tanstack/react-router";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { buildNotifications, markRead, type Notif } from "@/lib/notifications";
+import { useI18n } from "@/lib/i18n";
 
 function pad(n: number) {
   return n.toString().padStart(2, "0");
@@ -15,9 +18,10 @@ function useClock() {
     const id = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(id);
   }, []);
-  const utc = `${pad(now.getUTCHours())}:${pad(now.getUTCMinutes())}Z`;
-  const lcl = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
-  return { utc, lcl };
+  return {
+    utc: `${pad(now.getUTCHours())}:${pad(now.getUTCMinutes())}Z`,
+    lcl: `${pad(now.getHours())}:${pad(now.getMinutes())}`,
+  };
 }
 
 function Cloud({ className, style }: { className?: string; style?: React.CSSProperties }) {
@@ -36,24 +40,27 @@ export function TopHeader() {
   const { meta } = usePageMeta();
   const { utc, lcl } = useClock();
   const { user, logout } = useAuth();
+  const { t } = useI18n();
   const nav = useNavigate();
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+
+  const [notifs, setNotifs] = useState<Notif[]>([]);
+  const refresh = () => { if (user) setNotifs(buildNotifications(user.email)); };
+  useEffect(() => { refresh(); }, [user, pathname]);
+
+  const count = useMemo(() => notifs.length, [notifs]);
 
   return (
     <header className="sticky top-0 z-30 overflow-hidden border-b">
-      {/* Animated sky background */}
       <div
         aria-hidden="true"
         className="absolute inset-0 -z-10"
-        style={{
-          background:
-            "linear-gradient(180deg, #cfeaff 0%, #e6f3ff 60%, #ffffff 100%)",
-        }}
+        style={{ background: "linear-gradient(180deg, #cfeaff 0%, #e6f3ff 60%, #ffffff 100%)" }}
       >
         <Cloud className="ts-cloud absolute top-2 h-6 w-16 opacity-90" style={{ animationDuration: "38s", animationDelay: "-4s", left: 0 }} />
         <Cloud className="ts-cloud absolute top-6 h-4 w-12 opacity-75" style={{ animationDuration: "55s", animationDelay: "-22s", left: 0 }} />
         <Cloud className="ts-cloud absolute top-1 h-5 w-14 opacity-80" style={{ animationDuration: "47s", animationDelay: "-12s", left: 0 }} />
         <Cloud className="ts-cloud absolute top-9 h-3 w-10 opacity-70" style={{ animationDuration: "62s", animationDelay: "-30s", left: 0 }} />
-        {/* Tunisair plane */}
         <div className="ts-plane absolute top-3" style={{ left: 0 }}>
           <div className="flex items-center gap-1 rounded-full bg-white/70 px-2 py-1 shadow-sm backdrop-blur-sm">
             <Plane className="h-4 w-4 -rotate-12 text-blue-700" />
@@ -65,7 +72,6 @@ export function TopHeader() {
       <div className="relative flex h-16 items-center gap-3 px-4 md:px-6">
         <SidebarTrigger className="md:hidden" />
 
-        {/* Tunisair logo */}
         <div className="flex shrink-0 items-center gap-2 rounded-lg bg-white/70 px-2 py-1 shadow-sm backdrop-blur">
           <span className="grid h-8 w-8 place-items-center rounded-md bg-blue-600 text-white">
             <Plane className="h-4 w-4 -rotate-12" />
@@ -95,10 +101,56 @@ export function TopHeader() {
           </div>
         </div>
 
-        <button type="button" className="relative grid h-9 w-9 place-items-center rounded-full bg-white/70 text-slate-500 shadow-sm backdrop-blur hover:bg-white" aria-label="Notifications">
-          <Bell className="h-5 w-5" />
-          <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-red-500" />
-        </button>
+        <Popover>
+          <PopoverTrigger asChild>
+            <button
+              type="button"
+              className="relative grid h-9 w-9 place-items-center rounded-full bg-white/70 text-slate-500 shadow-sm backdrop-blur hover:bg-white"
+              aria-label={t("notifications")}
+              onClick={refresh}
+            >
+              <Bell className="h-5 w-5" />
+              {count > 0 && (
+                <span className="absolute -right-0.5 -top-0.5 grid h-4 min-w-4 animate-pulse place-items-center rounded-full bg-red-500 px-1 text-[9px] font-bold text-white">
+                  {count > 9 ? "9+" : count}
+                </span>
+              )}
+            </button>
+          </PopoverTrigger>
+          <PopoverContent align="end" className="w-80 p-0">
+            <div className="border-b px-4 py-2 text-sm font-semibold">{t("notifications")} ({count})</div>
+            <div className="max-h-80 overflow-y-auto">
+              {notifs.length === 0 && (
+                <div className="px-4 py-6 text-center text-sm text-slate-500">{t("no_notifications")}</div>
+              )}
+              {notifs.map((n) => (
+                <button
+                  key={n.id}
+                  type="button"
+                  onClick={() => {
+                    if (user) markRead(user.email, n.doc.id);
+                    window.open(n.doc.url, "_blank");
+                    refresh();
+                  }}
+                  className="flex w-full items-start gap-2 border-b px-4 py-2 text-left text-sm hover:bg-slate-50"
+                >
+                  {n.kind === "new" && <FileText className="mt-0.5 h-4 w-4 shrink-0 text-blue-600" />}
+                  {n.kind === "updated" && <RefreshCw className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />}
+                  {n.kind === "unread" && <BookOpen className="mt-0.5 h-4 w-4 shrink-0 text-red-600" />}
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate font-medium">{n.doc.title}</div>
+                    <div className="text-[11px] text-slate-500">
+                      {n.kind === "new" && t("notif_new")}
+                      {n.kind === "updated" && t("notif_updated")}
+                      {n.kind === "unread" && t("notif_unread")}
+                      {" · "}{n.doc.reference} · {n.doc.version}
+                    </div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </PopoverContent>
+        </Popover>
 
         {user && (
           <div className="hidden items-center gap-2 rounded-lg bg-white/80 px-3 py-1 shadow-sm backdrop-blur md:flex">
@@ -115,7 +167,7 @@ export function TopHeader() {
             <button
               onClick={() => { logout(); nav({ to: "/login" }); }}
               className="grid h-9 w-9 cursor-pointer place-items-center rounded-full text-slate-500 hover:bg-red-50 hover:text-red-600"
-              title="Se déconnecter"
+              title={t("logout")}
             >
               <LogOut className="h-4 w-4" />
             </button>
