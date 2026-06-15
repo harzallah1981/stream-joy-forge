@@ -9,38 +9,140 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as LoginRouteImport } from './routes/login'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as SafetySpiRouteImport } from './routes/safety/spi'
+import { Route as SafetyEventsRouteImport } from './routes/safety/events'
+import { Route as PageSlugRouteImport } from './routes/page.$slug'
+import { Route as FormsIos42801RouteImport } from './routes/forms/ios-428-01'
+import { Route as FormsDgIncidentRouteImport } from './routes/forms/dg-incident'
+import { Route as FormsAhm650RouteImport } from './routes/forms/ahm-650'
 
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SafetySpiRoute = SafetySpiRouteImport.update({
+  id: '/safety/spi',
+  path: '/safety/spi',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SafetyEventsRoute = SafetyEventsRouteImport.update({
+  id: '/safety/events',
+  path: '/safety/events',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PageSlugRoute = PageSlugRouteImport.update({
+  id: '/page/$slug',
+  path: '/page/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FormsIos42801Route = FormsIos42801RouteImport.update({
+  id: '/forms/ios-428-01',
+  path: '/forms/ios-428-01',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FormsDgIncidentRoute = FormsDgIncidentRouteImport.update({
+  id: '/forms/dg-incident',
+  path: '/forms/dg-incident',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FormsAhm650Route = FormsAhm650RouteImport.update({
+  id: '/forms/ahm-650',
+  path: '/forms/ahm-650',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/login': typeof LoginRoute
+  '/forms/ahm-650': typeof FormsAhm650Route
+  '/forms/dg-incident': typeof FormsDgIncidentRoute
+  '/forms/ios-428-01': typeof FormsIos42801Route
+  '/page/$slug': typeof PageSlugRoute
+  '/safety/events': typeof SafetyEventsRoute
+  '/safety/spi': typeof SafetySpiRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/login': typeof LoginRoute
+  '/forms/ahm-650': typeof FormsAhm650Route
+  '/forms/dg-incident': typeof FormsDgIncidentRoute
+  '/forms/ios-428-01': typeof FormsIos42801Route
+  '/page/$slug': typeof PageSlugRoute
+  '/safety/events': typeof SafetyEventsRoute
+  '/safety/spi': typeof SafetySpiRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/login': typeof LoginRoute
+  '/forms/ahm-650': typeof FormsAhm650Route
+  '/forms/dg-incident': typeof FormsDgIncidentRoute
+  '/forms/ios-428-01': typeof FormsIos42801Route
+  '/page/$slug': typeof PageSlugRoute
+  '/safety/events': typeof SafetyEventsRoute
+  '/safety/spi': typeof SafetySpiRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/login'
+    | '/forms/ahm-650'
+    | '/forms/dg-incident'
+    | '/forms/ios-428-01'
+    | '/page/$slug'
+    | '/safety/events'
+    | '/safety/spi'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/login'
+    | '/forms/ahm-650'
+    | '/forms/dg-incident'
+    | '/forms/ios-428-01'
+    | '/page/$slug'
+    | '/safety/events'
+    | '/safety/spi'
+  id:
+    | '__root__'
+    | '/'
+    | '/login'
+    | '/forms/ahm-650'
+    | '/forms/dg-incident'
+    | '/forms/ios-428-01'
+    | '/page/$slug'
+    | '/safety/events'
+    | '/safety/spi'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  LoginRoute: typeof LoginRoute
+  FormsAhm650Route: typeof FormsAhm650Route
+  FormsDgIncidentRoute: typeof FormsDgIncidentRoute
+  FormsIos42801Route: typeof FormsIos42801Route
+  PageSlugRoute: typeof PageSlugRoute
+  SafetyEventsRoute: typeof SafetyEventsRoute
+  SafetySpiRoute: typeof SafetySpiRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -48,11 +150,60 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/safety/spi': {
+      id: '/safety/spi'
+      path: '/safety/spi'
+      fullPath: '/safety/spi'
+      preLoaderRoute: typeof SafetySpiRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/safety/events': {
+      id: '/safety/events'
+      path: '/safety/events'
+      fullPath: '/safety/events'
+      preLoaderRoute: typeof SafetyEventsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/page/$slug': {
+      id: '/page/$slug'
+      path: '/page/$slug'
+      fullPath: '/page/$slug'
+      preLoaderRoute: typeof PageSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/forms/ios-428-01': {
+      id: '/forms/ios-428-01'
+      path: '/forms/ios-428-01'
+      fullPath: '/forms/ios-428-01'
+      preLoaderRoute: typeof FormsIos42801RouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/forms/dg-incident': {
+      id: '/forms/dg-incident'
+      path: '/forms/dg-incident'
+      fullPath: '/forms/dg-incident'
+      preLoaderRoute: typeof FormsDgIncidentRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/forms/ahm-650': {
+      id: '/forms/ahm-650'
+      path: '/forms/ahm-650'
+      fullPath: '/forms/ahm-650'
+      preLoaderRoute: typeof FormsAhm650RouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  LoginRoute: LoginRoute,
+  FormsAhm650Route: FormsAhm650Route,
+  FormsDgIncidentRoute: FormsDgIncidentRoute,
+  FormsIos42801Route: FormsIos42801Route,
+  PageSlugRoute: PageSlugRoute,
+  SafetyEventsRoute: SafetyEventsRoute,
+  SafetySpiRoute: SafetySpiRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
