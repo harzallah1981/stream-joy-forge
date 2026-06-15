@@ -95,6 +95,49 @@ export const dict: Dict = {
     fr: "Vue d'ensemble des operations sol & conformite",
     en: "Overview of ground operations & compliance",
   },
+
+  // User dashboard
+  my_dashboard: { fr: "Mon Tableau de Bord", en: "My Dashboard" },
+  my_dashboard_desc: { fr: "Suivi de mes lectures documentaires", en: "Track of my document reading" },
+  docs_total: { fr: "Documents disponibles", en: "Available documents" },
+  docs_read: { fr: "Documents lus", en: "Documents read" },
+  docs_unread: { fr: "Documents à lire", en: "Documents to read" },
+  read_now: { fr: "Lire maintenant", en: "Read now" },
+  next_doc: { fr: "Suivant", en: "Next" },
+  mark_read: { fr: "Marquer comme lu", en: "Mark as read" },
+  close: { fr: "Fermer", en: "Close" },
+  unread_alert: { fr: "Vous avez des documents non lus", en: "You have unread documents" },
+
+  // Notifications
+  notifications: { fr: "Notifications", en: "Notifications" },
+  no_notifications: { fr: "Aucune notification", en: "No notifications" },
+  notif_new: { fr: "Nouveau document", en: "New document" },
+  notif_updated: { fr: "Document mis à jour", en: "Document updated" },
+  notif_unread: { fr: "Non lu", en: "Unread" },
+
+  // Conformité section (home)
+  kpi_docs: { fr: "Documents en diffusion", en: "Documents in circulation" },
+  kpi_personnel: { fr: "Personnel total", en: "Total personnel" },
+  kpi_events: { fr: "Evenements securite", en: "Safety events" },
+  kpi_training: { fr: "Prochaine formation", en: "Next training" },
+  conformite_doc: { fr: "Conformite Documentation", en: "Documentation compliance" },
+  conformite_formation: { fr: "Conformite Formation Personnel", en: "Personnel training compliance" },
+  resume_safety: { fr: "Resume Securite — Ground Safety 2026", en: "Safety Summary — Ground Safety 2026" },
+  events_open: { fr: "Evenements en cours", en: "Open events" },
+  events_closed: { fr: "Evenements clotures", en: "Closed events" },
+  events_total: { fr: "Total evenements", en: "Total events" },
+
+  // Admin safety controls
+  edit_status: { fr: "Modifier statut", en: "Edit status" },
+  edit_category: { fr: "Modifier catégorie", en: "Edit category" },
+  add_year: { fr: "Nouvelle année", en: "New year" },
+  edit: { fr: "Modifier", en: "Edit" },
+  save: { fr: "Enregistrer", en: "Save" },
+
+  // IOS form
+  reg_ref: { fr: "Référence réglementaire", en: "Regulatory reference" },
+  synthesis_findings: { fr: "Synthèse / Findings", en: "Synthesis / Findings" },
+  no_findings: { fr: "Aucun écart relevé", en: "No findings recorded" },
 };
 
 interface I18nCtx {
