@@ -76,7 +76,7 @@ export function AppSidebar() {
   const isAdmin = user?.role === "admin";
   const groups: MenuGroup[] = isAdmin
     ? MENU_GROUPS
-    : MENU_GROUPS.filter((g) => g.key === "documentation");
+    : MENU_GROUPS.filter((g) => g.key === "dashboard" || g.key === "documentation");
 
   const initial = (user?.username ?? "U").slice(0, 1).toUpperCase();
 
