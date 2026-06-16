@@ -291,7 +291,7 @@ function Form() {
           <Stat label="Conformes" value={stats.yes} tone="green" />
           <Stat label="Écarts" value={stats.no} tone="red" />
           <Stat label="N/A · Non audité" value={stats.na} tone="amber" />
-          <Stat label="Conformité" value={`${stats.rate}%`} tone="blue" />
+          <Stat label="Conformité" value={`${stats.rate.toFixed(2)}%`} tone="blue" />
         </div>
 
         {SECTIONS.map((s) => {
