@@ -39,7 +39,11 @@ function ResetPasswordPage() {
     if (!acc) { setErr(t("email_unknown")); return; }
     if (pw !== pw2) { setErr(t("password_mismatch")); return; }
     const v = validateStrongPassword(pw);
-    if (v) { setErr(t(`pw_rule_${v.replace("need_", "").replace("min_8", "min8")}` === "pw_rule_min8" ? "pw_rule_min8" : `pw_rule_${v.replace("need_", "")}`)); return; }
+    if (v) {
+      const key = v === "min_8" ? "pw_rule_min8" : `pw_rule_${v.replace("need_", "")}`;
+      setErr(t(key));
+      return;
+    }
     resetPassword(acc.email, pw);
     toast.success(t("password_updated"));
     nav({ to: "/login" });
