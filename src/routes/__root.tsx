@@ -127,14 +127,14 @@ function AppGate() {
   const { user, ready } = useAuth();
   const nav = useNavigate();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const isLogin = pathname === "/login";
+  const isPublic = pathname === "/login" || pathname === "/reset-password";
 
   useEffect(() => {
-    if (ready && !user && !isLogin) nav({ to: "/login" });
-  }, [ready, user, isLogin, nav]);
+    if (ready && !user && !isPublic) nav({ to: "/login" });
+  }, [ready, user, isPublic, nav]);
 
   if (!ready) return null;
-  if (isLogin) {
+  if (isPublic) {
     return (
       <>
         <Outlet />
