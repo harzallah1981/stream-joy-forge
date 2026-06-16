@@ -18,6 +18,7 @@ import { PageTitleProvider } from "@/lib/page-title";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
 import { TopHeader } from "@/components/top-header";
+import { ForcePasswordChangeModal } from "@/components/force-password-change";
 import { Toaster } from "@/components/ui/sonner";
 import { AuthProvider, useAuth } from "@/lib/auth";
 
@@ -126,14 +127,14 @@ function AppGate() {
   const { user, ready } = useAuth();
   const nav = useNavigate();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const isLogin = pathname === "/login";
+  const isPublic = pathname === "/login" || pathname === "/reset-password";
 
   useEffect(() => {
-    if (ready && !user && !isLogin) nav({ to: "/login" });
-  }, [ready, user, isLogin, nav]);
+    if (ready && !user && !isPublic) nav({ to: "/login" });
+  }, [ready, user, isPublic, nav]);
 
   if (!ready) return null;
-  if (isLogin) {
+  if (isPublic) {
     return (
       <>
         <Outlet />
@@ -155,6 +156,7 @@ function AppGate() {
         </div>
       </div>
       <Toaster richColors closeButton position="top-right" />
+      <ForcePasswordChangeModal />
     </SidebarProvider>
   );
 }

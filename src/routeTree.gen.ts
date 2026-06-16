@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as SafetySpiRouteImport } from './routes/safety/spi'
@@ -18,6 +19,11 @@ import { Route as FormsIos42801RouteImport } from './routes/forms/ios-428-01'
 import { Route as FormsDgIncidentRouteImport } from './routes/forms/dg-incident'
 import { Route as FormsAhm650RouteImport } from './routes/forms/ahm-650'
 
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
@@ -62,6 +68,7 @@ const FormsAhm650Route = FormsAhm650RouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/forms/ahm-650': typeof FormsAhm650Route
   '/forms/dg-incident': typeof FormsDgIncidentRoute
   '/forms/ios-428-01': typeof FormsIos42801Route
@@ -72,6 +79,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/forms/ahm-650': typeof FormsAhm650Route
   '/forms/dg-incident': typeof FormsDgIncidentRoute
   '/forms/ios-428-01': typeof FormsIos42801Route
@@ -83,6 +91,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/forms/ahm-650': typeof FormsAhm650Route
   '/forms/dg-incident': typeof FormsDgIncidentRoute
   '/forms/ios-428-01': typeof FormsIos42801Route
@@ -95,6 +104,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/login'
+    | '/reset-password'
     | '/forms/ahm-650'
     | '/forms/dg-incident'
     | '/forms/ios-428-01'
@@ -105,6 +115,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/login'
+    | '/reset-password'
     | '/forms/ahm-650'
     | '/forms/dg-incident'
     | '/forms/ios-428-01'
@@ -115,6 +126,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/login'
+    | '/reset-password'
     | '/forms/ahm-650'
     | '/forms/dg-incident'
     | '/forms/ios-428-01'
@@ -126,6 +138,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   LoginRoute: typeof LoginRoute
+  ResetPasswordRoute: typeof ResetPasswordRoute
   FormsAhm650Route: typeof FormsAhm650Route
   FormsDgIncidentRoute: typeof FormsDgIncidentRoute
   FormsIos42801Route: typeof FormsIos42801Route
@@ -136,6 +149,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/login': {
       id: '/login'
       path: '/login'
@@ -198,6 +218,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   LoginRoute: LoginRoute,
+  ResetPasswordRoute: ResetPasswordRoute,
   FormsAhm650Route: FormsAhm650Route,
   FormsDgIncidentRoute: FormsDgIncidentRoute,
   FormsIos42801Route: FormsIos42801Route,

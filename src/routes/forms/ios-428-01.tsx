@@ -244,7 +244,8 @@ function Form() {
       else if (c === "Not Applicable" || c === "Not Audited") na++;
     }
     // Conformity rate over audited items only (excludes N/A and unanswered).
-    const rate = audited > 0 ? Math.round((yes / audited) * 100) : 0;
+    // Rounded to 2 decimal places, e.g. 1/147 → 0.68%.
+    const rate = audited > 0 ? Math.round((yes / audited) * 10000) / 100 : 0;
     return { yes, no, na, total, audited, rate, findings };
   }, [answers]);
 
@@ -290,7 +291,7 @@ function Form() {
           <Stat label="Conformes" value={stats.yes} tone="green" />
           <Stat label="Écarts" value={stats.no} tone="red" />
           <Stat label="N/A · Non audité" value={stats.na} tone="amber" />
-          <Stat label="Conformité" value={`${stats.rate}%`} tone="blue" />
+          <Stat label="Conformité" value={`${stats.rate.toFixed(2)}%`} tone="blue" />
         </div>
 
         {SECTIONS.map((s) => {
