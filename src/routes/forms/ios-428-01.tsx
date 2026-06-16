@@ -244,7 +244,8 @@ function Form() {
       else if (c === "Not Applicable" || c === "Not Audited") na++;
     }
     // Conformity rate over audited items only (excludes N/A and unanswered).
-    const rate = audited > 0 ? Math.round((yes / audited) * 100) : 0;
+    // Rounded to 2 decimal places, e.g. 1/147 → 0.68%.
+    const rate = audited > 0 ? Math.round((yes / audited) * 10000) / 100 : 0;
     return { yes, no, na, total, audited, rate, findings };
   }, [answers]);
 
