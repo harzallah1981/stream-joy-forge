@@ -87,15 +87,8 @@ export const MENU_GROUPS: MenuGroup[] = [
       },
     ],
   },
-  {
-    key: "personnel",
-    label: "personnel",
-    icon: Users,
-    items: [
-      { key: "liste_personnel", to: stub("liste-personnel") },
-      { key: "suivi_formation", to: stub("suivi-formation") },
-    ],
-  },
+  // "Personnel & Formation" section removed per request
+
   {
     key: "safety",
     label: "safety",
