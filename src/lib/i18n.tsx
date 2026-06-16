@@ -138,6 +138,44 @@ export const dict: Dict = {
   reg_ref: { fr: "Référence réglementaire", en: "Regulatory reference" },
   synthesis_findings: { fr: "Synthèse / Findings", en: "Synthesis / Findings" },
   no_findings: { fr: "Aucun écart relevé", en: "No findings recorded" },
+
+  // Login / Auth
+  login_title: { fr: "Connexion", en: "Sign in" },
+  login_subtitle: { fr: "Connexion / Sign in", en: "Sign in" },
+  email_or_username: { fr: "Email ou nom d'utilisateur", en: "Email or username" },
+  password: { fr: "Mot de passe", en: "Password" },
+  sign_in: { fr: "Se connecter", en: "Sign in" },
+  forgot_password: { fr: "Mot de passe oublié ?", en: "Forgot password?" },
+  forgot_title: { fr: "Réinitialiser le mot de passe", en: "Reset password" },
+  forgot_desc: {
+    fr: "Saisissez votre email pour recevoir un lien de réinitialisation.",
+    en: "Enter your email to receive a reset link.",
+  },
+  send_reset_link: { fr: "Envoyer le lien", en: "Send link" },
+  reset_link_sent: {
+    fr: "Lien de réinitialisation envoyé. Ouverture de la page sécurisée…",
+    en: "Reset link sent. Opening secure page…",
+  },
+  email_unknown: { fr: "Email inconnu", en: "Unknown email" },
+  reset_title: { fr: "Définir un nouveau mot de passe", en: "Set a new password" },
+  new_password: { fr: "Nouveau mot de passe", en: "New password" },
+  confirm_password: { fr: "Confirmer le mot de passe", en: "Confirm password" },
+  current_password: { fr: "Mot de passe actuel", en: "Current password" },
+  password_updated: { fr: "Mot de passe mis à jour", en: "Password updated" },
+  password_mismatch: { fr: "Les mots de passe ne correspondent pas", en: "Passwords do not match" },
+  must_change_title: { fr: "Changement de mot de passe requis", en: "Password change required" },
+  must_change_desc: {
+    fr: "Pour des raisons de sécurité, vous devez changer votre mot de passe avant d'accéder à l'application.",
+    en: "For security reasons, you must change your password before using the app.",
+  },
+  pw_rule_min8: { fr: "Au moins 8 caractères", en: "At least 8 characters" },
+  pw_rule_upper: { fr: "Une lettre majuscule", en: "One uppercase letter" },
+  pw_rule_lower: { fr: "Une lettre minuscule", en: "One lowercase letter" },
+  pw_rule_digit: { fr: "Un chiffre", en: "One digit" },
+  pw_rule_special: { fr: "Un caractère spécial", en: "One special character" },
+  wrong_current_password: { fr: "Mot de passe actuel incorrect", en: "Incorrect current password" },
+  language_fr: { fr: "Français", en: "French" },
+  language_en: { fr: "Anglais", en: "English" },
 };
 
 interface I18nCtx {
