@@ -433,6 +433,23 @@ function UploadDialog({
 }
 
 /* ============== Admin: User management page ============== */
+
+const TYPE_LABELS: Record<UserType, string> = {
+  admin: "Admin",
+  internal_standard: "Interne Standard",
+  internal_manager: "Interne Gestionnaire",
+  external: "Externe",
+};
+
+const TYPE_BADGE: Record<UserType, string> = {
+  admin: "bg-red-100 text-red-700",
+  internal_standard: "bg-blue-100 text-blue-700",
+  internal_manager: "bg-indigo-100 text-indigo-700",
+  external: "bg-amber-100 text-amber-700",
+};
+
+type TabKey = "all" | UserType;
+
 function UserManagementPage() {
   const { user } = useAuth();
   const isAdmin = user?.role === "admin";
@@ -441,14 +458,61 @@ function UserManagementPage() {
   const [refresh, setRefresh] = useState(0);
   const users = useMemo(() => loadUsers(), [refresh]);
   const [open, setOpen] = useState(false);
+  const [editing, setEditing] = useState<StoredUser | null>(null);
+  const [tab, setTab] = useState<TabKey>("all");
+  const importInput = useRef<HTMLInputElement>(null);
 
   if (!isAdmin) {
-    return (
-      <div className="p-8 text-sm text-slate-600">
-        🔒 Accès réservé aux administrateurs.
-      </div>
-    );
+    return <div className="p-8 text-sm text-slate-600">🔒 Accès réservé aux administrateurs.</div>;
   }
+
+  const filtered = tab === "all" ? users : users.filter((u) => u.userType === tab);
+  const counts: Record<TabKey, number> = {
+    all: users.length,
+    admin: users.filter((u) => u.userType === "admin").length,
+    internal_standard: users.filter((u) => u.userType === "internal_standard").length,
+    internal_manager: users.filter((u) => u.userType === "internal_manager").length,
+    external: users.filter((u) => u.userType === "external").length,
+  };
+  const TABS: { key: TabKey; label: string }[] = [
+    { key: "all", label: "Tous" },
+    { key: "internal_standard", label: "Internes Standard" },
+    { key: "internal_manager", label: "Internes Gestionnaire" },
+    { key: "external", label: "Externes" },
+    { key: "admin", label: "Admin" },
+  ];
+
+  const handleImportExcel = async (file: File) => {
+    try {
+      const buf = await file.arrayBuffer();
+      const wb = XLSX.read(buf, { type: "array" });
+      const sheet = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, { defval: "" });
+      let added = 0;
+      for (const r of rows) {
+        const email = String(r.email ?? r.Email ?? "").trim();
+        const username = String(r.username ?? r.Username ?? r.nom ?? "").trim();
+        if (!email || !username) continue;
+        const rawType = String(r.type ?? r.userType ?? r["type d'utilisateur"] ?? "internal_standard")
+          .toLowerCase().trim().replace(/[ -]/g, "_");
+        const userType: UserType =
+          rawType === "admin" ? "admin" :
+          rawType === "external" || rawType === "externe" ? "external" :
+          rawType === "internal_manager" || rawType.includes("gestionnaire") ? "internal_manager" :
+          "internal_standard";
+        const modulesRaw = String(r.modules ?? "").trim();
+        const modules = modulesRaw
+          ? modulesRaw.split(/[;,|]/).map((s) => s.trim()).filter(Boolean)
+          : defaultModulesFor(userType);
+        addUser({ email, username, userType, modules, org: String(r.org ?? r.organisation ?? "").trim() });
+        added++;
+      }
+      toast.success(`${added} utilisateur(s) importé(s) depuis Excel`);
+      setRefresh((x) => x + 1);
+    } catch (e) {
+      toast.error("Échec de l'import Excel : " + (e instanceof Error ? e.message : "format invalide"));
+    }
+  };
 
   return (
     <div className="p-4 md:p-6 lg:p-8">
@@ -458,12 +522,52 @@ function UserManagementPage() {
           <span className="rounded-full bg-blue-50 px-2 py-0.5 text-[11px] font-semibold text-blue-700">
             {users.length} compte{users.length > 1 ? "s" : ""}
           </span>
-          <Button
-            onClick={() => setOpen(true)}
-            className="ml-auto h-9 cursor-pointer gap-1.5 rounded-full bg-blue-600 hover:bg-blue-700"
-          >
-            <UserPlus className="h-4 w-4" /> Ajouter un utilisateur
-          </Button>
+          <div className="ml-auto flex items-center gap-2">
+            <input
+              ref={importInput}
+              type="file"
+              accept=".xlsx,.xls,.csv"
+              className="hidden"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) handleImportExcel(f);
+                if (importInput.current) importInput.current.value = "";
+              }}
+            />
+            <Button
+              variant="outline"
+              onClick={() => importInput.current?.click()}
+              className="h-9 cursor-pointer gap-1.5 rounded-full"
+              title="Colonnes attendues : email, username, type, modules (séparés par ;), org"
+            >
+              <FileSpreadsheet className="h-4 w-4" /> Importer Excel
+            </Button>
+            <Button
+              onClick={() => setOpen(true)}
+              className="h-9 cursor-pointer gap-1.5 rounded-full bg-blue-600 hover:bg-blue-700"
+            >
+              <UserPlus className="h-4 w-4" /> Ajouter un utilisateur
+            </Button>
+          </div>
+        </div>
+
+        <div className="flex flex-wrap gap-1 border-b border-slate-200 px-5 py-2">
+          {TABS.map((tk) => (
+            <button
+              key={tk.key}
+              type="button"
+              onClick={() => setTab(tk.key)}
+              className={
+                "cursor-pointer rounded-full px-3 py-1 text-xs font-semibold transition-colors " +
+                (tab === tk.key
+                  ? "bg-blue-600 text-white"
+                  : "bg-slate-100 text-slate-700 hover:bg-slate-200")
+              }
+            >
+              {tk.label}{" "}
+              <span className="ml-1 rounded-full bg-white/30 px-1.5 text-[10px]">{counts[tk.key]}</span>
+            </button>
+          ))}
         </div>
 
         <div className="bg-slate-50 p-4">
@@ -473,28 +577,40 @@ function UserManagementPage() {
                 <tr className="border-b bg-slate-50 text-xs uppercase text-slate-500">
                   <th className="px-4 py-3 text-left font-semibold">Email</th>
                   <th className="px-4 py-3 text-left font-semibold">Utilisateur</th>
-                  <th className="px-4 py-3 text-left font-semibold">Rôle</th>
+                  <th className="px-4 py-3 text-left font-semibold">Type</th>
+                  <th className="px-4 py-3 text-left font-semibold">Modules</th>
                   <th className="px-4 py-3 text-left font-semibold">Organisation</th>
                   <th className="px-4 py-3 text-left font-semibold">Créé le</th>
                   <th className="px-4 py-3 text-right font-semibold">Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {users.length === 0 ? (
-                  <tr><td colSpan={6} className="py-10 text-center text-sm text-slate-500">Aucun utilisateur ajouté. Cliquez sur "Ajouter".</td></tr>
-                ) : users.map((u) => (
+                {filtered.length === 0 ? (
+                  <tr><td colSpan={7} className="py-10 text-center text-sm text-slate-500">Aucun utilisateur dans cette catégorie.</td></tr>
+                ) : filtered.map((u) => (
                   <tr key={u.id} className="border-b last:border-0 hover:bg-slate-50">
                     <td className="px-4 py-3 text-slate-900">{u.email}</td>
                     <td className="px-4 py-3 font-mono text-xs text-slate-700">{u.username}</td>
                     <td className="px-4 py-3">
-                      <span className={"rounded px-1.5 py-0.5 text-[10px] font-bold uppercase " + (
-                        u.role === "admin" ? "bg-red-100 text-red-700" :
-                        u.role === "internal" ? "bg-blue-100 text-blue-700" : "bg-amber-100 text-amber-700"
-                      )}>{u.role}</span>
+                      <span className={"rounded px-1.5 py-0.5 text-[10px] font-bold uppercase " + TYPE_BADGE[u.userType]}>
+                        {TYPE_LABELS[u.userType]}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-xs text-slate-600">
+                      {u.userType === "internal_standard"
+                        ? (u.modules.length ? u.modules.join(", ") : "—")
+                        : <span className="italic text-slate-400">par défaut</span>}
                     </td>
                     <td className="px-4 py-3 text-slate-700">{u.org}</td>
                     <td className="px-4 py-3 text-xs text-slate-500">{new Date(u.createdAt).toLocaleDateString()}</td>
                     <td className="px-4 py-3 text-right">
+                      <button
+                        onClick={() => setEditing(u)}
+                        className="cursor-pointer rounded p-1.5 text-slate-500 hover:bg-blue-50 hover:text-blue-700"
+                        title="Modifier"
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </button>
                       <button
                         onClick={() => { removeUser(u.id); setRefresh((r) => r + 1); toast.success("Utilisateur supprimé"); }}
                         className="cursor-pointer rounded p-1.5 text-slate-500 hover:bg-red-50 hover:text-red-700"
@@ -512,54 +628,106 @@ function UserManagementPage() {
       </div>
 
       {open && (
-        <AddUserDialog
+        <UserDialog
+          mode="add"
           onCancel={() => setOpen(false)}
-          onAdd={(u) => { addUser(u); setOpen(false); setRefresh((r) => r + 1); toast.success("Utilisateur ajouté"); }}
+          onSave={(u) => { addUser(u); setOpen(false); setRefresh((r) => r + 1); toast.success("Utilisateur ajouté"); }}
+        />
+      )}
+      {editing && (
+        <UserDialog
+          mode="edit"
+          initial={editing}
+          onCancel={() => setEditing(null)}
+          onSave={(u) => { updateUser(editing.id, u); setEditing(null); setRefresh((r) => r + 1); toast.success("Utilisateur mis à jour"); }}
         />
       )}
     </div>
   );
 }
 
-function AddUserDialog({
-  onCancel, onAdd,
+type UserDialogPayload = { email: string; username: string; userType: UserType; modules: string[]; org: string };
+
+function UserDialog({
+  mode, initial, onCancel, onSave,
 }: {
+  mode: "add" | "edit";
+  initial?: StoredUser;
   onCancel: () => void;
-  onAdd: (u: Omit<StoredUser, "id" | "createdAt">) => void;
+  onSave: (u: UserDialogPayload) => void;
 }) {
-  const [email, setEmail] = useState("");
-  const [username, setUsername] = useState("");
-  const [role, setRole] = useState<"internal" | "external" | "admin">("internal");
-  const [org, setOrg] = useState("");
+  const [email, setEmail] = useState(initial?.email ?? "");
+  const [username, setUsername] = useState(initial?.username ?? "");
+  const [userType, setUserType] = useState<UserType>(initial?.userType ?? "internal_standard");
+  const [modules, setModules] = useState<string[]>(
+    initial?.modules ?? defaultModulesFor(initial?.userType ?? "internal_standard"),
+  );
+  const [org, setOrg] = useState(initial?.org ?? "");
+
+  const toggleModule = (k: string) =>
+    setModules((m) => (m.includes(k) ? m.filter((x) => x !== k) : [...m, k]));
+
+  const onTypeChange = (t: UserType) => {
+    setUserType(t);
+    setModules(defaultModulesFor(t));
+  };
+
   return (
     <Dialog open onOpenChange={(v) => !v && onCancel()}>
       <DialogContent>
-        <DialogHeader><DialogTitle>Ajouter un utilisateur</DialogTitle></DialogHeader>
+        <DialogHeader>
+          <DialogTitle>{mode === "add" ? "Ajouter un utilisateur" : "Modifier l'utilisateur"}</DialogTitle>
+        </DialogHeader>
         <div className="space-y-3">
-          <div><Label>Email</Label><Input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="user@example.com" /></div>
+          <div><Label>Email</Label><Input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="user@example.com" disabled={mode === "edit"} /></div>
           <div><Label>Nom d'utilisateur</Label><Input value={username} onChange={(e) => setUsername(e.target.value)} /></div>
           <div>
-            <Label>Rôle</Label>
+            <Label>Type d'utilisateur</Label>
             <select
-              value={role}
-              onChange={(e) => setRole(e.target.value as "internal" | "external" | "admin")}
+              value={userType}
+              onChange={(e) => onTypeChange(e.target.value as UserType)}
               className="h-9 w-full cursor-pointer rounded-md border border-slate-200 px-3 text-sm"
             >
-              <option value="internal">Interne (Tunisair)</option>
-              <option value="external">Externe (Sous-traitant)</option>
-              <option value="admin">Administrateur</option>
+              <option value="admin">Admin — accès complet</option>
+              <option value="internal_standard">User Interne Standard — modules au choix</option>
+              <option value="internal_manager">User Interne Gestionnaire — lecture seule globale</option>
+              <option value="external">User Externe — documents internes (accusé)</option>
             </select>
+            <p className="mt-1 text-[11px] text-slate-500">
+              {userType === "admin" && "Accès total à toutes les fonctionnalités."}
+              {userType === "internal_standard" && "Accès uniquement à la Documentation par défaut. Cochez les modules supplémentaires ci-dessous."}
+              {userType === "internal_manager" && "Peut consulter tous les modules (lecture seule). Téléchargement autorisé uniquement pour la Documentation."}
+              {userType === "external" && "Accès aux documents internes avec accusé de réception obligatoire."}
+            </p>
           </div>
+          {userType === "internal_standard" && (
+            <div>
+              <Label>Modules accessibles</Label>
+              <div className="mt-1 grid grid-cols-2 gap-2 rounded-md border border-slate-200 bg-slate-50 p-3">
+                {AVAILABLE_MODULES.map((m) => (
+                  <label key={m.key} className="flex cursor-pointer items-center gap-2 text-xs">
+                    <input
+                      type="checkbox"
+                      className="h-3.5 w-3.5 cursor-pointer"
+                      checked={modules.includes(m.key)}
+                      onChange={() => toggleModule(m.key)}
+                    />
+                    {m.label}
+                  </label>
+                ))}
+              </div>
+            </div>
+          )}
           <div><Label>Organisation</Label><Input value={org} onChange={(e) => setOrg(e.target.value)} /></div>
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={onCancel} className="cursor-pointer">Annuler</Button>
           <Button
             disabled={!email || !username}
-            onClick={() => onAdd({ email, username, role, org })}
+            onClick={() => onSave({ email, username, userType, modules, org })}
             className="cursor-pointer bg-blue-600 hover:bg-blue-700"
           >
-            Ajouter
+            {mode === "add" ? "Ajouter" : "Enregistrer"}
           </Button>
         </DialogFooter>
       </DialogContent>
