@@ -233,18 +233,19 @@ function Form() {
   const [overrides, setOverrides] = useState<Record<string, { sev?: Sev; gom?: string }>>({});
 
   const stats = useMemo(() => {
-    let yes = 0, no = 0, na = 0, audited = 0, total = 0;
+    let yes = 0, no = 0, na = 0, total = 0;
     const findings: { ref: string; text: string; remark: string }[] = [];
     for (const s of SECTIONS) for (const i of s.items) {
       total++;
       const a = answers[i.ref];
       const c = a.conformity;
-      if (c === "Yes") { yes++; audited++; }
-      else if (c === "No") { no++; audited++; findings.push({ ref: i.ref, text: i.text, remark: a.remark }); }
-      else if (c === "Not Applicable" || c === "Not Audited") na++;
+      if (c === "Yes") yes++;
+      else if (c === "No") { no++; findings.push({ ref: i.ref, text: i.text, remark: a.remark }); }
+      else if (c === "Not Applicable") na++;
     }
-    // Conformity rate over audited items only (excludes N/A and unanswered).
+    // Conformity rate: CONFORMES / (total audited items, excluding N/A) × 100.
     // Rounded to 2 decimal places, e.g. 1/147 → 0.68%.
+    const audited = total - na;
     const rate = audited > 0 ? Math.round((yes / audited) * 10000) / 100 : 0;
     return { yes, no, na, total, audited, rate, findings };
   }, [answers]);
