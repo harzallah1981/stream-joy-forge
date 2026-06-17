@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Upload, FileText, Plus, Search, Download, Trash2, Eye, ShieldCheck, UserPlus } from "lucide-react";
+import { Upload, FileText, Plus, Search, Download, Trash2, Eye, ShieldCheck, UserPlus, Pencil, FileSpreadsheet } from "lucide-react";
 import { useMemo, useRef, useState } from "react";
+import * as XLSX from "xlsx";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,7 +15,11 @@ import {
   getDocsForCategory, loadUserDocs, saveUserDocs, fileToDataUrl, type DocItem,
 } from "@/lib/documents";
 import { addAck, loadAcks } from "@/lib/acknowledgements";
-import { loadUsers, addUser, removeUser, type StoredUser } from "@/lib/users-store";
+import {
+  loadUsers, addUser, updateUser, removeUser,
+  AVAILABLE_MODULES, defaultModulesFor,
+  type StoredUser, type UserType,
+} from "@/lib/users-store";
 import { toast } from "sonner";
 
 const SLUG_TO_KEY: Record<string, string> = {
