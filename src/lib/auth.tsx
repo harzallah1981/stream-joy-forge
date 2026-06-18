@@ -159,7 +159,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const raw = localStorage.getItem(KEY);
       if (raw) {
-        const u = JSON.parse(raw) as AuthUser;
+        const u = hydrateFromStore(JSON.parse(raw) as AuthUser);
         setUser(u);
         setMustChange(isMustChange(u.email));
       }
@@ -172,7 +172,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!acc) return { ok: false, error: "Identifiants invalides / Invalid credentials" };
     const effective = getEffectivePassword(acc.email);
     if (effective !== password) return { ok: false, error: "Identifiants invalides / Invalid credentials" };
-    const { password: _p, ...u } = acc;
+    const { password: _p, ...base } = acc;
+    const u = hydrateFromStore(base);
     setUser(u);
     localStorage.setItem(KEY, JSON.stringify(u));
     const mc = isMustChange(u.email);
