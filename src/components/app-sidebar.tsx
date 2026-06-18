@@ -72,11 +72,9 @@ export function AppSidebar() {
   const nav = useNavigate();
   const pathname = useRouterState({ select: (r) => r.location.pathname });
 
-  // Standard (non-admin) users see ONLY documentation + dashboard
+  // Visibility per user type / granted modules
   const isAdmin = user?.role === "admin";
-  const groups: MenuGroup[] = isAdmin
-    ? MENU_GROUPS
-    : MENU_GROUPS.filter((g) => g.key === "dashboard" || g.key === "documentation");
+  const groups: MenuGroup[] = MENU_GROUPS.filter((g) => canSeeGroup(g.key, user));
 
   const initial = (user?.username ?? "U").slice(0, 1).toUpperCase();
 
