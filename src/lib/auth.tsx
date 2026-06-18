@@ -1,7 +1,25 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { loadUsers, type UserType } from "./users-store";
 
 export type Role = "admin" | "internal" | "external";
-export type AuthUser = { email: string; username: string; role: Role; org: string };
+export type AuthUser = {
+  email: string;
+  username: string;
+  role: Role;
+  org: string;
+  userType?: UserType;
+  modules?: string[];
+};
+
+function hydrateFromStore(u: AuthUser): AuthUser {
+  try {
+    const stored = loadUsers().find((s) => s.email.toLowerCase() === u.email.toLowerCase());
+    if (stored) return { ...u, userType: stored.userType, modules: stored.modules, org: stored.org || u.org };
+  } catch {}
+  // Derive sensible default from legacy role
+  const fallback: UserType = u.role === "admin" ? "admin" : u.role === "external" ? "external" : "internal_standard";
+  return { ...u, userType: u.userType ?? fallback, modules: u.modules ?? (fallback === "admin" || fallback === "internal_manager" ? ["documentation","forms","safety","admin"] : ["documentation"]) };
+}
 
 const ACCOUNTS: Array<AuthUser & { password: string }> = [
   { email: "admin.ops@tunisair.com.tn", username: "admin_tunisair", password: "Admin2026!", role: "admin", org: "Tunisair Ground Ops" },
