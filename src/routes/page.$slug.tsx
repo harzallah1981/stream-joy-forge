@@ -87,12 +87,12 @@ function DocumentsPage({ slug }: { slug: string }) {
   };
 
   const requestAction = (doc: DocItem, action: "view" | "download") => {
-    if (isAdmin) {
-      // Admin: direct open / download
+    if (isAdmin || user?.userType === "internal_manager") {
+      // Admin / Manager: direct open / download (read-only access for manager)
       performAction(doc, action);
       return;
     }
-    // Non-admin must acknowledge first
+    // Standard / external must acknowledge first
     setAckTarget({ doc, action });
   };
 

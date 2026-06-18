@@ -1,7 +1,26 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { loadUsers, type UserType } from "./users-store";
 
 export type Role = "admin" | "internal" | "external";
-export type AuthUser = { email: string; username: string; role: Role; org: string };
+export type AuthUser = {
+  email: string;
+  username: string;
+  role: Role;
+  org: string;
+  userType?: UserType;
+  modules?: string[];
+};
+
+function hydrateFromStore(u: AuthUser): AuthUser {
+  try {
+    const stored = loadUsers().find((s) => s.email.toLowerCase() === u.email.toLowerCase());
+    if (stored) return { ...u, userType: stored.userType, modules: stored.modules, org: stored.org || u.org };
+  } catch {}
+  // Derive sensible default from legacy role
+  const fallback: UserType = u.role === "admin" ? "admin" : u.role === "external" ? "external" : "internal_standard";
+  const defaultMods = fallback === "admin" ? ["documentation","forms","safety","admin"] : ["documentation"];
+  return { ...u, userType: u.userType ?? fallback, modules: u.modules ?? defaultMods };
+}
 
 const ACCOUNTS: Array<AuthUser & { password: string }> = [
   { email: "admin.ops@tunisair.com.tn", username: "admin_tunisair", password: "Admin2026!", role: "admin", org: "Tunisair Ground Ops" },
@@ -140,7 +159,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const raw = localStorage.getItem(KEY);
       if (raw) {
-        const u = JSON.parse(raw) as AuthUser;
+        const u = hydrateFromStore(JSON.parse(raw) as AuthUser);
         setUser(u);
         setMustChange(isMustChange(u.email));
       }
@@ -153,7 +172,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!acc) return { ok: false, error: "Identifiants invalides / Invalid credentials" };
     const effective = getEffectivePassword(acc.email);
     if (effective !== password) return { ok: false, error: "Identifiants invalides / Invalid credentials" };
-    const { password: _p, ...u } = acc;
+    const { password: _p, ...base } = acc;
+    const u = hydrateFromStore(base);
     setUser(u);
     localStorage.setItem(KEY, JSON.stringify(u));
     const mc = isMustChange(u.email);

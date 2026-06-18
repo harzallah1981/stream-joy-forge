@@ -5,6 +5,7 @@ import { Sidebar, SidebarContent, SidebarHeader, SidebarFooter } from "@/compone
 import { MENU_GROUPS, type MenuNode, type MenuGroup } from "@/lib/menu";
 import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/lib/auth";
+import { canSeeGroup } from "@/lib/permissions";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -72,11 +73,9 @@ export function AppSidebar() {
   const nav = useNavigate();
   const pathname = useRouterState({ select: (r) => r.location.pathname });
 
-  // Standard (non-admin) users see ONLY documentation + dashboard
+  // Visibility per user type / granted modules
   const isAdmin = user?.role === "admin";
-  const groups: MenuGroup[] = isAdmin
-    ? MENU_GROUPS
-    : MENU_GROUPS.filter((g) => g.key === "dashboard" || g.key === "documentation");
+  const groups: MenuGroup[] = MENU_GROUPS.filter((g) => canSeeGroup(g.key, user));
 
   const initial = (user?.username ?? "U").slice(0, 1).toUpperCase();
 
