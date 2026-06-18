@@ -18,7 +18,8 @@ function hydrateFromStore(u: AuthUser): AuthUser {
   } catch {}
   // Derive sensible default from legacy role
   const fallback: UserType = u.role === "admin" ? "admin" : u.role === "external" ? "external" : "internal_standard";
-  return { ...u, userType: u.userType ?? fallback, modules: u.modules ?? (fallback === "admin" || fallback === "internal_manager" ? ["documentation","forms","safety","admin"] : ["documentation"]) };
+  const defaultMods = fallback === "admin" ? ["documentation","forms","safety","admin"] : ["documentation"];
+  return { ...u, userType: u.userType ?? fallback, modules: u.modules ?? defaultMods };
 }
 
 const ACCOUNTS: Array<AuthUser & { password: string }> = [
