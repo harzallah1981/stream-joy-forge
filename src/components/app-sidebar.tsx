@@ -5,6 +5,7 @@ import { Sidebar, SidebarContent, SidebarHeader, SidebarFooter } from "@/compone
 import { MENU_GROUPS, type MenuNode, type MenuGroup } from "@/lib/menu";
 import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/lib/auth";
+import { canSeeGroup } from "@/lib/permissions";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
