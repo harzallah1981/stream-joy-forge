@@ -651,7 +651,7 @@ function UserManagementPage() {
   );
 }
 
-type UserDialogPayload = { email: string; username: string; userType: UserType; modules: string[]; org: string };
+type UserDialogPayload = { email: string; emails: string[]; username: string; userType: UserType; modules: string[]; org: string; workplace: string; adminScope?: "principal" | "specific" };
 
 function UserDialog({
   mode, initial, onCancel, onSave,
@@ -662,12 +662,16 @@ function UserDialog({
   onSave: (u: UserDialogPayload) => void;
 }) {
   const [email, setEmail] = useState(initial?.email ?? "");
+  const [email2, setEmail2] = useState(initial?.emails?.[1] ?? "");
+  const [email3, setEmail3] = useState(initial?.emails?.[2] ?? "");
   const [username, setUsername] = useState(initial?.username ?? "");
   const [userType, setUserType] = useState<UserType>(initial?.userType ?? "internal_standard");
+  const [adminScope, setAdminScope] = useState<"principal" | "specific">(initial?.adminScope ?? "specific");
   const [modules, setModules] = useState<string[]>(
     initial?.modules ?? defaultModulesFor(initial?.userType ?? "internal_standard"),
   );
   const [org, setOrg] = useState(initial?.org ?? "");
+  const [workplace, setWorkplace] = useState(initial?.workplace ?? "");
 
   const toggleModule = (k: string) =>
     setModules((m) => (m.includes(k) ? m.filter((x) => x !== k) : [...m, k]));
@@ -684,8 +688,13 @@ function UserDialog({
           <DialogTitle>{mode === "add" ? "Ajouter un utilisateur" : "Modifier l'utilisateur"}</DialogTitle>
         </DialogHeader>
         <div className="space-y-3">
-          <div><Label>Email</Label><Input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="user@example.com" disabled={mode === "edit"} /></div>
-          <div><Label>Nom d'utilisateur</Label><Input value={username} onChange={(e) => setUsername(e.target.value)} /></div>
+          <div><Label>Email principal *</Label><Input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="user@example.com" disabled={mode === "edit"} /></div>
+          <div className="grid grid-cols-2 gap-2">
+            <div><Label>Email secondaire (optionnel)</Label><Input value={email2} onChange={(e) => setEmail2(e.target.value)} placeholder="alt@example.com" /></div>
+            <div><Label>Email tertiaire (optionnel)</Label><Input value={email3} onChange={(e) => setEmail3(e.target.value)} placeholder="alt2@example.com" /></div>
+          </div>
+          <div><Label>Nom d'utilisateur *</Label><Input value={username} onChange={(e) => setUsername(e.target.value)} /></div>
+          <div><Label>Lieu de travail *</Label><Input value={workplace} onChange={(e) => setWorkplace(e.target.value)} placeholder="Aéroport TUN, Escale DJE, Siège…" /></div>
           <div>
             <Label>Type d'utilisateur</Label>
             <select
@@ -698,13 +707,20 @@ function UserDialog({
               <option value="internal_manager">User Interne Gestionnaire — lecture seule globale</option>
               <option value="external">User Externe — documents internes (accusé)</option>
             </select>
-            <p className="mt-1 text-[11px] text-slate-500">
-              {userType === "admin" && "Accès total à toutes les fonctionnalités."}
-              {userType === "internal_standard" && "Accès uniquement à la Documentation par défaut. Cochez les modules supplémentaires ci-dessous."}
-              {userType === "internal_manager" && "Peut consulter tous les modules (lecture seule). Téléchargement autorisé uniquement pour la Documentation."}
-              {userType === "external" && "Accès aux documents internes avec accusé de réception obligatoire."}
-            </p>
           </div>
+          {userType === "admin" && (
+            <div>
+              <Label>Portée admin</Label>
+              <select
+                value={adminScope}
+                onChange={(e) => setAdminScope(e.target.value as "principal" | "specific")}
+                className="h-9 w-full cursor-pointer rounded-md border border-slate-200 px-3 text-sm"
+              >
+                <option value="specific">Admin spécifique — droits limités (lecture/édition métier)</option>
+                <option value="principal">Admin principal — gestion des comptes & rôles</option>
+              </select>
+            </div>
+          )}
           {userType === "internal_standard" && (
             <div>
               <Label>Modules accessibles</Label>
@@ -728,8 +744,11 @@ function UserDialog({
         <DialogFooter>
           <Button variant="outline" onClick={onCancel} className="cursor-pointer">Annuler</Button>
           <Button
-            disabled={!email || !username}
-            onClick={() => onSave({ email, username, userType, modules, org })}
+            disabled={!email || !username || !workplace}
+            onClick={() => {
+              const emails = Array.from(new Set([email, email2, email3].map((s) => s.trim()).filter(Boolean))).slice(0, 3);
+              onSave({ email, emails, username, userType, modules, org, workplace, adminScope: userType === "admin" ? adminScope : undefined });
+            }}
             className="cursor-pointer bg-blue-600 hover:bg-blue-700"
           >
             {mode === "add" ? "Ajouter" : "Enregistrer"}
