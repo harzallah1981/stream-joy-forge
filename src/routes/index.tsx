@@ -1,10 +1,16 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { FileText, Users, Shield, BookOpen, TrendingUp } from "lucide-react";
+import { Shield, BookOpen, AlertTriangle, CheckCircle2, Users } from "lucide-react";
+import { useMemo } from "react";
 import { usePageTitle } from "@/lib/page-title";
-import { events } from "@/lib/safety-data";
+import { events as DEFAULT_EVENTS } from "@/lib/safety-data";
 import { useAuth } from "@/lib/auth";
 import { UserDashboard } from "@/components/user-dashboard";
 import { useI18n } from "@/lib/i18n";
+import { loadAcks } from "@/lib/acknowledgements";
+import { loadUsers } from "@/lib/users-store";
+import { loadAdminAlerts } from "@/lib/reminders";
+import { SAMPLE_DOCS } from "@/lib/documents";
+import { loadReads } from "@/lib/notifications";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -16,14 +22,6 @@ export const Route = createFileRoute("/")({
   component: Home,
 });
 
-interface Kpi {
-  label: string;
-  value: string;
-  subtitle: string;
-  icon: React.ComponentType<{ className?: string }>;
-  iconBg: string;
-}
-
 function Home() {
   const { t } = useI18n();
   const { user } = useAuth();
@@ -32,192 +30,126 @@ function Home() {
   if (user && user.role !== "admin") {
     return <UserDashboard />;
   }
+  return <AdminDashboard />;
+}
 
+function AdminDashboard() {
+  const events = DEFAULT_EVENTS;
   const open = events.filter((e) => e.statut === "EN COURS").length;
   const closed = events.filter((e) => e.statut === "CLÔTURÉ").length;
-  const total = events.length;
+  const high = events.filter((e) => e.prob * e.grav >= 20).length;
 
-  const kpis: Kpi[] = [
-    {
-      label: "Documents en diffusion",
-      value: "3",
-      subtitle: "1 internes · 1 externes · 1 forms",
-      icon: FileText,
-      iconBg: "bg-blue-100 text-blue-600",
-    },
-    {
-      label: "Personnel total",
-      value: "2",
-      subtitle: "1 formes · 0 perimees",
-      icon: Users,
-      iconBg: "bg-green-100 text-green-600",
-    },
-    {
-      label: "Evenements securite",
-      value: String(total),
-      subtitle: `${open} en cours · ${closed} clotures`,
-      icon: Shield,
-      iconBg: "bg-red-100 text-red-600",
-    },
-    {
-      label: "Prochaine formation",
-      value: "28/06/2026",
-      subtitle: "Planifiee par l'admin",
-      icon: BookOpen,
-      iconBg: "bg-orange-100 text-orange-600",
-    },
-  ];
+  const { acks, users, alerts, readingRate } = useMemo(() => {
+    const acks = loadAcks();
+    const users = loadUsers().filter((u) => u.userType !== "admin");
+    const alerts = loadAdminAlerts();
+    const totalAssignments = users.length * SAMPLE_DOCS.length;
+    let totalRead = 0;
+    for (const u of users) {
+      const reads = loadReads(u.email);
+      totalRead += SAMPLE_DOCS.filter((d) => reads[d.id]).length;
+    }
+    const readingRate = totalAssignments > 0 ? Math.round((totalRead / totalAssignments) * 100) : 0;
+    return { acks, users, alerts, readingRate };
+  }, []);
 
   return (
-    <div className="p-4 md:p-6 lg:p-8">
-      {/* KPI cards */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {kpis.map((k) => (
-          <div
-            key={k.label}
-            className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
-          >
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-                  {k.label}
-                </div>
-                <div className="mt-2 text-3xl font-bold text-slate-900">{k.value}</div>
-              </div>
-              <span className={"grid h-10 w-10 shrink-0 place-items-center rounded-lg " + k.iconBg}>
-                <k.icon className="h-5 w-5" />
-              </span>
-            </div>
-            <div className="mt-3 text-xs text-slate-500">{k.subtitle}</div>
-          </div>
-        ))}
-      </div>
-
-      {/* Conformité */}
-      <div className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <ConformiteDocumentation />
-        <ConformiteFormation />
-      </div>
-
-      {/* Résumé sécurité */}
-      <div className="mt-6 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+    <div className="p-4 md:p-6 lg:p-8 space-y-6">
+      {/* Résumé Sécurité */}
+      <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
         <h2 className="flex items-center gap-2 text-base font-semibold text-slate-900">
           <Shield className="h-5 w-5 text-red-500" />
-          Resume Securite — Ground Safety 2026
+          Résumé Sécurité — Ground Safety 2026
         </h2>
-        <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
-          <SafetyStat n={open} label="Evenements en cours" tone="red" />
-          <SafetyStat n={closed} label="Evenements clotures" tone="green" />
-          <SafetyStat n={total} label="Total evenements" tone="slate" />
+        <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-4">
+          <Stat n={events.length} label="Événements total" tone="slate" />
+          <Stat n={open} label="En cours" tone="orange" />
+          <Stat n={closed} label="Clôturés" tone="green" />
+          <Stat n={high} label="Sévérité ≥ 20" tone="red" />
         </div>
-      </div>
+      </section>
+
+      {/* Résumé Lectures */}
+      <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+        <h2 className="flex items-center gap-2 text-base font-semibold text-slate-900">
+          <BookOpen className="h-5 w-5 text-blue-500" />
+          Résumé Lectures Documentaires
+        </h2>
+        <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-4">
+          <Stat n={users.length} label="Utilisateurs suivis" tone="slate" icon={Users} />
+          <Stat n={SAMPLE_DOCS.length} label="Documents diffusés" tone="blue" icon={BookOpen} />
+          <Stat n={acks.length} label="Accusés enregistrés" tone="green" icon={CheckCircle2} />
+          <Stat n={readingRate} label="Taux global de lecture" tone="blue" suffix="%" />
+        </div>
+        <div className="mt-5">
+          <div className="mb-1.5 flex items-center justify-between text-sm">
+            <span className="text-slate-700">Progression globale</span>
+            <span className="font-semibold text-blue-700">{readingRate}%</span>
+          </div>
+          <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100">
+            <div className="h-full bg-blue-500" style={{ width: readingRate + "%" }} />
+          </div>
+        </div>
+      </section>
+
+      {/* Alertes Admin J+8 */}
+      <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+        <h2 className="flex items-center gap-2 text-base font-semibold text-slate-900">
+          <AlertTriangle className="h-5 w-5 text-amber-500" />
+          Alertes Lectures en retard (J+8)
+          <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-700">
+            {alerts.length}
+          </span>
+        </h2>
+        <div className="mt-3 overflow-hidden rounded-lg border border-slate-200">
+          <table className="w-full text-sm">
+            <thead className="bg-slate-50 text-xs uppercase text-slate-500">
+              <tr>
+                <th className="px-4 py-2 text-left font-semibold">Utilisateur</th>
+                <th className="px-4 py-2 text-left font-semibold">Document</th>
+                <th className="px-4 py-2 text-right font-semibold">Jours de retard</th>
+              </tr>
+            </thead>
+            <tbody>
+              {alerts.length === 0 ? (
+                <tr><td colSpan={3} className="py-6 text-center text-sm text-slate-500">Aucune alerte. ✓</td></tr>
+              ) : alerts.slice(0, 25).map((a) => (
+                <tr key={a.id} className="border-t">
+                  <td className="px-4 py-2 text-slate-900">{a.username} <span className="text-xs text-slate-500">({a.email})</span></td>
+                  <td className="px-4 py-2 text-slate-700">{a.docTitle}</td>
+                  <td className="px-4 py-2 text-right font-mono font-semibold text-red-600">{a.daysOverdue} j</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
     </div>
   );
 }
 
-function ConformiteDocumentation() {
-  return (
-    <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-      <h2 className="flex items-center gap-2 text-base font-semibold text-slate-900">
-        <TrendingUp className="h-5 w-5 text-blue-500" />
-        Conformite Documentation
-      </h2>
-      <div className="mt-4 space-y-4">
-        <ProgressRow label="Documents internes - Taux de conformite" value={0} />
-        <ProgressRow label="Documents externes - Taux de conformite" value={0} />
-      </div>
-      <div className="mt-5 grid grid-cols-2 gap-3 border-t border-slate-100 pt-4 text-sm">
-        <div className="flex items-center gap-2 text-green-700">
-          <span className="grid h-5 w-5 place-items-center rounded-full bg-green-100">✓</span>
-          <span>0 recus</span>
-        </div>
-        <div className="flex items-center gap-2 text-orange-600">
-          <span className="grid h-5 w-5 place-items-center rounded-full bg-orange-100">⊘</span>
-          <span>0 non recus</span>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function ProgressRow({ label, value }: { label: string; value: number }) {
-  return (
-    <div>
-      <div className="mb-1.5 flex items-center justify-between text-sm">
-        <span className="text-slate-700">{label}</span>
-        <span className="font-semibold text-slate-900">{value}%</span>
-      </div>
-      <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
-        <div className="h-full bg-blue-500" style={{ width: value + "%" }} />
-      </div>
-    </div>
-  );
-}
-
-function ConformiteFormation() {
-  // Demo numbers matching the original screenshot: 1 valide, 0 others — 50%
-  const valide = 1;
-  const expirant = 0;
-  const perimee = 0;
-  const inconnu = 1;
-  const totalP = valide + expirant + perimee + inconnu;
-  const rate = totalP > 0 ? Math.round((valide / totalP) * 100) : 0;
-
-  return (
-    <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-      <h2 className="flex items-center gap-2 text-base font-semibold text-slate-900">
-        <Users className="h-5 w-5 text-blue-500" />
-        Conformite Formation Personnel
-      </h2>
-      <div className="mt-4">
-        <div className="mb-1.5 flex items-center justify-between text-sm">
-          <span className="text-slate-700">Taux de conformite formation</span>
-          <span className="font-semibold text-orange-600">{rate}%</span>
-        </div>
-        <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
-          <div className="h-full bg-orange-400" style={{ width: rate + "%" }} />
-        </div>
-      </div>
-      <div className="mt-5 space-y-2.5 border-t border-slate-100 pt-4 text-sm">
-        <LegendRow color="bg-green-500" label="Valide" n={valide} />
-        <LegendRow color="bg-orange-400" label="Expirant bientot" n={expirant} />
-        <LegendRow color="bg-red-500" label="Perimee" n={perimee} />
-        <LegendRow color="bg-slate-400" label="Inconnu" n={inconnu} />
-      </div>
-    </div>
-  );
-}
-
-function LegendRow({ color, label, n }: { color: string; label: string; n: number }) {
-  return (
-    <div className="flex items-center justify-between">
-      <span className="flex items-center gap-2 text-slate-700">
-        <span className={"h-2.5 w-2.5 rounded-full " + color} />
-        {label}
-      </span>
-      <span className="font-semibold text-slate-900">{n}</span>
-    </div>
-  );
-}
-
-function SafetyStat({
-  n,
-  label,
-  tone,
+function Stat({
+  n, label, tone, suffix, icon: Icon,
 }: {
-  n: number;
-  label: string;
-  tone: "red" | "green" | "slate";
+  n: number; label: string;
+  tone: "red" | "green" | "slate" | "orange" | "blue";
+  suffix?: string;
+  icon?: React.ComponentType<{ className?: string }>;
 }) {
   const styles = {
-    red: "bg-red-50 text-red-600",
-    green: "bg-green-50 text-green-600",
+    red: "bg-red-50 text-red-700",
+    orange: "bg-orange-50 text-orange-700",
+    green: "bg-green-50 text-green-700",
     slate: "bg-slate-50 text-slate-700",
+    blue: "bg-blue-50 text-blue-700",
   }[tone];
   return (
-    <div className={"rounded-lg p-6 text-center " + styles}>
-      <div className="text-4xl font-bold">{n}</div>
-      <div className="mt-1 text-xs">{label}</div>
+    <div className={"flex items-center gap-3 rounded-lg p-4 " + styles}>
+      {Icon && <Icon className="h-6 w-6 opacity-70" />}
+      <div>
+        <div className="text-3xl font-bold leading-none">{n}{suffix ?? ""}</div>
+        <div className="mt-1 text-xs">{label}</div>
+      </div>
     </div>
   );
 }
