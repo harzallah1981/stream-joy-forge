@@ -23,11 +23,6 @@ function hydrateFromStore(u: AuthUser): AuthUser {
   const defaultMods = fallback === "admin" ? ["documentation","forms","safety","admin"] : ["documentation"];
   return { ...u, userType: u.userType ?? fallback, modules: u.modules ?? defaultMods };
 }
-  // Derive sensible default from legacy role
-  const fallback: UserType = u.role === "admin" ? "admin" : u.role === "external" ? "external" : "internal_standard";
-  const defaultMods = fallback === "admin" ? ["documentation","forms","safety","admin"] : ["documentation"];
-  return { ...u, userType: u.userType ?? fallback, modules: u.modules ?? defaultMods };
-}
 
 const ACCOUNTS: Array<AuthUser & { password: string }> = [
   { email: "admin.ops@tunisair.com.tn", username: "admin_tunisair", password: "Admin2026!", role: "admin", org: "Tunisair Ground Ops" },
