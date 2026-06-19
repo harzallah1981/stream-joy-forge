@@ -50,3 +50,19 @@ export function requiresAck(u: AuthUser | null | undefined): boolean {
   const t = userType(u);
   return t === "external" || t === "internal_standard";
 }
+
+// T29: Is this user a "principal" (super) admin?
+// Source of truth: localStorage (StoredUser.adminScope) for admins added via the UI;
+// the seeded admin.ops@tunisair.com.tn is always treated as principal.
+const SEEDED_PRINCIPAL = "admin.ops@tunisair.com.tn";
+export function isPrincipalAdmin(u: AuthUser | null | undefined): boolean {
+  if (!u) return false;
+  if (userType(u) !== "admin") return false;
+  if (u.email.toLowerCase() === SEEDED_PRINCIPAL) return true;
+  try {
+    const raw = typeof localStorage !== "undefined" ? localStorage.getItem("tunisair_users_v1") : null;
+    if (!raw) return false;
+    const arr = JSON.parse(raw) as Array<{ email: string; adminScope?: string }>;
+    return arr.some((x) => x.email.toLowerCase() === u.email.toLowerCase() && x.adminScope === "principal");
+  } catch { return false; }
+}

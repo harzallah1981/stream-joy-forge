@@ -20,6 +20,7 @@ import {
   AVAILABLE_MODULES, defaultModulesFor,
   type StoredUser, type UserType,
 } from "@/lib/users-store";
+import { isPrincipalAdmin as isPrincipalAdminFn } from "@/lib/permissions";
 import { toast } from "sonner";
 
 const SLUG_TO_KEY: Record<string, string> = {
@@ -456,6 +457,7 @@ type TabKey = "all" | UserType;
 function UserManagementPage() {
   const { user } = useAuth();
   const isAdmin = user?.role === "admin";
+  const isPrincipal = isPrincipalAdminFn(user);
   usePageTitle("Gestion Utilisateurs", "Comptes internes et externes");
 
   const [refresh, setRefresh] = useState(0);
@@ -467,6 +469,9 @@ function UserManagementPage() {
 
   if (!isAdmin) {
     return <div className="p-8 text-sm text-slate-600">🔒 Accès réservé aux administrateurs.</div>;
+  }
+  if (!isPrincipal) {
+    return <div className="p-8 text-sm text-slate-600">🔒 Cette page est réservée à l'<b>Administrateur principal</b>. Les admins spécifiques n'ont pas la gestion des comptes.</div>;
   }
 
   const filtered = tab === "all" ? users : users.filter((u) => u.userType === tab);
