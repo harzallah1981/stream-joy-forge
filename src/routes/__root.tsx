@@ -158,6 +158,7 @@ function AppGate() {
       </div>
       <Toaster richColors closeButton position="top-right" />
       <ForcePasswordChangeModal />
+      <SessionTimeout />
     </SidebarProvider>
   );
 }
