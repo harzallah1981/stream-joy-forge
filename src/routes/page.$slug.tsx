@@ -14,7 +14,7 @@ import { useAuth } from "@/lib/auth";
 import {
   getDocsForCategory, loadUserDocs, saveUserDocs, fileToDataUrl, type DocItem,
 } from "@/lib/documents";
-import { addAck, loadAcks } from "@/lib/acknowledgements";
+import { addAck, hasAcked, loadAcks } from "@/lib/acknowledgements";
 import {
   loadUsers, addUser, updateUser, removeUser,
   AVAILABLE_MODULES, defaultModulesFor,
@@ -88,11 +88,14 @@ function DocumentsPage({ slug }: { slug: string }) {
 
   const requestAction = (doc: DocItem, action: "view" | "download") => {
     if (isAdmin || user?.userType === "internal_manager") {
-      // Admin / Manager: direct open / download (read-only access for manager)
       performAction(doc, action);
       return;
     }
-    // Standard / external must acknowledge first
+    // T24: ack required only on first time per (user, doc)
+    if (user && hasAcked(user.email, doc.id)) {
+      performAction(doc, action);
+      return;
+    }
     setAckTarget({ doc, action });
   };
 
