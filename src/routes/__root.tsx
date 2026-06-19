@@ -136,6 +136,10 @@ function AppGate() {
     if (ready && !user && !isPublic) nav({ to: "/login" });
   }, [ready, user, isPublic, nav]);
 
+  useEffect(() => {
+    if (ready && user) runReminderCheck(user.email);
+  }, [ready, user]);
+
   if (!ready) return null;
   if (isPublic) {
     return (
@@ -161,6 +165,7 @@ function AppGate() {
       <Toaster richColors closeButton position="top-right" />
       <ForcePasswordChangeModal />
       <SessionTimeout />
+      <NoCopyGuard />
     </SidebarProvider>
   );
 }
