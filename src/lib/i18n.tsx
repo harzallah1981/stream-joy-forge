@@ -79,6 +79,9 @@ export const dict: Dict = {
   cancel: { fr: "Annuler", en: "Cancel" },
   send: { fr: "Envoyer", en: "Send" },
   logout: { fr: "Deconnexion", en: "Logout" },
+  session_expiring_title: { fr: "Session sur le point d'expirer", en: "Session about to expire" },
+  session_expiring_desc: { fr: "Vous serez déconnecté dans {s} secondes pour inactivité.", en: "You will be logged out in {s} seconds due to inactivity." },
+  stay_connected: { fr: "Rester connecté", en: "Stay connected" },
   email_to: { fr: "Adresse email du destinataire", en: "Recipient email address" },
   email_modal_title: { fr: "Envoyer le formulaire", en: "Send the form" },
   email_modal_desc: {
