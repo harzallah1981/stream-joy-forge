@@ -9,13 +9,20 @@ export type AuthUser = {
   org: string;
   userType?: UserType;
   modules?: string[];
+  workplace?: string;
+  emails?: string[];
+  adminScope?: "principal" | "specific";
 };
 
 function hydrateFromStore(u: AuthUser): AuthUser {
   try {
     const stored = loadUsers().find((s) => s.email.toLowerCase() === u.email.toLowerCase());
-    if (stored) return { ...u, userType: stored.userType, modules: stored.modules, org: stored.org || u.org };
+    if (stored) return { ...u, userType: stored.userType, modules: stored.modules, org: stored.org || u.org, workplace: stored.workplace, emails: stored.emails, adminScope: stored.adminScope };
   } catch {}
+  const fallback: UserType = u.role === "admin" ? "admin" : u.role === "external" ? "external" : "internal_standard";
+  const defaultMods = fallback === "admin" ? ["documentation","forms","safety","admin"] : ["documentation"];
+  return { ...u, userType: u.userType ?? fallback, modules: u.modules ?? defaultMods };
+}
   // Derive sensible default from legacy role
   const fallback: UserType = u.role === "admin" ? "admin" : u.role === "external" ? "external" : "internal_standard";
   const defaultMods = fallback === "admin" ? ["documentation","forms","safety","admin"] : ["documentation"];
