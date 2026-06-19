@@ -99,3 +99,14 @@
 .ts-cloud { animation: ts-cloud-drift linear infinite; }
 .ts-plane { animation: ts-plane-fly 16s linear infinite; }
 
+
+/* T28: No-copy mode for standard/external users */
+body.no-copy-mode { user-select: none; -webkit-user-select: none; }
+body.no-copy-mode input, body.no-copy-mode textarea { user-select: text; -webkit-user-select: text; }
+@media print {
+  body.no-copy-mode * { visibility: hidden !important; }
+  body.no-copy-mode::after {
+    content: "Impression désactivée — contenu confidentiel Tunisair.";
+    visibility: visible; display: block; padding: 2rem; font-weight: bold;
+  }
+}
