@@ -331,18 +331,30 @@ function Form() {
                         <th className="px-3 py-2 text-left font-semibold">Audit scope</th>
                         <th className="px-3 py-2 text-left font-semibold">Sev.</th>
                         <th className="px-3 py-2 text-left font-semibold">GOM</th>
+                        <th className="px-3 py-2 text-left font-semibold">IOSA</th>
                         <th className="px-3 py-2 text-left font-semibold">Conformité</th>
                         <th className="px-3 py-2 text-left font-semibold">Remarque</th>
                       </tr>
                     </thead>
                     <tbody>
                       {s.items.map((it) => {
-                        const sevValue = overrides[it.ref]?.sev ?? it.sev;
-                        const gomValue = overrides[it.ref]?.gom ?? it.gom ?? "";
+                        const ovr = overrides[it.ref] ?? {};
+                        const sevValue = ovr.sev ?? it.sev;
+                        const gomValue = ovr.gom ?? it.gom ?? "";
+                        const iosaValue = ovr.iosa ?? "";
+                        const textValue = ovr.text ?? it.text;
                         return (
                         <tr key={it.ref} className="border-t">
                           <td className="px-3 py-2 font-mono text-xs text-slate-600">{it.ref}</td>
-                          <td className="px-3 py-2 text-slate-800">{it.text}</td>
+                          <td className="px-3 py-2 text-slate-800">
+                            {isAdmin ? (
+                              <Input
+                                value={textValue}
+                                onChange={(e) => setOverride(it.ref, { text: e.target.value })}
+                                className="h-7 text-xs"
+                              />
+                            ) : textValue}
+                          </td>
                           <td className="px-3 py-2">
                             {isAdmin ? (
                               <select
@@ -368,6 +380,18 @@ function Form() {
                               />
                             ) : (
                               gomValue || "—"
+                            )}
+                          </td>
+                          <td className="px-3 py-2 text-xs text-slate-500">
+                            {isAdmin ? (
+                              <Input
+                                value={iosaValue}
+                                onChange={(e) => setOverride(it.ref, { iosa: e.target.value })}
+                                className="h-7 text-xs"
+                                placeholder="GRH 3.x.x"
+                              />
+                            ) : (
+                              iosaValue || "—"
                             )}
                           </td>
                           <td className="px-3 py-2">
