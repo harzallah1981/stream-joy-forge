@@ -17,8 +17,16 @@ export const Route = createFileRoute("/forms/ios-428-01")({
 
 
 type Sev = "HIGH" | "MEDIUM" | "LOW";
-type Item = { ref: string; text: string; sev: Sev; gom?: string };
+type Item = { ref: string; text: string; sev: Sev; gom?: string; iosa?: string };
 type Section = { num: number; title: string; items: Item[] };
+type Override = { sev?: Sev; gom?: string; iosa?: string; text?: string };
+const OVR_KEY = "tunisair_ios428_overrides_v1";
+function loadOverrides(): Record<string, Override> {
+  try { return JSON.parse(localStorage.getItem(OVR_KEY) ?? "{}"); } catch { return {}; }
+}
+function saveOverrides(o: Record<string, Override>) {
+  try { localStorage.setItem(OVR_KEY, JSON.stringify(o)); } catch {}
+}
 
 const SECTIONS: Section[] = [
   { num: 1, title: "Check-in", items: [
@@ -229,8 +237,8 @@ function Form() {
   const [answers, setAnswers] = useState(blank());
   const [open, setOpen] = useState(false);
   const [collapsed, setCollapsed] = useState<Record<number, boolean>>({});
-  // Admin overrides for Sev/GOM per item ref
-  const [overrides, setOverrides] = useState<Record<string, { sev?: Sev; gom?: string }>>({});
+  // Admin overrides for Sev/GOM/IOSA/text per item ref — persisted in localStorage (T22)
+  const [overrides, setOverrides] = useState<Record<string, Override>>(() => loadOverrides());
 
   const stats = useMemo(() => {
     let yes = 0, no = 0, na = 0, total = 0;
@@ -252,8 +260,12 @@ function Form() {
 
   const setA = (ref: string, patch: Partial<Answer>) =>
     setAnswers((a) => ({ ...a, [ref]: { ...a[ref], ...patch } }));
-  const setOverride = (ref: string, patch: { sev?: Sev; gom?: string }) =>
-    setOverrides((o) => ({ ...o, [ref]: { ...o[ref], ...patch } }));
+  const setOverride = (ref: string, patch: Override) =>
+    setOverrides((o) => {
+      const next = { ...o, [ref]: { ...o[ref], ...patch } };
+      saveOverrides(next);
+      return next;
+    });
 
 
   return (
@@ -319,18 +331,30 @@ function Form() {
                         <th className="px-3 py-2 text-left font-semibold">Audit scope</th>
                         <th className="px-3 py-2 text-left font-semibold">Sev.</th>
                         <th className="px-3 py-2 text-left font-semibold">GOM</th>
+                        <th className="px-3 py-2 text-left font-semibold">IOSA</th>
                         <th className="px-3 py-2 text-left font-semibold">Conformité</th>
                         <th className="px-3 py-2 text-left font-semibold">Remarque</th>
                       </tr>
                     </thead>
                     <tbody>
                       {s.items.map((it) => {
-                        const sevValue = overrides[it.ref]?.sev ?? it.sev;
-                        const gomValue = overrides[it.ref]?.gom ?? it.gom ?? "";
+                        const ovr = overrides[it.ref] ?? {};
+                        const sevValue = ovr.sev ?? it.sev;
+                        const gomValue = ovr.gom ?? it.gom ?? "";
+                        const iosaValue = ovr.iosa ?? "";
+                        const textValue = ovr.text ?? it.text;
                         return (
                         <tr key={it.ref} className="border-t">
                           <td className="px-3 py-2 font-mono text-xs text-slate-600">{it.ref}</td>
-                          <td className="px-3 py-2 text-slate-800">{it.text}</td>
+                          <td className="px-3 py-2 text-slate-800">
+                            {isAdmin ? (
+                              <Input
+                                value={textValue}
+                                onChange={(e) => setOverride(it.ref, { text: e.target.value })}
+                                className="h-7 text-xs"
+                              />
+                            ) : textValue}
+                          </td>
                           <td className="px-3 py-2">
                             {isAdmin ? (
                               <select
@@ -356,6 +380,18 @@ function Form() {
                               />
                             ) : (
                               gomValue || "—"
+                            )}
+                          </td>
+                          <td className="px-3 py-2 text-xs text-slate-500">
+                            {isAdmin ? (
+                              <Input
+                                value={iosaValue}
+                                onChange={(e) => setOverride(it.ref, { iosa: e.target.value })}
+                                className="h-7 text-xs"
+                                placeholder="GRH 3.x.x"
+                              />
+                            ) : (
+                              iosaValue || "—"
                             )}
                           </td>
                           <td className="px-3 py-2">

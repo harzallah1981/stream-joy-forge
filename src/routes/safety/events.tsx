@@ -292,7 +292,17 @@ function EditDialog({
               {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
             </select>
           </div>
-          <div><Label>Sévérité (libellé)</Label><Input value={e.sev} onChange={(ev) => setE({ ...e, sev: ev.target.value })} /></div>
+          <div>
+            <Label>Sévérité (auto = Prob × Grav)</Label>
+            <div className="flex h-9 items-center gap-2 rounded-md border border-slate-200 bg-slate-50 px-3 text-sm">
+              {(() => {
+                const s = e.prob * e.grav;
+                const tone = s >= 20 ? "bg-red-100 text-red-700" : s >= 9 ? "bg-orange-100 text-orange-700" : "bg-green-100 text-green-700";
+                const lib = s >= 20 ? "Non acceptable" : s >= 9 ? "Moyen" : "Acceptable";
+                return <><span className={"inline-flex min-w-[2rem] justify-center rounded px-1.5 py-0.5 font-bold " + tone}>{s}</span><span className="text-slate-700">{lib}</span></>;
+              })()}
+            </div>
+          </div>
           <div className="col-span-2"><Label>Description</Label><Input value={e.description} onChange={(ev) => setE({ ...e, description: ev.target.value })} /></div>
           <div className="col-span-2"><Label>Réponse / Action</Label><Input value={e.action} onChange={(ev) => setE({ ...e, action: ev.target.value })} /></div>
         </div>

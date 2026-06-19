@@ -20,6 +20,8 @@ import { AppSidebar } from "@/components/app-sidebar";
 import { TopHeader } from "@/components/top-header";
 import { ForcePasswordChangeModal } from "@/components/force-password-change";
 import { SessionTimeout } from "@/components/session-timeout";
+import { NoCopyGuard } from "@/components/no-copy-guard";
+import { runReminderCheck } from "@/lib/reminders";
 import { Toaster } from "@/components/ui/sonner";
 import { AuthProvider, useAuth } from "@/lib/auth";
 
@@ -134,6 +136,10 @@ function AppGate() {
     if (ready && !user && !isPublic) nav({ to: "/login" });
   }, [ready, user, isPublic, nav]);
 
+  useEffect(() => {
+    if (ready && user) runReminderCheck(user.email);
+  }, [ready, user]);
+
   if (!ready) return null;
   if (isPublic) {
     return (
@@ -159,6 +165,7 @@ function AppGate() {
       <Toaster richColors closeButton position="top-right" />
       <ForcePasswordChangeModal />
       <SessionTimeout />
+      <NoCopyGuard />
     </SidebarProvider>
   );
 }
