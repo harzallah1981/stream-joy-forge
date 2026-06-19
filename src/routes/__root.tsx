@@ -20,6 +20,8 @@ import { AppSidebar } from "@/components/app-sidebar";
 import { TopHeader } from "@/components/top-header";
 import { ForcePasswordChangeModal } from "@/components/force-password-change";
 import { SessionTimeout } from "@/components/session-timeout";
+import { NoCopyGuard } from "@/components/no-copy-guard";
+import { runReminderCheck } from "@/lib/reminders";
 import { Toaster } from "@/components/ui/sonner";
 import { AuthProvider, useAuth } from "@/lib/auth";
 
