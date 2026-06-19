@@ -19,6 +19,7 @@ import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
 import { TopHeader } from "@/components/top-header";
 import { ForcePasswordChangeModal } from "@/components/force-password-change";
+import { SessionTimeout } from "@/components/session-timeout";
 import { Toaster } from "@/components/ui/sonner";
 import { AuthProvider, useAuth } from "@/lib/auth";
 
