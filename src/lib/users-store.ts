@@ -12,15 +12,17 @@ export const AVAILABLE_MODULES: { key: string; label: string }[] = [
 
 export type StoredUser = {
   id: string;
-  email: string;
+  email: string;          // primary email (login)
+  emails: string[];       // T5: up to 3 emails (notifications/relances)
   username: string;
   // Legacy role kept for back-compat with existing auth code.
   role: "admin" | "internal" | "external";
-  // New: fine-grained user type.
   userType: UserType;
-  // Modules granted to "internal_standard" users (ignored for other types).
   modules: string[];
   org: string;
+  workplace: string;      // T18: required at user creation
+  // T29: principal admin (super) vs specific admin (limited)
+  adminScope?: "principal" | "specific";
   createdAt: string;
 };
 
@@ -34,7 +36,6 @@ function roleFromType(t: UserType): StoredUser["role"] {
 
 export function defaultModulesFor(t: UserType): string[] {
   if (t === "internal_standard") return ["documentation"];
-  // other types ignore the field — return [] to keep storage tidy
   return [];
 }
 
@@ -42,14 +43,19 @@ function normalize(u: Partial<StoredUser> & Pick<StoredUser, "email" | "username
   const userType: UserType =
     (u.userType as UserType | undefined) ??
     (u.role === "admin" ? "admin" : u.role === "external" ? "external" : "internal_standard");
+  const emails = (u.emails ?? [u.email]).filter(Boolean).slice(0, 3);
+  if (!emails.includes(u.email)) emails.unshift(u.email);
   return {
     id: u.id ?? `u-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
     email: u.email,
+    emails: emails.slice(0, 3),
     username: u.username,
     userType,
     role: roleFromType(userType),
     modules: u.modules ?? defaultModulesFor(userType),
     org: u.org ?? "",
+    workplace: u.workplace ?? "",
+    adminScope: userType === "admin" ? (u.adminScope ?? "specific") : undefined,
     createdAt: u.createdAt ?? new Date().toISOString(),
   };
 }
@@ -79,7 +85,6 @@ export function updateUser(id: string, patch: Partial<StoredUser>) {
   const idx = users.findIndex((u) => u.id === id);
   if (idx < 0) return;
   const merged = { ...users[idx], ...patch } as StoredUser;
-  // Re-sync role if userType changed
   if (patch.userType) merged.role = roleFromType(merged.userType);
   users[idx] = merged;
   saveUsers(users);
