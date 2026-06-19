@@ -492,7 +492,8 @@ function UserManagementPage() {
       for (const r of rows) {
         const email = String(r.email ?? r.Email ?? "").trim();
         const username = String(r.username ?? r.Username ?? r.nom ?? "").trim();
-        if (!email || !username) continue;
+        const workplace = String(r.workplace ?? r["lieu de travail"] ?? r.lieu ?? "").trim();
+        if (!email || !username || !workplace) continue;
         const rawType = String(r.type ?? r.userType ?? r["type d'utilisateur"] ?? "internal_standard")
           .toLowerCase().trim().replace(/[ -]/g, "_");
         const userType: UserType =
@@ -504,7 +505,11 @@ function UserManagementPage() {
         const modules = modulesRaw
           ? modulesRaw.split(/[;,|]/).map((s) => s.trim()).filter(Boolean)
           : defaultModulesFor(userType);
-        addUser({ email, username, userType, modules, org: String(r.org ?? r.organisation ?? "").trim() });
+        const emailsRaw = String(r.emails ?? "").trim();
+        const emails = emailsRaw
+          ? Array.from(new Set([email, ...emailsRaw.split(/[;,|]/).map((s) => s.trim()).filter(Boolean)])).slice(0, 3)
+          : [email];
+        addUser({ email, emails, username, userType, modules, org: String(r.org ?? r.organisation ?? "").trim(), workplace });
         added++;
       }
       toast.success(`${added} utilisateur(s) importé(s) depuis Excel`);
