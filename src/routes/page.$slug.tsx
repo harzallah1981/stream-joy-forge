@@ -167,6 +167,28 @@ function DocumentsPage({ slug }: { slug: string }) {
           </div>
         </div>
 
+        {slug === "aoc" && aocYears.length > 0 && (
+          <div className="flex flex-wrap items-center gap-2 border-b border-slate-100 bg-white px-5 py-2">
+            <span className="text-xs font-semibold uppercase text-slate-500">Année :</span>
+            <button
+              type="button"
+              onClick={() => setAocYear("all")}
+              className={"cursor-pointer rounded-full border px-3 py-1 text-xs font-semibold " + (aocYear === "all" ? "border-blue-600 bg-blue-600 text-white" : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50")}
+            >Toutes</button>
+            {aocYears.map((y) => (
+              <button
+                key={y}
+                type="button"
+                onClick={() => setAocYear(y)}
+                className={"cursor-pointer rounded-full border px-3 py-1 text-xs font-semibold " + (aocYear === y ? "border-blue-600 bg-blue-600 text-white" : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50")}
+              >{y}</button>
+            ))}
+          </div>
+        )}
+
+        {isChartered && <CharteredBlocks isPrincipal={isPrincipal} />}
+
+
         <div className="bg-slate-50 p-4">
           <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
             <table className="w-full text-sm">
