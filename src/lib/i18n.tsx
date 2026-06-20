@@ -53,6 +53,7 @@ export const dict: Dict = {
   dgac: { fr: "DOC DGAC", en: "DGAC Documents" },
   iata: { fr: "DOC IATA", en: "IATA Documents" },
   affretees: { fr: "A/C Affrétées", en: "Chartered Aircraft" },
+  safa_d03: { fr: "SAFA D03", en: "SAFA D03" },
 
   // Forms
   ahm_650: { fr: "Ground Damages Incident report / AHM 650", en: "Ground Damages Incident report / AHM 650" },

@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Upload, FileText, Plus, Search, Download, Trash2, Eye, ShieldCheck, UserPlus, Pencil, FileSpreadsheet } from "lucide-react";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import * as XLSX from "xlsx";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,7 +33,7 @@ const SLUG_TO_KEY: Record<string, string> = {
   "loading-instructions-fleet": "loading_instr",
   cdn: "cdn", ceirb: "ceirb", "c-immatriculation": "c_immat",
   cln: "cln", aoc: "aoc",
-  dgac: "dgac", iata: "iata", "ac-affretees": "affretees",
+  dgac: "dgac", iata: "iata", "ac-affretees": "affretees", "safa-d03": "safa_d03",
   "liste-personnel": "liste_personnel",
   "suivi-formation": "suivi_formation",
   "gestion-utilisateurs": "gestion_users",
@@ -62,6 +62,7 @@ function DocumentsPage({ slug }: { slug: string }) {
   const { t } = useI18n();
   const { user } = useAuth();
   const isAdmin = user?.role === "admin";
+  const isPrincipal = isPrincipalAdminFn(user);
   const key = SLUG_TO_KEY[slug] ?? slug;
   const title = t(key);
   usePageTitle(title, "Gestion documentaire");
@@ -70,15 +71,34 @@ function DocumentsPage({ slug }: { slug: string }) {
   const [q, setQ] = useState("");
   const [status, setStatus] = useState("all");
   const [ackTarget, setAckTarget] = useState<null | { doc: DocItem; action: "view" | "download" }>(null);
+  const [aocYear, setAocYear] = useState<string>("all");
 
   const docs = useMemo(() => getDocsForCategory(slug), [slug, refresh]);
+
+  // T — AOC: organize by year (derived from doc.date)
+  const aocYears = useMemo(() => {
+    if (slug !== "aoc") return [];
+    return Array.from(new Set(docs.map((d) => d.date.slice(0, 4)))).sort().reverse();
+  }, [slug, docs]);
+
   const filtered = docs.filter(
     (d) =>
       (status === "all" || d.status === status) &&
+      (slug !== "aoc" || aocYear === "all" || d.date.startsWith(aocYear)) &&
       (q === "" ||
         d.title.toLowerCase().includes(q.toLowerCase()) ||
         d.reference.toLowerCase().includes(q.toLowerCase())),
   );
+
+  // Chartered Aircraft: allow copy/paste on this page (overrides NoCopyGuard)
+  // and let principal admin manage free-text blocks.
+  const isChartered = slug === "ac-affretees";
+  useEffect(() => {
+    if (isChartered) {
+      document.body.dataset.allowCopy = "1";
+      return () => { delete document.body.dataset.allowCopy; };
+    }
+  }, [isChartered]);
 
   const handleDelete = (id: string) => {
     const u = loadUserDocs().filter((d) => d.id !== id);
@@ -146,6 +166,28 @@ function DocumentsPage({ slug }: { slug: string }) {
             )}
           </div>
         </div>
+
+        {slug === "aoc" && aocYears.length > 0 && (
+          <div className="flex flex-wrap items-center gap-2 border-b border-slate-100 bg-white px-5 py-2">
+            <span className="text-xs font-semibold uppercase text-slate-500">Année :</span>
+            <button
+              type="button"
+              onClick={() => setAocYear("all")}
+              className={"cursor-pointer rounded-full border px-3 py-1 text-xs font-semibold " + (aocYear === "all" ? "border-blue-600 bg-blue-600 text-white" : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50")}
+            >Toutes</button>
+            {aocYears.map((y) => (
+              <button
+                key={y}
+                type="button"
+                onClick={() => setAocYear(y)}
+                className={"cursor-pointer rounded-full border px-3 py-1 text-xs font-semibold " + (aocYear === y ? "border-blue-600 bg-blue-600 text-white" : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50")}
+              >{y}</button>
+            ))}
+          </div>
+        )}
+
+        {isChartered && <CharteredBlocks isPrincipal={isPrincipal} />}
+
 
         <div className="bg-slate-50 p-4">
           <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
@@ -825,3 +867,97 @@ function AcksPage() {
     </div>
   );
 }
+
+// ---- Chartered Aircraft: free-text blocks editable by the principal admin ----
+type CharteredBlock = { id: string; title: string; body: string };
+const CHARTERED_KEY = "tunisair_chartered_blocks_v1";
+
+function loadCharteredBlocks(): CharteredBlock[] {
+  try { return JSON.parse(localStorage.getItem(CHARTERED_KEY) ?? "[]"); } catch { return []; }
+}
+function saveCharteredBlocks(b: CharteredBlock[]) {
+  localStorage.setItem(CHARTERED_KEY, JSON.stringify(b));
+}
+
+function CharteredBlocks({ isPrincipal }: { isPrincipal: boolean }) {
+  const [blocks, setBlocks] = useState<CharteredBlock[]>(() => loadCharteredBlocks());
+  const [editing, setEditing] = useState<CharteredBlock | null>(null);
+
+  const persist = (next: CharteredBlock[]) => { setBlocks(next); saveCharteredBlocks(next); };
+
+  return (
+    <div className="border-b border-slate-100 bg-white px-5 py-4">
+      <div className="mb-3 flex items-center justify-between">
+        <h3 className="text-sm font-semibold text-slate-900">Notes Chartered Aircraft</h3>
+        {isPrincipal && (
+          <Button
+            size="sm"
+            onClick={() => setEditing({ id: `cb-${Date.now()}`, title: "", body: "" })}
+            className="h-8 cursor-pointer gap-1.5 bg-blue-600 hover:bg-blue-700"
+          >
+            <Plus className="h-3.5 w-3.5" /> Ajouter un bloc
+          </Button>
+        )}
+      </div>
+      {blocks.length === 0 ? (
+        <p className="text-xs text-slate-500">Aucune note. {isPrincipal ? "Cliquez sur \"Ajouter un bloc\" pour en créer une." : ""}</p>
+      ) : (
+        <div className="grid gap-3 md:grid-cols-2">
+          {blocks.map((b) => (
+            <div key={b.id} className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+              <div className="mb-1 flex items-start justify-between gap-2">
+                <h4 className="text-sm font-semibold text-slate-900">{b.title || "(sans titre)"}</h4>
+                {isPrincipal && (
+                  <div className="flex gap-1">
+                    <button onClick={() => setEditing(b)} className="cursor-pointer rounded p-1 text-slate-500 hover:bg-blue-50 hover:text-blue-700" title="Modifier">
+                      <Pencil className="h-3.5 w-3.5" />
+                    </button>
+                    <button onClick={() => persist(blocks.filter((x) => x.id !== b.id))} className="cursor-pointer rounded p-1 text-slate-500 hover:bg-red-50 hover:text-red-700" title="Supprimer">
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                )}
+              </div>
+              <p className="whitespace-pre-wrap text-xs text-slate-700">{b.body}</p>
+            </div>
+          ))}
+        </div>
+      )}
+      {editing && (
+        <Dialog open onOpenChange={(v) => !v && setEditing(null)}>
+          <DialogContent className="max-w-xl">
+            <DialogHeader><DialogTitle>{blocks.some((x) => x.id === editing.id) ? "Modifier le bloc" : "Nouveau bloc"}</DialogTitle></DialogHeader>
+            <div className="space-y-3">
+              <div>
+                <Label>Titre</Label>
+                <Input value={editing.title} onChange={(e) => setEditing({ ...editing, title: e.target.value })} />
+              </div>
+              <div>
+                <Label>Texte</Label>
+                <textarea
+                  value={editing.body}
+                  onChange={(e) => setEditing({ ...editing, body: e.target.value })}
+                  rows={8}
+                  className="w-full rounded-md border border-slate-200 bg-white p-2 text-sm"
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setEditing(null)}>Annuler</Button>
+              <Button
+                className="bg-blue-600 hover:bg-blue-700"
+                onClick={() => {
+                  const exists = blocks.some((x) => x.id === editing.id);
+                  persist(exists ? blocks.map((x) => (x.id === editing.id ? editing : x)) : [...blocks, editing]);
+                  setEditing(null);
+                  toast.success("Bloc enregistré");
+                }}
+              >Enregistrer</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+    </div>
+  );
+}
+

@@ -89,6 +89,8 @@ export const SAMPLE_DOCS: DocItem[] = [
   mk("dgac", "DGAC-CIRC", "Circulaires & directives DGAC", "2026", "2026-03-10"),
   mk("iata", "IATA-AHM", "IATA AHM Standards 2026", "Ed 46", "2026-01-01"),
   mk("ac-affretees", "ACMI-26", "Documentation aéronefs affrétés", "2026", "2026-02-20"),
+  mk("safa-d03", "SAFA-D03-26", "SAFA D03 — Ramp Inspection Report", "Rev 1", "2026-01-01"),
+  mk("safa-d03", "SAFA-D03-GUIDE", "SAFA D03 — Guide d'utilisation", "Rev 1", "2026-01-15"),
 ];
 
 const LS_KEY = "tunisair_docs_v1";

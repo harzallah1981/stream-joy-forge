@@ -12,12 +12,15 @@ export function NoCopyGuard() {
     const t = userType(user);
     if (t !== "internal_standard" && t !== "external") return;
 
+    const isAllowed = () => document.body.dataset.allowCopy === "1";
     const stop = (e: Event) => {
+      if (isAllowed()) return;
       e.preventDefault();
       toast.error("Copie désactivée pour votre profil");
     };
-    const ctx = (e: MouseEvent) => { e.preventDefault(); };
+    const ctx = (e: MouseEvent) => { if (!isAllowed()) e.preventDefault(); };
     const key = (e: KeyboardEvent) => {
+      if (isAllowed()) return;
       // Block Ctrl/Cmd+C/X/V/S/P and PrintScreen
       const k = e.key.toLowerCase();
       if ((e.ctrlKey || e.metaKey) && ["c", "x", "v", "s", "p"].includes(k)) {
