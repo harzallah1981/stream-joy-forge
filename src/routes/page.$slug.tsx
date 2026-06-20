@@ -867,3 +867,97 @@ function AcksPage() {
     </div>
   );
 }
+
+// ---- Chartered Aircraft: free-text blocks editable by the principal admin ----
+type CharteredBlock = { id: string; title: string; body: string };
+const CHARTERED_KEY = "tunisair_chartered_blocks_v1";
+
+function loadCharteredBlocks(): CharteredBlock[] {
+  try { return JSON.parse(localStorage.getItem(CHARTERED_KEY) ?? "[]"); } catch { return []; }
+}
+function saveCharteredBlocks(b: CharteredBlock[]) {
+  localStorage.setItem(CHARTERED_KEY, JSON.stringify(b));
+}
+
+function CharteredBlocks({ isPrincipal }: { isPrincipal: boolean }) {
+  const [blocks, setBlocks] = useState<CharteredBlock[]>(() => loadCharteredBlocks());
+  const [editing, setEditing] = useState<CharteredBlock | null>(null);
+
+  const persist = (next: CharteredBlock[]) => { setBlocks(next); saveCharteredBlocks(next); };
+
+  return (
+    <div className="border-b border-slate-100 bg-white px-5 py-4">
+      <div className="mb-3 flex items-center justify-between">
+        <h3 className="text-sm font-semibold text-slate-900">Notes Chartered Aircraft</h3>
+        {isPrincipal && (
+          <Button
+            size="sm"
+            onClick={() => setEditing({ id: `cb-${Date.now()}`, title: "", body: "" })}
+            className="h-8 cursor-pointer gap-1.5 bg-blue-600 hover:bg-blue-700"
+          >
+            <Plus className="h-3.5 w-3.5" /> Ajouter un bloc
+          </Button>
+        )}
+      </div>
+      {blocks.length === 0 ? (
+        <p className="text-xs text-slate-500">Aucune note. {isPrincipal ? "Cliquez sur \"Ajouter un bloc\" pour en créer une." : ""}</p>
+      ) : (
+        <div className="grid gap-3 md:grid-cols-2">
+          {blocks.map((b) => (
+            <div key={b.id} className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+              <div className="mb-1 flex items-start justify-between gap-2">
+                <h4 className="text-sm font-semibold text-slate-900">{b.title || "(sans titre)"}</h4>
+                {isPrincipal && (
+                  <div className="flex gap-1">
+                    <button onClick={() => setEditing(b)} className="cursor-pointer rounded p-1 text-slate-500 hover:bg-blue-50 hover:text-blue-700" title="Modifier">
+                      <Pencil className="h-3.5 w-3.5" />
+                    </button>
+                    <button onClick={() => persist(blocks.filter((x) => x.id !== b.id))} className="cursor-pointer rounded p-1 text-slate-500 hover:bg-red-50 hover:text-red-700" title="Supprimer">
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                )}
+              </div>
+              <p className="whitespace-pre-wrap text-xs text-slate-700">{b.body}</p>
+            </div>
+          ))}
+        </div>
+      )}
+      {editing && (
+        <Dialog open onOpenChange={(v) => !v && setEditing(null)}>
+          <DialogContent className="max-w-xl">
+            <DialogHeader><DialogTitle>{blocks.some((x) => x.id === editing.id) ? "Modifier le bloc" : "Nouveau bloc"}</DialogTitle></DialogHeader>
+            <div className="space-y-3">
+              <div>
+                <Label>Titre</Label>
+                <Input value={editing.title} onChange={(e) => setEditing({ ...editing, title: e.target.value })} />
+              </div>
+              <div>
+                <Label>Texte</Label>
+                <textarea
+                  value={editing.body}
+                  onChange={(e) => setEditing({ ...editing, body: e.target.value })}
+                  rows={8}
+                  className="w-full rounded-md border border-slate-200 bg-white p-2 text-sm"
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setEditing(null)}>Annuler</Button>
+              <Button
+                className="bg-blue-600 hover:bg-blue-700"
+                onClick={() => {
+                  const exists = blocks.some((x) => x.id === editing.id);
+                  persist(exists ? blocks.map((x) => (x.id === editing.id ? editing : x)) : [...blocks, editing]);
+                  setEditing(null);
+                  toast.success("Bloc enregistré");
+                }}
+              >Enregistrer</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+    </div>
+  );
+}
+
