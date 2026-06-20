@@ -62,6 +62,7 @@ function DocumentsPage({ slug }: { slug: string }) {
   const { t } = useI18n();
   const { user } = useAuth();
   const isAdmin = user?.role === "admin";
+  const isPrincipal = isPrincipalAdminFn(user);
   const key = SLUG_TO_KEY[slug] ?? slug;
   const title = t(key);
   usePageTitle(title, "Gestion documentaire");
@@ -70,15 +71,34 @@ function DocumentsPage({ slug }: { slug: string }) {
   const [q, setQ] = useState("");
   const [status, setStatus] = useState("all");
   const [ackTarget, setAckTarget] = useState<null | { doc: DocItem; action: "view" | "download" }>(null);
+  const [aocYear, setAocYear] = useState<string>("all");
 
   const docs = useMemo(() => getDocsForCategory(slug), [slug, refresh]);
+
+  // T — AOC: organize by year (derived from doc.date)
+  const aocYears = useMemo(() => {
+    if (slug !== "aoc") return [];
+    return Array.from(new Set(docs.map((d) => d.date.slice(0, 4)))).sort().reverse();
+  }, [slug, docs]);
+
   const filtered = docs.filter(
     (d) =>
       (status === "all" || d.status === status) &&
+      (slug !== "aoc" || aocYear === "all" || d.date.startsWith(aocYear)) &&
       (q === "" ||
         d.title.toLowerCase().includes(q.toLowerCase()) ||
         d.reference.toLowerCase().includes(q.toLowerCase())),
   );
+
+  // Chartered Aircraft: allow copy/paste on this page (overrides NoCopyGuard)
+  // and let principal admin manage free-text blocks.
+  const isChartered = slug === "ac-affretees";
+  useEffect(() => {
+    if (isChartered) {
+      document.body.dataset.allowCopy = "1";
+      return () => { delete document.body.dataset.allowCopy; };
+    }
+  }, [isChartered]);
 
   const handleDelete = (id: string) => {
     const u = loadUserDocs().filter((d) => d.id !== id);
