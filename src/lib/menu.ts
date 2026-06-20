@@ -75,6 +75,7 @@ export const MENU_GROUPS: MenuGroup[] = [
           { key: "dgac", to: stub("dgac") },
           { key: "iata", to: stub("iata") },
           { key: "affretees", to: stub("ac-affretees") },
+          { key: "safa_d03", to: stub("safa-d03") },
         ],
       },
       {
