@@ -914,25 +914,31 @@ function AcksPage() {
   }
 
 
-  const downloadCsv = (rows: Enriched[], filename: string) => {
+  const downloadPdf = async (rows: Enriched[], title: string, filename: string) => {
     if (rows.length === 0) { toast.error("Aucune ligne à exporter"); return; }
-    const headers = ["Date", "Utilisateur", "Email", "Type", "Lieu de travail", "Document", "Référence", "Catégorie", "Action"];
-    const esc = (v: string) => `"${(v ?? "").replace(/"/g, '""')}"`;
-    const lines = [
-      headers.join(";"),
-      ...rows.map((a) => [
+    const { jsPDF } = await import("jspdf");
+    const autoTable = (await import("jspdf-autotable")).default;
+    const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "a4" });
+    doc.setFontSize(14);
+    doc.setTextColor(15, 23, 42);
+    doc.text(`Accusés de Réception — ${title}`, 40, 40);
+    doc.setFontSize(9);
+    doc.setTextColor(100);
+    doc.text(`Tunisair Ground Ops · ${new Date().toLocaleString()} · ${rows.length} ligne(s)`, 40, 56);
+    autoTable(doc, {
+      startY: 70,
+      head: [["Date", "Utilisateur", "Email", "Type", "Lieu", "Document", "Référence", "Action"]],
+      body: rows.map((a) => [
         new Date(a.date).toLocaleString(),
         a.userName, a.userEmail, a.userType, a.workplace,
-        a.docTitle, a.docReference, a.category,
+        a.docTitle, a.docReference,
         a.action === "view" ? "Consultation" : "Téléchargement",
-      ].map(esc).join(";")),
-    ];
-    const blob = new Blob(["\ufeff" + lines.join("\n")], { type: "text/csv;charset=utf-8" });
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = filename;
-    a.click();
-    URL.revokeObjectURL(a.href);
+      ]),
+      styles: { fontSize: 8, cellPadding: 4 },
+      headStyles: { fillColor: [15, 23, 42], textColor: 255 },
+      alternateRowStyles: { fillColor: [248, 250, 252] },
+    });
+    doc.save(filename);
   };
 
   const Table = ({ rows, title, tone }: { rows: Enriched[]; title: string; tone: string }) => (
