@@ -32,7 +32,7 @@ const SLUG_TO_KEY: Record<string, string> = {
   "ahm-fleet": "ahm_fleet", "load-trim-fleet": "load_trim",
   "loading-instructions-fleet": "loading_instr",
   cdn: "cdn", ceirb: "ceirb", "c-immatriculation": "c_immat",
-  cln: "cln", aoc: "aoc",
+  cln: "cln", aoc: "aoc", "notes-flash": "notes_flash",
   dgac: "dgac", iata: "iata", "ac-affretees": "affretees", "safa-d03": "safa_d03",
   "liste-personnel": "liste_personnel",
   "suivi-formation": "suivi_formation",
