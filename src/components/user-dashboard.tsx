@@ -1,5 +1,6 @@
-import { useMemo, useState } from "react";
-import { BookOpen, CheckCircle2, AlertCircle, X, ArrowRight } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { BookOpen, CheckCircle2, AlertCircle, X, ArrowRight, ShieldAlert, Plane } from "lucide-react";
+import { Link } from "@tanstack/react-router";
 import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
 import { SAMPLE_DOCS, type DocItem } from "@/lib/documents";
@@ -8,6 +9,20 @@ import { addAck } from "@/lib/acknowledgements";
 import { HoverCard, HoverCardTrigger, HoverCardContent } from "@/components/ui/hover-card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { openSafaForEscale, type SafaRecord } from "@/lib/safa-store";
+import type { SafetyEvent } from "@/lib/safety-data";
+
+function loadOpenEventsForEscale(escale?: string): SafetyEvent[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = localStorage.getItem(`tunisair_events_2026`);
+    const list: SafetyEvent[] = raw ? JSON.parse(raw) : [];
+    const open = list.filter((e) => e.statut !== "CLÔTURÉ");
+    const esc = (escale ?? "").trim().toUpperCase();
+    return esc ? open.filter((e) => e.escale.toUpperCase() === esc) : open;
+  } catch { return []; }
+}
+
 
 export function UserDashboard() {
   const { t } = useI18n();
