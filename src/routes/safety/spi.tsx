@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Shield, BarChart3, Pencil, Archive } from "lucide-react";
 import { usePageTitle } from "@/lib/page-title";
 import { Button } from "@/components/ui/button";
