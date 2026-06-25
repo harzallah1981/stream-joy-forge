@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { Plus, Search, Shield, Pencil, Archive } from "lucide-react";
+import { Plus, Search, Shield, Pencil, Archive, Settings2, Trash2 } from "lucide-react";
 import { usePageTitle } from "@/lib/page-title";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -10,14 +10,17 @@ import {
 import { Label } from "@/components/ui/label";
 import {
   events as DEFAULT_EVENTS,
-  categoryColor,
-  CATEGORIES,
   type Category,
   type SafetyEvent,
   type EventStatus,
 } from "@/lib/safety-data";
+import {
+  loadEventsConfig, saveEventsConfig, categoryClass, statusClass,
+  COLOR_PRESETS, type EventsConfig,
+} from "@/lib/events-config";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth";
+
 
 export const Route = createFileRoute("/safety/events")({
   head: () => ({ meta: [{ title: "Registre Evenements — Tunisair Ground Safety" }] }),
