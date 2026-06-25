@@ -15,6 +15,7 @@ import {
   getDocsForCategory, loadUserDocs, saveUserDocs, fileToDataUrl, type DocItem,
 } from "@/lib/documents";
 import { addAck, hasAcked, loadAcks } from "@/lib/acknowledgements";
+import { markRead as markDocRead } from "@/lib/notifications";
 import {
   loadUsers, addUser, updateUser, removeUser,
   AVAILABLE_MODULES, defaultModulesFor,
