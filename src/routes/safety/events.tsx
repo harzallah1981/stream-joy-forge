@@ -571,43 +571,123 @@ function downloadAttachment(a: EventAttachment) {
   document.body.removeChild(link);
 }
 
-function AttachmentsCell({ event }: { event: SafetyEvent }) {
-  const list = event.attachments ?? [];
-  if (list.length === 0) {
-    return <span className="text-xs text-slate-300">—</span>;
+const ATTACH_ACCEPT = ".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.jpg,.jpeg,.png,.gif,.webp,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation,image/jpeg,image/png,image/gif,image/webp";
+
+async function filesToAttachments(files: FileList | null): Promise<EventAttachment[]> {
+  if (!files || files.length === 0) return [];
+  const added: EventAttachment[] = [];
+  for (const f of Array.from(files)) {
+    if (f.size > MAX_ATTACHMENT_BYTES) {
+      toast.error(`${f.name} dépasse 5 Mo`);
+      continue;
+    }
+    const dataUrl = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result));
+      reader.onerror = () => reject(reader.error);
+      reader.readAsDataURL(f);
+    });
+    added.push({
+      id: crypto.randomUUID(),
+      name: f.name,
+      type: f.type || "application/octet-stream",
+      size: f.size,
+      dataUrl,
+      addedAt: new Date().toISOString(),
+    });
   }
+  return added;
+}
+
+function AttachmentsCell({
+  event,
+  isAdmin,
+  onUpload,
+  onRemove,
+}: {
+  event: SafetyEvent;
+  isAdmin: boolean;
+  onUpload: (atts: EventAttachment[]) => void;
+  onRemove: (id: string) => void;
+}) {
+  const list = event.attachments ?? [];
+  const inputId = `att-${event.id}`;
+
+  const handleChange = async (ev: React.ChangeEvent<HTMLInputElement>) => {
+    const added = await filesToAttachments(ev.target.files);
+    ev.target.value = "";
+    if (added.length) {
+      onUpload(added);
+      toast.success(`${added.length} pièce(s) ajoutée(s)`);
+    }
+  };
+
   return (
-    <Popover>
-      <PopoverTrigger asChild>
-        <button
-          className="inline-flex cursor-pointer items-center gap-1 rounded-md border border-blue-200 bg-blue-50 px-2 py-1 text-xs font-semibold text-blue-700 hover:bg-blue-100"
-          title={`${list.length} pièce(s) jointe(s)`}
-        >
-          <Paperclip className="h-3.5 w-3.5" />
-          {list.length}
-        </button>
-      </PopoverTrigger>
-      <PopoverContent align="end" className="w-72 p-2">
-        <div className="mb-2 px-1 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-          Pièces jointes · {event.id}
-        </div>
-        <ul className="space-y-1">
-          {list.map((a) => (
-            <li key={a.id}>
-              <button
-                onClick={() => downloadAttachment(a)}
-                className="flex w-full cursor-pointer items-center gap-2 rounded-md border border-slate-200 px-2 py-1.5 text-left text-xs hover:bg-slate-50"
-              >
-                <Paperclip className="h-3.5 w-3.5 flex-shrink-0 text-slate-400" />
-                <span className="flex-1 truncate font-medium text-slate-700">{a.name}</span>
-                <span className="text-[10px] text-slate-400">{formatBytes(a.size)}</span>
-                <Download className="h-3.5 w-3.5 flex-shrink-0 text-blue-600" />
-              </button>
-            </li>
-          ))}
-        </ul>
-      </PopoverContent>
-    </Popover>
+    <div className="inline-flex items-center gap-1">
+      {list.length > 0 ? (
+        <Popover>
+          <PopoverTrigger asChild>
+            <button
+              className="inline-flex cursor-pointer items-center gap-1 rounded-md border border-blue-200 bg-blue-50 px-2 py-1 text-xs font-semibold text-blue-700 hover:bg-blue-100"
+              title={`${list.length} pièce(s) jointe(s)`}
+            >
+              <Paperclip className="h-3.5 w-3.5" />
+              {list.length}
+            </button>
+          </PopoverTrigger>
+          <PopoverContent align="end" className="w-72 p-2">
+            <div className="mb-2 px-1 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+              Pièces jointes · {event.id}
+            </div>
+            <ul className="space-y-1">
+              {list.map((a) => (
+                <li key={a.id} className="flex items-center gap-1">
+                  <button
+                    onClick={() => downloadAttachment(a)}
+                    className="flex flex-1 cursor-pointer items-center gap-2 rounded-md border border-slate-200 px-2 py-1.5 text-left text-xs hover:bg-slate-50"
+                  >
+                    <Paperclip className="h-3.5 w-3.5 flex-shrink-0 text-slate-400" />
+                    <span className="flex-1 truncate font-medium text-slate-700">{a.name}</span>
+                    <span className="text-[10px] text-slate-400">{formatBytes(a.size)}</span>
+                    <Download className="h-3.5 w-3.5 flex-shrink-0 text-blue-600" />
+                  </button>
+                  {isAdmin && (
+                    <button
+                      onClick={() => onRemove(a.id)}
+                      className="cursor-pointer rounded p-1 text-red-500 hover:bg-red-50"
+                      title="Supprimer"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </PopoverContent>
+        </Popover>
+      ) : (
+        !isAdmin && <span className="text-xs text-slate-300">—</span>
+      )}
+      {isAdmin && (
+        <>
+          <label
+            htmlFor={inputId}
+            className="inline-flex cursor-pointer items-center justify-center rounded-md border border-slate-200 p-1.5 text-slate-500 hover:border-blue-300 hover:bg-blue-50 hover:text-blue-700"
+            title="Joindre un fichier (PDF, Word, Excel, PowerPoint, image)"
+          >
+            <Paperclip className="h-3.5 w-3.5" />
+          </label>
+          <input
+            id={inputId}
+            type="file"
+            multiple
+            accept={ATTACH_ACCEPT}
+            className="hidden"
+            onChange={handleChange}
+          />
+        </>
+      )}
+    </div>
   );
 }
 
