@@ -240,7 +240,11 @@ function DocumentsPage({ slug }: { slug: string }) {
                       <td className="px-4 py-3 font-mono text-xs text-slate-700">{d.reference}</td>
                       <td className="px-4 py-3 text-slate-900">{d.title}</td>
                       <td className="px-4 py-3 text-slate-600">{d.version}</td>
-                      <td className="px-4 py-3 text-slate-600">{d.date}</td>
+                      <td className="px-4 py-3 text-slate-600">
+                        {d.validFrom && d.validTo
+                          ? <span className="text-xs">Du <b>{d.validFrom}</b><br/>au <b>{d.validTo}</b></span>
+                          : d.date}
+                      </td>
                       <td className="px-4 py-3">
                         <StatusPill s={d.status} />
                       </td>
