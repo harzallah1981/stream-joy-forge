@@ -420,6 +420,8 @@ function UploadDialog({
         title: files.length > 1 ? `${docTitle} (${f.name})` : docTitle,
         version,
         date,
+        validFrom: hasValidity && validFrom ? validFrom : undefined,
+        validTo: hasValidity && validTo ? validTo : undefined,
         status: "En diffusion",
         fileName: f.name,
         url,
@@ -430,6 +432,7 @@ function UploadDialog({
     saveUserDocs(docs);
     toast.success(`${files.length} document${files.length > 1 ? "s" : ""} ajouté${files.length > 1 ? "s" : ""}`);
     setReference(""); setDocTitle(""); setVersion("Rev 1"); setFiles([]); setRequireAck(true);
+    setValidFrom(""); setValidTo("");
     setOpen(false);
     onDone();
   };
