@@ -76,6 +76,7 @@ export const dict: Dict = {
   gestion_users: { fr: "Gestion Utilisateurs", en: "User management" },
   credentials: { fr: "Credentials & Mots de Passe", en: "Credentials & passwords" },
   accuses: { fr: "Accuses de Reception", en: "Acknowledgements" },
+  form_recipients: { fr: "Destinataires Formulaires", en: "Form recipients" },
 
   // UI
   search: { fr: "Rechercher...", en: "Search..." },

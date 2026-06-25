@@ -20,6 +20,7 @@ import { Route as PageSlugRouteImport } from './routes/page.$slug'
 import { Route as FormsIos42801RouteImport } from './routes/forms/ios-428-01'
 import { Route as FormsDgIncidentRouteImport } from './routes/forms/dg-incident'
 import { Route as FormsAhm650RouteImport } from './routes/forms/ahm-650'
+import { Route as AdminRecipientsRouteImport } from './routes/admin/recipients'
 
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
@@ -76,12 +77,18 @@ const FormsAhm650Route = FormsAhm650RouteImport.update({
   path: '/forms/ahm-650',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminRecipientsRoute = AdminRecipientsRouteImport.update({
+  id: '/admin/recipients',
+  path: '/admin/recipients',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/read-sign': typeof ReadSignRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/admin/recipients': typeof AdminRecipientsRoute
   '/forms/ahm-650': typeof FormsAhm650Route
   '/forms/dg-incident': typeof FormsDgIncidentRoute
   '/forms/ios-428-01': typeof FormsIos42801Route
@@ -95,6 +102,7 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/read-sign': typeof ReadSignRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/admin/recipients': typeof AdminRecipientsRoute
   '/forms/ahm-650': typeof FormsAhm650Route
   '/forms/dg-incident': typeof FormsDgIncidentRoute
   '/forms/ios-428-01': typeof FormsIos42801Route
@@ -109,6 +117,7 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/read-sign': typeof ReadSignRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/admin/recipients': typeof AdminRecipientsRoute
   '/forms/ahm-650': typeof FormsAhm650Route
   '/forms/dg-incident': typeof FormsDgIncidentRoute
   '/forms/ios-428-01': typeof FormsIos42801Route
@@ -124,6 +133,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/read-sign'
     | '/reset-password'
+    | '/admin/recipients'
     | '/forms/ahm-650'
     | '/forms/dg-incident'
     | '/forms/ios-428-01'
@@ -137,6 +147,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/read-sign'
     | '/reset-password'
+    | '/admin/recipients'
     | '/forms/ahm-650'
     | '/forms/dg-incident'
     | '/forms/ios-428-01'
@@ -150,6 +161,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/read-sign'
     | '/reset-password'
+    | '/admin/recipients'
     | '/forms/ahm-650'
     | '/forms/dg-incident'
     | '/forms/ios-428-01'
@@ -164,6 +176,7 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   ReadSignRoute: typeof ReadSignRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
+  AdminRecipientsRoute: typeof AdminRecipientsRoute
   FormsAhm650Route: typeof FormsAhm650Route
   FormsDgIncidentRoute: typeof FormsDgIncidentRoute
   FormsIos42801Route: typeof FormsIos42801Route
@@ -252,6 +265,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof FormsAhm650RouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/recipients': {
+      id: '/admin/recipients'
+      path: '/admin/recipients'
+      fullPath: '/admin/recipients'
+      preLoaderRoute: typeof AdminRecipientsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -260,6 +280,7 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   ReadSignRoute: ReadSignRoute,
   ResetPasswordRoute: ResetPasswordRoute,
+  AdminRecipientsRoute: AdminRecipientsRoute,
   FormsAhm650Route: FormsAhm650Route,
   FormsDgIncidentRoute: FormsDgIncidentRoute,
   FormsIos42801Route: FormsIos42801Route,
