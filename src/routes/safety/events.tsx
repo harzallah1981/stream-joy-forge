@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { Plus, Search, Shield, Pencil, Archive, Settings2, Trash2 } from "lucide-react";
+import { Plus, Search, Shield, Pencil, Archive, Settings2, Trash2, FileDown } from "lucide-react";
+import { exportEventsPdf } from "@/lib/events-pdf";
 import { usePageTitle } from "@/lib/page-title";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -137,6 +138,14 @@ function EventsRegister() {
                 <Settings2 className="h-4 w-4" /> Configurer
               </Button>
             )}
+            <Button
+              variant="outline"
+              onClick={() => exportEventsPdf({ year, events: filtered, userName: user?.email })}
+              className="h-9 cursor-pointer gap-1.5"
+              title="Exporter en PDF (A4 paysage)"
+            >
+              <FileDown className="h-4 w-4" /> Export PDF
+            </Button>
             {isAdmin && (
               <Button
                 variant="outline"
