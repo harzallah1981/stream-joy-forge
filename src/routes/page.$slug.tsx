@@ -474,6 +474,20 @@ function UploadDialog({
               </ul>
             )}
           </div>
+          <label className="flex cursor-pointer items-start gap-2 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-700">
+            <input
+              type="checkbox"
+              checked={requireAck}
+              onChange={(e) => setRequireAck(e.target.checked)}
+              className="mt-0.5 h-4 w-4 cursor-pointer accent-blue-600"
+            />
+            <span>
+              <b>Exiger un accusé de réception</b> avant consultation/téléchargement
+              <span className="block text-[11px] text-slate-500">
+                Décocher pour rendre ce document librement consultable par les utilisateurs internes standard et externes.
+              </span>
+            </span>
+          </label>
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => setOpen(false)} className="cursor-pointer">Annuler</Button>
