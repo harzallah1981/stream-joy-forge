@@ -121,6 +121,10 @@ export function UserDashboard() {
         </HoverCard>
       </div>
 
+      <SafetyEscaleBlock />
+
+
+
       <Dialog open={!!reading} onOpenChange={(v) => !v && setReading(null)}>
         <DialogContent className="max-w-3xl">
           <DialogHeader>
