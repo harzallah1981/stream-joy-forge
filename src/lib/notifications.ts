@@ -1,9 +1,19 @@
 // Notifications + read-status helpers (localStorage backed)
+//
+// Logic: the bell indicator must only light up when a *new* document
+// (or a new revision of an existing one) appears AFTER the user has
+// already discovered the existing catalogue. We snapshot the document
+// list the first time a user opens the app ("baseline"); only docs
+// added or revised relative to that baseline are notified. The
+// indicator clears for a given doc only when the user performs a
+// real access (view / download), which calls `markRead`.
 import { SAMPLE_DOCS, type DocItem } from "@/lib/documents";
 
 const READ_KEY = "tunisair_doc_reads_v1";
+const BASELINE_KEY = "tunisair_doc_baseline_v1";
 
 export type ReadMap = Record<string, string>; // docId -> ISO date
+export type BaselineMap = Record<string, string>; // docId -> version known at baseline
 
 export function loadReads(userEmail: string): ReadMap {
   try {
@@ -17,9 +27,36 @@ export function markRead(userEmail: string, docId: string) {
   const m = loadReads(userEmail);
   m[docId] = new Date().toISOString();
   localStorage.setItem(`${READ_KEY}:${userEmail}`, JSON.stringify(m));
+  // Also refresh the baseline entry for that doc so a later revision
+  // re-triggers a notification.
+  const b = loadBaseline(userEmail);
+  const cur = SAMPLE_DOCS.find((d) => d.id === docId);
+  if (cur) {
+    b[docId] = cur.version;
+    localStorage.setItem(`${BASELINE_KEY}:${userEmail}`, JSON.stringify(b));
+  }
 }
 export function isRead(userEmail: string, docId: string): boolean {
   return !!loadReads(userEmail)[docId];
+}
+
+function loadBaselineRaw(userEmail: string): BaselineMap | null {
+  try {
+    const raw = localStorage.getItem(`${BASELINE_KEY}:${userEmail}`);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+export function loadBaseline(userEmail: string): BaselineMap {
+  const existing = loadBaselineRaw(userEmail);
+  if (existing) return existing;
+  // First visit: snapshot the current catalogue so nothing is flagged
+  // as "new" until something actually changes server-side.
+  const seed: BaselineMap = {};
+  for (const d of SAMPLE_DOCS) seed[d.id] = d.version;
+  localStorage.setItem(`${BASELINE_KEY}:${userEmail}`, JSON.stringify(seed));
+  return seed;
 }
 
 export function unreadDocs(userEmail: string): DocItem[] {
@@ -31,31 +68,27 @@ export function readDocs(userEmail: string): DocItem[] {
   return SAMPLE_DOCS.filter((d) => !!m[d.id]);
 }
 
-// Notification list: recent docs + updated docs + unread (deduped)
 export type Notif = {
   id: string;
-  kind: "new" | "updated" | "unread";
+  kind: "new" | "updated";
   doc: DocItem;
 };
+
+// Only surface docs whose id/version differs from the per-user baseline
+// AND that have not yet been opened (markRead). Legacy "unread backlog"
+// is intentionally not shown — the bell flags genuine novelty only.
 export function buildNotifications(userEmail: string): Notif[] {
-  const now = Date.now();
-  const SEVEN = 7 * 86400000;
+  const baseline = loadBaseline(userEmail);
   const reads = loadReads(userEmail);
   const out: Notif[] = [];
   for (const d of SAMPLE_DOCS) {
-    const t = new Date(d.date).getTime();
-    const fresh = now - t < 60 * 86400000; // within ~2 months
-    if (fresh && !reads[d.id]) out.push({ id: `new-${d.id}`, kind: "new", doc: d });
-  }
-  for (const d of SAMPLE_DOCS) {
-    if (/Rev (1[0-9]|[7-9])/.test(d.version)) {
+    if (reads[d.id]) continue;
+    const known = baseline[d.id];
+    if (known === undefined) {
+      out.push({ id: `new-${d.id}`, kind: "new", doc: d });
+    } else if (known !== d.version) {
       out.push({ id: `upd-${d.id}`, kind: "updated", doc: d });
     }
   }
-  for (const d of SAMPLE_DOCS) {
-    if (!reads[d.id]) out.push({ id: `unr-${d.id}`, kind: "unread", doc: d });
-  }
-  // dedupe by doc id keeping first kind seen
-  const seen = new Set<string>();
-  return out.filter((n) => (seen.has(n.doc.id) ? false : seen.add(n.doc.id))).slice(0, 30);
+  return out.slice(0, 30);
 }
