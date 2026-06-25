@@ -16,9 +16,32 @@ import {
   safaD03,
   opsSolMensuel,
   pct,
+  type SafetyEvent,
 } from "@/lib/safety-data";
 import { useAuth } from "@/lib/auth";
 import { toast } from "sonner";
+
+const MONTH_INDEX: Record<string, number> = {
+  JAN: 0, "FÉV": 1, MAR: 2, AVR: 3, MAI: 4, JUN: 5,
+  JUL: 6, "AOÛ": 7, SEP: 8, OCT: 9, NOV: 10, "DÉC": 11,
+};
+function loadEventsForYear(year: number): SafetyEvent[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = localStorage.getItem(`tunisair_events_${year}`);
+    return raw ? JSON.parse(raw) : [];
+  } catch { return []; }
+}
+function autoAnomaliesByMonth(year: number): Record<string, number> {
+  const out: Record<string, number> = {};
+  for (const e of loadEventsForYear(year)) {
+    const d = new Date(e.date);
+    if (d.getFullYear() !== year) continue;
+    const m = Object.keys(MONTH_INDEX).find((k) => MONTH_INDEX[k] === d.getMonth());
+    if (m) out[m] = (out[m] ?? 0) + 1;
+  }
+  return out;
+}
 
 export const Route = createFileRoute("/safety/spi")({
   head: () => ({ meta: [{ title: "Indicateurs SPI — Tunisair Ground Safety" }] }),
