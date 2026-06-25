@@ -67,6 +67,7 @@ export const MENU_GROUPS: MenuGroup[] = [
           { key: "c_immat", to: stub("c-immatriculation") },
           { key: "cln", to: stub("cln") },
           { key: "aoc", to: stub("aoc") },
+          { key: "notes_flash", to: stub("notes-flash") },
         ],
       },
       {
