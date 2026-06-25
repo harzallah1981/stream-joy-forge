@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { Plus, Search, Shield, Pencil, Archive, Settings2, Trash2, FileDown } from "lucide-react";
+import { Plus, Search, Shield, Pencil, Archive, Settings2, Trash2, FileDown, Paperclip, Download, X } from "lucide-react";
 import { exportEventsPdf } from "@/lib/events-pdf";
 import { usePageTitle } from "@/lib/page-title";
 import { Input } from "@/components/ui/input";
@@ -8,12 +8,14 @@ import { Button } from "@/components/ui/button";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Label } from "@/components/ui/label";
 import {
   events as DEFAULT_EVENTS,
   type Category,
   type SafetyEvent,
   type EventStatus,
+  type EventAttachment,
 } from "@/lib/safety-data";
 import {
   loadEventsConfig, saveEventsConfig, categoryClass, statusClass,
