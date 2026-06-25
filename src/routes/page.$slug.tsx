@@ -952,10 +952,10 @@ function AcksPage() {
         <Button
           size="sm"
           variant="outline"
-          onClick={() => downloadCsv(rows, `accuses-${title.toLowerCase().replace(/\s+/g, "-")}-${Date.now()}.csv`)}
+          onClick={() => downloadPdf(rows, title, `accuses-${title.toLowerCase().replace(/\s+/g, "-")}-${Date.now()}.pdf`)}
           className="ml-auto h-8 gap-1.5"
         >
-          <Download className="h-3.5 w-3.5" /> Exporter CSV
+          <Download className="h-3.5 w-3.5" /> Exporter PDF
         </Button>
       </div>
       <div className="overflow-x-auto">
