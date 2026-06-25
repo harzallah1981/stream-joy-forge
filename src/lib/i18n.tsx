@@ -33,7 +33,7 @@ export const dict: Dict = {
   load_trim: { fr: "Load and trim sheets fleet", en: "Load and trim sheets fleet" },
   loading_instr: { fr: "Loading Instructions reports fleet", en: "Loading Instructions reports fleet" },
   cdn: { fr: "CDN", en: "CDN" },
-  ceirb: { fr: "CEIRB", en: "CEIRB" },
+  ceirb: { fr: "Certificat Radio Licence", en: "Radio License Certificate" },
   c_immat: { fr: "C-IMMATRICULATION", en: "C-IMMATRICULATION" },
   cln: { fr: "CLN", en: "CLN" },
   aoc: { fr: "AOC", en: "AOC" },
