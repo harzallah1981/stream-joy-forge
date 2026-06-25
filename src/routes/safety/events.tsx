@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { Plus, Search, Shield, Pencil, Archive, Settings2, Trash2 } from "lucide-react";
+import { Plus, Search, Shield, Pencil, Archive, Settings2, Trash2, FileDown } from "lucide-react";
+import { exportEventsPdf } from "@/lib/events-pdf";
 import { usePageTitle } from "@/lib/page-title";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
