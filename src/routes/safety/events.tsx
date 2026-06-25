@@ -64,6 +64,12 @@ function EventsRegister() {
   const [years, setYears] = useState<number[]>([CURRENT_YEAR]);
   const [list, setList] = useState<SafetyEvent[]>([]);
   const [search, setSearch] = useState("");
+  const [fEscale, setFEscale] = useState("");
+  const [fSeverite, setFSeverite] = useState<"" | "acceptable" | "moyen" | "non">("");
+  const [fStatut, setFStatut] = useState("");
+  const [fCategorie, setFCategorie] = useState("");
+  const [fMois, setFMois] = useState<string>(""); // "01".."12"
+  const [fTrim, setFTrim] = useState<string>(""); // "1".."4"
   const [editing, setEditing] = useState<SafetyEvent | null>(null);
   const [newYearOpen, setNewYearOpen] = useState(false);
   const [cfg, setCfg] = useState<EventsConfig>(() => loadEventsConfig());
@@ -78,18 +84,47 @@ function EventsRegister() {
     saveEvents(year, next);
   };
 
+  const escales = useMemo(
+    () => Array.from(new Set(list.map((e) => e.escale).filter(Boolean))).sort(),
+    [list],
+  );
+
   const filtered = useMemo(() => {
     const q = search.toLowerCase().trim();
-    if (!q) return list;
-    return list.filter(
-      (e) =>
+    return list.filter((e) => {
+      if (q && !(
         e.id.toLowerCase().includes(q) ||
         e.escale.toLowerCase().includes(q) ||
         e.description.toLowerCase().includes(q) ||
         e.source.toLowerCase().includes(q) ||
-        e.categorie.toLowerCase().includes(q),
-    );
-  }, [list, search]);
+        e.categorie.toLowerCase().includes(q)
+      )) return false;
+      if (fEscale && e.escale !== fEscale) return false;
+      if (fStatut && e.statut !== fStatut) return false;
+      if (fCategorie && e.categorie !== fCategorie) return false;
+      if (fSeverite) {
+        const s = e.prob * e.grav;
+        if (fSeverite === "acceptable" && !(s <= 8)) return false;
+        if (fSeverite === "moyen" && !(s >= 9 && s <= 19)) return false;
+        if (fSeverite === "non" && !(s >= 20)) return false;
+      }
+      if (fMois || fTrim) {
+        const m = Number((e.date || "").slice(5, 7));
+        if (fMois && String(m).padStart(2, "0") !== fMois) return false;
+        if (fTrim) {
+          const t = Math.ceil(m / 3);
+          if (String(t) !== fTrim) return false;
+        }
+      }
+      return true;
+    });
+  }, [list, search, fEscale, fStatut, fCategorie, fSeverite, fMois, fTrim]);
+
+  const resetFilters = () => {
+    setSearch(""); setFEscale(""); setFSeverite(""); setFStatut("");
+    setFCategorie(""); setFMois(""); setFTrim("");
+  };
+  const hasFilters = !!(search || fEscale || fSeverite || fStatut || fCategorie || fMois || fTrim);
 
   const addEvent = () => {
     const id = `GS-${year}-${String(list.length + 1).padStart(3, "0")}`;
