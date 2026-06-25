@@ -13,6 +13,9 @@ export type DocItem = {
   /** data URL or http URL */
   url: string;
   uploadedBy?: string;
+  /** When false, document can be viewed/downloaded without an ack.
+   *  When true or undefined, the legacy ack flow applies (per user type). */
+  requireAck?: boolean;
 };
 
 // Minimal valid 1-page PDF (will render "Tunisair — <title>")
