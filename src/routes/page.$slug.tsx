@@ -1027,10 +1027,10 @@ function AcksPage() {
           <span className="ml-auto text-slate-500">{filtered.length} / {acks.length} accusé(s)</span>
           <Button
             size="sm"
-            onClick={() => downloadCsv(filtered, `accuses-tous-${Date.now()}.csv`)}
+            onClick={() => downloadPdf(filtered, "Tous (filtré)", `accuses-tous-${Date.now()}.pdf`)}
             className="h-8 gap-1.5 bg-blue-600 hover:bg-blue-700"
           >
-            <Download className="h-3.5 w-3.5" /> Exporter tout (filtré)
+            <Download className="h-3.5 w-3.5" /> Exporter PDF (filtré)
           </Button>
         </div>
       </div>
