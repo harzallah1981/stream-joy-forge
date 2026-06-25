@@ -1,5 +1,6 @@
-import { useMemo, useState } from "react";
-import { BookOpen, CheckCircle2, AlertCircle, X, ArrowRight } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { BookOpen, CheckCircle2, AlertCircle, X, ArrowRight, ShieldAlert, Plane } from "lucide-react";
+import { Link } from "@tanstack/react-router";
 import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
 import { SAMPLE_DOCS, type DocItem } from "@/lib/documents";
@@ -8,6 +9,20 @@ import { addAck } from "@/lib/acknowledgements";
 import { HoverCard, HoverCardTrigger, HoverCardContent } from "@/components/ui/hover-card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { openSafaForEscale, type SafaRecord } from "@/lib/safa-store";
+import type { SafetyEvent } from "@/lib/safety-data";
+
+function loadOpenEventsForEscale(escale?: string): SafetyEvent[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = localStorage.getItem(`tunisair_events_2026`);
+    const list: SafetyEvent[] = raw ? JSON.parse(raw) : [];
+    const open = list.filter((e) => e.statut !== "CLÔTURÉ");
+    const esc = (escale ?? "").trim().toUpperCase();
+    return esc ? open.filter((e) => e.escale.toUpperCase() === esc) : open;
+  } catch { return []; }
+}
+
 
 export function UserDashboard() {
   const { t } = useI18n();
@@ -106,6 +121,10 @@ export function UserDashboard() {
         </HoverCard>
       </div>
 
+      <SafetyEscaleBlock />
+
+
+
       <Dialog open={!!reading} onOpenChange={(v) => !v && setReading(null)}>
         <DialogContent className="max-w-3xl">
           <DialogHeader>
@@ -159,3 +178,79 @@ function KpiCard({
     </div>
   );
 }
+
+function SafetyEscaleBlock() {
+  const { user } = useAuth();
+  const escale = user?.workplace?.trim() || "";
+  const [openEvents, setOpenEvents] = useState<SafetyEvent[]>([]);
+  const [openSafa, setOpenSafa] = useState<SafaRecord[]>([]);
+
+  useEffect(() => {
+    setOpenEvents(loadOpenEventsForEscale(escale || undefined));
+    setOpenSafa(openSafaForEscale(escale || undefined));
+  }, [escale]);
+
+  const total = openEvents.length + openSafa.length;
+  if (total === 0) return null;
+
+  return (
+    <div className="mt-6 overflow-hidden rounded-xl border-2 border-red-400 bg-red-50 shadow-sm animate-pulse">
+      <div className="flex items-center gap-2 border-b border-red-200 bg-red-100 px-4 py-2.5">
+        <ShieldAlert className="h-4 w-4 text-red-700" />
+        <h3 className="text-sm font-bold uppercase tracking-wide text-red-800">
+          Événements & écarts SAFA en cours{escale ? ` · escale ${escale}` : ""}
+        </h3>
+        <span className="ml-auto rounded-full bg-red-600 px-2 py-0.5 text-[11px] font-bold text-white">{total}</span>
+      </div>
+      <div className="grid gap-3 p-4 md:grid-cols-2">
+        <div className="rounded-lg border border-red-200 bg-white p-3">
+          <div className="mb-2 flex items-center gap-2 text-xs font-bold uppercase text-red-700">
+            <AlertCircle className="h-3.5 w-3.5" /> Événements ouverts ({openEvents.length})
+          </div>
+          {openEvents.length === 0 ? (
+            <p className="text-xs text-slate-500">Aucun événement ouvert.</p>
+          ) : (
+            <ul className="space-y-1.5">
+              {openEvents.slice(0, 5).map((e) => (
+                <li key={e.id} className="text-xs">
+                  <Link to="/safety/events" className="block rounded p-1 hover:bg-red-50">
+                    <span className="font-mono font-semibold text-slate-800">{e.id}</span>
+                    <span className="ml-2 text-slate-500">{e.date} · {e.escale}</span>
+                    <div className="truncate text-slate-700">{e.description}</div>
+                  </Link>
+                </li>
+              ))}
+              {openEvents.length > 5 && (
+                <li className="text-[11px] text-red-700"><Link to="/safety/events">+ {openEvents.length - 5} autre(s)</Link></li>
+              )}
+            </ul>
+          )}
+        </div>
+        <div className="rounded-lg border border-red-200 bg-white p-3">
+          <div className="mb-2 flex items-center gap-2 text-xs font-bold uppercase text-red-700">
+            <Plane className="h-3.5 w-3.5" /> Écarts SAFA non clôturés ({openSafa.length})
+          </div>
+          {openSafa.length === 0 ? (
+            <p className="text-xs text-slate-500">Aucun écart ouvert.</p>
+          ) : (
+            <ul className="space-y-1.5">
+              {openSafa.slice(0, 5).map((r) => (
+                <li key={r.id} className="text-xs">
+                  <Link to="/safety/safa-d03" className="block rounded p-1 hover:bg-red-50">
+                    <span className="font-mono font-semibold text-slate-800">{r.id}</span>
+                    <span className="ml-2 text-slate-500">{r.date} · {r.escale} · {r.vol}</span>
+                    <div className="truncate text-slate-700">{r.description}</div>
+                  </Link>
+                </li>
+              ))}
+              {openSafa.length > 5 && (
+                <li className="text-[11px] text-red-700"><Link to="/safety/safa-d03">+ {openSafa.length - 5} autre(s)</Link></li>
+              )}
+            </ul>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+

@@ -14,6 +14,7 @@ import { Route as ReadSignRouteImport } from './routes/read-sign'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as SafetySpiRouteImport } from './routes/safety/spi'
+import { Route as SafetySafaD03RouteImport } from './routes/safety/safa-d03'
 import { Route as SafetyEventsRouteImport } from './routes/safety/events'
 import { Route as PageSlugRouteImport } from './routes/page.$slug'
 import { Route as FormsIos42801RouteImport } from './routes/forms/ios-428-01'
@@ -43,6 +44,11 @@ const IndexRoute = IndexRouteImport.update({
 const SafetySpiRoute = SafetySpiRouteImport.update({
   id: '/safety/spi',
   path: '/safety/spi',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SafetySafaD03Route = SafetySafaD03RouteImport.update({
+  id: '/safety/safa-d03',
+  path: '/safety/safa-d03',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SafetyEventsRoute = SafetyEventsRouteImport.update({
@@ -81,6 +87,7 @@ export interface FileRoutesByFullPath {
   '/forms/ios-428-01': typeof FormsIos42801Route
   '/page/$slug': typeof PageSlugRoute
   '/safety/events': typeof SafetyEventsRoute
+  '/safety/safa-d03': typeof SafetySafaD03Route
   '/safety/spi': typeof SafetySpiRoute
 }
 export interface FileRoutesByTo {
@@ -93,6 +100,7 @@ export interface FileRoutesByTo {
   '/forms/ios-428-01': typeof FormsIos42801Route
   '/page/$slug': typeof PageSlugRoute
   '/safety/events': typeof SafetyEventsRoute
+  '/safety/safa-d03': typeof SafetySafaD03Route
   '/safety/spi': typeof SafetySpiRoute
 }
 export interface FileRoutesById {
@@ -106,6 +114,7 @@ export interface FileRoutesById {
   '/forms/ios-428-01': typeof FormsIos42801Route
   '/page/$slug': typeof PageSlugRoute
   '/safety/events': typeof SafetyEventsRoute
+  '/safety/safa-d03': typeof SafetySafaD03Route
   '/safety/spi': typeof SafetySpiRoute
 }
 export interface FileRouteTypes {
@@ -120,6 +129,7 @@ export interface FileRouteTypes {
     | '/forms/ios-428-01'
     | '/page/$slug'
     | '/safety/events'
+    | '/safety/safa-d03'
     | '/safety/spi'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -132,6 +142,7 @@ export interface FileRouteTypes {
     | '/forms/ios-428-01'
     | '/page/$slug'
     | '/safety/events'
+    | '/safety/safa-d03'
     | '/safety/spi'
   id:
     | '__root__'
@@ -144,6 +155,7 @@ export interface FileRouteTypes {
     | '/forms/ios-428-01'
     | '/page/$slug'
     | '/safety/events'
+    | '/safety/safa-d03'
     | '/safety/spi'
   fileRoutesById: FileRoutesById
 }
@@ -157,6 +169,7 @@ export interface RootRouteChildren {
   FormsIos42801Route: typeof FormsIos42801Route
   PageSlugRoute: typeof PageSlugRoute
   SafetyEventsRoute: typeof SafetyEventsRoute
+  SafetySafaD03Route: typeof SafetySafaD03Route
   SafetySpiRoute: typeof SafetySpiRoute
 }
 
@@ -195,6 +208,13 @@ declare module '@tanstack/react-router' {
       path: '/safety/spi'
       fullPath: '/safety/spi'
       preLoaderRoute: typeof SafetySpiRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/safety/safa-d03': {
+      id: '/safety/safa-d03'
+      path: '/safety/safa-d03'
+      fullPath: '/safety/safa-d03'
+      preLoaderRoute: typeof SafetySafaD03RouteImport
       parentRoute: typeof rootRouteImport
     }
     '/safety/events': {
@@ -245,6 +265,7 @@ const rootRouteChildren: RootRouteChildren = {
   FormsIos42801Route: FormsIos42801Route,
   PageSlugRoute: PageSlugRoute,
   SafetyEventsRoute: SafetyEventsRoute,
+  SafetySafaD03Route: SafetySafaD03Route,
   SafetySpiRoute: SafetySpiRoute,
 }
 export const routeTree = rootRouteImport
