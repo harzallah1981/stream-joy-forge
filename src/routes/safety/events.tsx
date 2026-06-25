@@ -634,12 +634,16 @@ function AttachmentsEditor({
 
   return (
     <div className="space-y-2">
-      <label className="flex cursor-pointer items-center justify-center gap-2 rounded-md border border-dashed border-slate-300 bg-slate-50 px-3 py-3 text-xs text-slate-600 hover:bg-slate-100">
+      <label
+        className="flex cursor-pointer items-center justify-center gap-2 rounded-md border border-dashed border-blue-300 bg-blue-50 px-3 py-3 text-xs font-semibold text-blue-700 hover:bg-blue-100"
+        title="Joindre un document (PDF, Word, Excel, PowerPoint, image)"
+      >
         <Paperclip className="h-4 w-4" />
-        <span>Cliquer pour ajouter des fichiers (max 5 Mo)</span>
+        <span>Joindre un fichier — PDF, Word, Excel, PowerPoint, JPEG, PNG, GIF (max 5 Mo)</span>
         <input
           type="file"
           multiple
+          accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.jpg,.jpeg,.png,.gif,.webp,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation,image/jpeg,image/png,image/gif,image/webp"
           className="hidden"
           onChange={(ev) => {
             handleFiles(ev.target.files);
