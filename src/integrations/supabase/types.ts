@@ -14,6 +14,42 @@ export type Database = {
   }
   public: {
     Tables: {
+      acknowledgements: {
+        Row: {
+          action: string
+          category: string | null
+          created_at: string
+          doc_id: string
+          doc_reference: string | null
+          doc_title: string
+          id: string
+          user_email: string
+          user_name: string
+        }
+        Insert: {
+          action: string
+          category?: string | null
+          created_at?: string
+          doc_id: string
+          doc_reference?: string | null
+          doc_title: string
+          id?: string
+          user_email: string
+          user_name: string
+        }
+        Update: {
+          action?: string
+          category?: string | null
+          created_at?: string
+          doc_id?: string
+          doc_reference?: string | null
+          doc_title?: string
+          id?: string
+          user_email?: string
+          user_name?: string
+        }
+        Relationships: []
+      }
       form_submissions: {
         Row: {
           created_at: string
