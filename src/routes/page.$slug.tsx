@@ -846,11 +846,12 @@ function AcksPage() {
   const [fType, setFType] = useState<"" | "internal" | "external">("");
   const [fWorkplace, setFWorkplace] = useState("");
 
-  if (user?.role !== "admin") {
-    return <div className="p-8 text-sm text-slate-600">🔒 Accès réservé aux administrateurs.</div>;
-  }
+  const isAdmin = user?.role === "admin";
 
   type Enriched = (typeof acks)[number] & {
+    userType: "internal" | "external" | "admin" | "unknown";
+    workplace: string;
+  };
     userType: "internal" | "external" | "admin" | "unknown";
     workplace: string;
   };
