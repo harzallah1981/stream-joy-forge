@@ -204,8 +204,18 @@ function SpiDashboard() {
             </thead>
             <tbody>
               <tr className="border-b border-slate-100">
-                <td className="py-3 pl-2 pr-4 text-slate-700">Nbr Anomalies</td>
-                {MONTHS.map((m) => (<td key={m} className="px-2 py-3 text-center tabular-nums text-slate-700">{data.opsSolMensuel[m].anomalies ?? "—"}</td>))}
+                <td className="py-3 pl-2 pr-4 text-slate-700">Nbr Anomalies <span className="text-[10px] text-slate-400">(auto registre)</span></td>
+                {MONTHS.map((m) => {
+                  const manual = data.opsSolMensuel[m].anomalies;
+                  const auto = autoAnomalies[m] ?? 0;
+                  const isAuto = manual === null;
+                  const val = isAuto ? auto : manual;
+                  return (
+                    <td key={m} className={"px-2 py-3 text-center tabular-nums " + (isAuto ? "italic text-blue-600" : "text-slate-700")} title={isAuto ? "Valeur auto depuis le registre des événements" : "Valeur saisie par l'admin"}>
+                      {val ?? "—"}
+                    </td>
+                  );
+                })}
                 {isAdmin && <td />}
               </tr>
               <tr className="border-b border-slate-100">
@@ -215,9 +225,14 @@ function SpiDashboard() {
               </tr>
               <tr>
                 <td className="py-3 pl-2 pr-4 font-semibold text-slate-900">Taux (/vol)</td>
-                {MONTHS.map((m) => (<td key={m} className="px-2 py-3 text-center font-semibold tabular-nums text-blue-600">{pct(data.opsSolMensuel[m].anomalies, data.opsSolMensuel[m].vols)}</td>))}
+                {MONTHS.map((m) => {
+                  const manual = data.opsSolMensuel[m].anomalies;
+                  const eff = manual === null ? (autoAnomalies[m] ?? null) : manual;
+                  return (<td key={m} className="px-2 py-3 text-center font-semibold tabular-nums text-blue-600">{pct(eff, data.opsSolMensuel[m].vols)}</td>);
+                })}
                 {isAdmin && <td />}
               </tr>
+
               {isAdmin && (
                 <tr>
                   <td />
