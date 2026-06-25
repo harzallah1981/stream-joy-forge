@@ -138,6 +138,14 @@ function EventsRegister() {
                 <Settings2 className="h-4 w-4" /> Configurer
               </Button>
             )}
+            <Button
+              variant="outline"
+              onClick={() => exportEventsPdf({ year, events: filtered, userName: user?.fullName ?? user?.email })}
+              className="h-9 cursor-pointer gap-1.5"
+              title="Exporter en PDF (A4 paysage)"
+            >
+              <FileDown className="h-4 w-4" /> Export PDF
+            </Button>
             {isAdmin && (
               <Button
                 variant="outline"
