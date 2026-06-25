@@ -140,7 +140,7 @@ function EventsRegister() {
             )}
             <Button
               variant="outline"
-              onClick={() => exportEventsPdf({ year, events: filtered, userName: user?.fullName ?? user?.email })}
+              onClick={() => exportEventsPdf({ year, events: filtered, userName: user?.email })}
               className="h-9 cursor-pointer gap-1.5"
               title="Exporter en PDF (A4 paysage)"
             >
