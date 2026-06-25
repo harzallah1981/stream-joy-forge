@@ -86,8 +86,10 @@ export const MENU_GROUPS: MenuGroup[] = [
           { key: "ios_428_01_checklist", to: "/forms/ios-428-01" },
         ],
       },
+      { key: "read_sign", to: "/read-sign" },
     ],
   },
+
   // "Personnel & Formation" section removed per request
 
   {
