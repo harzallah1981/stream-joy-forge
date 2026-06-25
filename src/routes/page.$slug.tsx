@@ -112,6 +112,11 @@ function DocumentsPage({ slug }: { slug: string }) {
       performAction(doc, action);
       return;
     }
+    // Admin can mark a doc as not requiring an ack ("optional ack per doc")
+    if (doc.requireAck === false) {
+      performAction(doc, action);
+      return;
+    }
     // T24: ack required only on first time per (user, doc)
     if (user && hasAcked(user.email, doc.id)) {
       performAction(doc, action);
@@ -119,6 +124,7 @@ function DocumentsPage({ slug }: { slug: string }) {
     }
     setAckTarget({ doc, action });
   };
+
 
   const performAction = (doc: DocItem, action: "view" | "download") => {
     if (action === "view") {
