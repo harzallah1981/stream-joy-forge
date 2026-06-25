@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Bell, Clock, LogOut, Plane, FileText, RefreshCw, BookOpen } from "lucide-react";
+import { Bell, Clock, LogOut, Plane, FileText, RefreshCw } from "lucide-react";
 import { usePageMeta } from "@/lib/page-title";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { useAuth } from "@/lib/auth";
@@ -136,13 +136,11 @@ export function TopHeader() {
                 >
                   {n.kind === "new" && <FileText className="mt-0.5 h-4 w-4 shrink-0 text-blue-600" />}
                   {n.kind === "updated" && <RefreshCw className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />}
-                  {n.kind === "unread" && <BookOpen className="mt-0.5 h-4 w-4 shrink-0 text-red-600" />}
                   <div className="min-w-0 flex-1">
                     <div className="truncate font-medium">{n.doc.title}</div>
                     <div className="text-[11px] text-slate-500">
                       {n.kind === "new" && t("notif_new")}
                       {n.kind === "updated" && t("notif_updated")}
-                      {n.kind === "unread" && t("notif_unread")}
                       {" · "}{n.doc.reference} · {n.doc.version}
                     </div>
                   </div>

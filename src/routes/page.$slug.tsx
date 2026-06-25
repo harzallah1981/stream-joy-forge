@@ -15,6 +15,7 @@ import {
   getDocsForCategory, loadUserDocs, saveUserDocs, fileToDataUrl, type DocItem,
 } from "@/lib/documents";
 import { addAck, hasAcked, loadAcks } from "@/lib/acknowledgements";
+import { markRead as markDocRead } from "@/lib/notifications";
 import {
   loadUsers, addUser, updateUser, removeUser,
   AVAILABLE_MODULES, defaultModulesFor,
@@ -127,6 +128,8 @@ function DocumentsPage({ slug }: { slug: string }) {
 
 
   const performAction = (doc: DocItem, action: "view" | "download") => {
+    // Real document access — clears the bell indicator for this doc.
+    if (user) markDocRead(user.email, doc.id);
     if (action === "view") {
       window.open(doc.url, "_blank", "noopener,noreferrer");
     } else {
