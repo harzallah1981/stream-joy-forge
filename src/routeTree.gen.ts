@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
+import { Route as ReadSignRouteImport } from './routes/read-sign'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as SafetySpiRouteImport } from './routes/safety/spi'
@@ -22,6 +23,11 @@ import { Route as FormsAhm650RouteImport } from './routes/forms/ahm-650'
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
   path: '/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ReadSignRoute = ReadSignRouteImport.update({
+  id: '/read-sign',
+  path: '/read-sign',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -68,6 +74,7 @@ const FormsAhm650Route = FormsAhm650RouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
+  '/read-sign': typeof ReadSignRoute
   '/reset-password': typeof ResetPasswordRoute
   '/forms/ahm-650': typeof FormsAhm650Route
   '/forms/dg-incident': typeof FormsDgIncidentRoute
@@ -79,6 +86,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
+  '/read-sign': typeof ReadSignRoute
   '/reset-password': typeof ResetPasswordRoute
   '/forms/ahm-650': typeof FormsAhm650Route
   '/forms/dg-incident': typeof FormsDgIncidentRoute
@@ -91,6 +99,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
+  '/read-sign': typeof ReadSignRoute
   '/reset-password': typeof ResetPasswordRoute
   '/forms/ahm-650': typeof FormsAhm650Route
   '/forms/dg-incident': typeof FormsDgIncidentRoute
@@ -104,6 +113,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/login'
+    | '/read-sign'
     | '/reset-password'
     | '/forms/ahm-650'
     | '/forms/dg-incident'
@@ -115,6 +125,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/login'
+    | '/read-sign'
     | '/reset-password'
     | '/forms/ahm-650'
     | '/forms/dg-incident'
@@ -126,6 +137,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/login'
+    | '/read-sign'
     | '/reset-password'
     | '/forms/ahm-650'
     | '/forms/dg-incident'
@@ -138,6 +150,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   LoginRoute: typeof LoginRoute
+  ReadSignRoute: typeof ReadSignRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   FormsAhm650Route: typeof FormsAhm650Route
   FormsDgIncidentRoute: typeof FormsDgIncidentRoute
@@ -154,6 +167,13 @@ declare module '@tanstack/react-router' {
       path: '/reset-password'
       fullPath: '/reset-password'
       preLoaderRoute: typeof ResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/read-sign': {
+      id: '/read-sign'
+      path: '/read-sign'
+      fullPath: '/read-sign'
+      preLoaderRoute: typeof ReadSignRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -218,6 +238,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   LoginRoute: LoginRoute,
+  ReadSignRoute: ReadSignRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   FormsAhm650Route: FormsAhm650Route,
   FormsDgIncidentRoute: FormsDgIncidentRoute,
@@ -229,13 +250,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
