@@ -221,6 +221,9 @@ function EventsRegister() {
                             {e.categorie}
                           </span>
                         </td>
+                        <td className="px-3 py-3 text-center">
+                          <AttachmentsCell event={e} />
+                        </td>
                         {isAdmin && (
                           <td className="px-3 py-3 text-center">
                             <button
