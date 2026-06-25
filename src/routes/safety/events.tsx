@@ -369,3 +369,147 @@ function NewYearDialog({
     </Dialog>
   );
 }
+
+function ConfigDialog({
+  cfg, onCancel, onSave,
+}: {
+  cfg: EventsConfig;
+  onCancel: () => void;
+  onSave: (next: EventsConfig) => void;
+}) {
+  const [draft, setDraft] = useState<EventsConfig>(() => JSON.parse(JSON.stringify(cfg)));
+  const [newCat, setNewCat] = useState("");
+  const [newCatColor, setNewCatColor] = useState(COLOR_PRESETS[0].cat);
+  const [newStatus, setNewStatus] = useState("");
+  const [newStatusColor, setNewStatusColor] = useState(COLOR_PRESETS[0].status);
+
+  const addCat = () => {
+    const n = newCat.trim().toUpperCase();
+    if (!n) return;
+    if (draft.categories.some((c) => c.name === n)) { toast.error("Catégorie déjà existante"); return; }
+    setDraft({ ...draft, categories: [...draft.categories, { name: n, color: newCatColor }] });
+    setNewCat("");
+  };
+  const removeCat = (name: string) =>
+    setDraft({ ...draft, categories: draft.categories.filter((c) => c.name !== name) });
+  const setCatColor = (name: string, color: string) =>
+    setDraft({ ...draft, categories: draft.categories.map((c) => c.name === name ? { ...c, color } : c) });
+
+  const addStatus = () => {
+    const n = newStatus.trim().toUpperCase();
+    if (!n) return;
+    if (draft.statuses.some((s) => s.name === n)) { toast.error("Statut déjà existant"); return; }
+    setDraft({ ...draft, statuses: [...draft.statuses, { name: n, color: newStatusColor }] });
+    setNewStatus("");
+  };
+  const removeStatus = (name: string) =>
+    setDraft({ ...draft, statuses: draft.statuses.filter((s) => s.name !== name) });
+  const setStatusColor = (name: string, color: string) =>
+    setDraft({ ...draft, statuses: draft.statuses.map((s) => s.name === name ? { ...s, color } : s) });
+
+  return (
+    <Dialog open onOpenChange={(v) => !v && onCancel()}>
+      <DialogContent className="max-w-3xl">
+        <DialogHeader><DialogTitle>Configurer catégories & statuts</DialogTitle></DialogHeader>
+
+        <div className="grid gap-5 md:grid-cols-2">
+          {/* Categories */}
+          <div className="rounded-lg border border-slate-200 p-3">
+            <h4 className="mb-2 text-sm font-semibold text-slate-900">Catégories</h4>
+            <ul className="mb-3 space-y-1.5 max-h-64 overflow-y-auto pr-1">
+              {draft.categories.map((c) => (
+                <li key={c.name} className="flex items-center gap-2">
+                  <span className={"inline-flex min-w-[6rem] justify-center rounded-md border px-2 py-0.5 text-[10px] font-bold " + c.color}>{c.name}</span>
+                  <select
+                    value={c.color}
+                    onChange={(e) => setCatColor(c.name, e.target.value)}
+                    className="h-7 flex-1 cursor-pointer rounded border border-slate-200 px-2 text-xs"
+                  >
+                    {COLOR_PRESETS.map((p) => <option key={p.label} value={p.cat}>{p.label}</option>)}
+                  </select>
+                  <button onClick={() => removeCat(c.name)} className="rounded p-1 text-red-600 hover:bg-red-50" title="Supprimer">
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                </li>
+              ))}
+              {draft.categories.length === 0 && (
+                <li className="text-xs text-slate-400">Aucune catégorie</li>
+              )}
+            </ul>
+            <div className="flex gap-2">
+              <Input
+                value={newCat}
+                onChange={(e) => setNewCat(e.target.value)}
+                placeholder="Nouvelle catégorie"
+                className="h-8 flex-1 text-xs"
+              />
+              <select
+                value={newCatColor}
+                onChange={(e) => setNewCatColor(e.target.value)}
+                className="h-8 cursor-pointer rounded border border-slate-200 px-2 text-xs"
+              >
+                {COLOR_PRESETS.map((p) => <option key={p.label} value={p.cat}>{p.label}</option>)}
+              </select>
+              <Button size="sm" onClick={addCat} className="h-8 cursor-pointer">
+                <Plus className="h-3.5 w-3.5" />
+              </Button>
+            </div>
+          </div>
+
+          {/* Statuses */}
+          <div className="rounded-lg border border-slate-200 p-3">
+            <h4 className="mb-2 text-sm font-semibold text-slate-900">Statuts</h4>
+            <ul className="mb-3 space-y-1.5 max-h-64 overflow-y-auto pr-1">
+              {draft.statuses.map((s) => (
+                <li key={s.name} className="flex items-center gap-2">
+                  <span className={"inline-flex min-w-[6rem] justify-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold " + s.color}>{s.name}</span>
+                  <select
+                    value={s.color}
+                    onChange={(e) => setStatusColor(s.name, e.target.value)}
+                    className="h-7 flex-1 cursor-pointer rounded border border-slate-200 px-2 text-xs"
+                  >
+                    {COLOR_PRESETS.map((p) => <option key={p.label} value={p.status}>{p.label}</option>)}
+                  </select>
+                  <button onClick={() => removeStatus(s.name)} className="rounded p-1 text-red-600 hover:bg-red-50" title="Supprimer">
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                </li>
+              ))}
+              {draft.statuses.length === 0 && (
+                <li className="text-xs text-slate-400">Aucun statut</li>
+              )}
+            </ul>
+            <div className="flex gap-2">
+              <Input
+                value={newStatus}
+                onChange={(e) => setNewStatus(e.target.value)}
+                placeholder="Nouveau statut"
+                className="h-8 flex-1 text-xs"
+              />
+              <select
+                value={newStatusColor}
+                onChange={(e) => setNewStatusColor(e.target.value)}
+                className="h-8 cursor-pointer rounded border border-slate-200 px-2 text-xs"
+              >
+                {COLOR_PRESETS.map((p) => <option key={p.label} value={p.status}>{p.label}</option>)}
+              </select>
+              <Button size="sm" onClick={addStatus} className="h-8 cursor-pointer">
+                <Plus className="h-3.5 w-3.5" />
+              </Button>
+            </div>
+          </div>
+        </div>
+
+        <p className="text-[11px] text-slate-500">
+          Astuce : les événements existants conservent leur catégorie/statut texte ; les nouvelles valeurs sont disponibles immédiatement à la création ou modification.
+        </p>
+
+        <DialogFooter>
+          <Button variant="outline" onClick={onCancel}>Annuler</Button>
+          <Button onClick={() => onSave(draft)} className="bg-blue-600 hover:bg-blue-700">Enregistrer</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
