@@ -211,7 +211,49 @@ function EventsRegister() {
           </div>
         </div>
 
+        <div className="flex flex-wrap items-center gap-2 border-b border-slate-200 bg-slate-50 px-5 py-3 text-xs">
+          <span className="font-semibold text-slate-600">Filtres :</span>
+          <select value={fEscale} onChange={(e) => setFEscale(e.target.value)} className="h-8 cursor-pointer rounded-md border border-slate-200 bg-white px-2 text-xs" title="Escale">
+            <option value="">Escale (toutes)</option>
+            {escales.map((x) => <option key={x} value={x}>{x}</option>)}
+          </select>
+          <select value={fSeverite} onChange={(e) => setFSeverite(e.target.value as "" | "acceptable" | "moyen" | "non")} className="h-8 cursor-pointer rounded-md border border-slate-200 bg-white px-2 text-xs" title="Sévérité">
+            <option value="">Sévérité (toutes)</option>
+            <option value="acceptable">Acceptable (1-8)</option>
+            <option value="moyen">Moyen (9-19)</option>
+            <option value="non">Non acceptable (20-25)</option>
+          </select>
+          <select value={fStatut} onChange={(e) => setFStatut(e.target.value)} className="h-8 cursor-pointer rounded-md border border-slate-200 bg-white px-2 text-xs" title="Statut de clôture">
+            <option value="">Statut (tous)</option>
+            {cfg.statuses.map((s) => <option key={s.name} value={s.name}>{s.name}</option>)}
+          </select>
+          <select value={fCategorie} onChange={(e) => setFCategorie(e.target.value)} className="h-8 cursor-pointer rounded-md border border-slate-200 bg-white px-2 text-xs" title="Catégorie">
+            <option value="">Catégorie (toutes)</option>
+            {cfg.categories.map((c) => <option key={c.name} value={c.name}>{c.name}</option>)}
+          </select>
+          <select value={fTrim} onChange={(e) => setFTrim(e.target.value)} className="h-8 cursor-pointer rounded-md border border-slate-200 bg-white px-2 text-xs" title="Trimestre">
+            <option value="">Trimestre (tous)</option>
+            <option value="1">T1 (Jan-Mar)</option>
+            <option value="2">T2 (Avr-Juin)</option>
+            <option value="3">T3 (Juil-Sep)</option>
+            <option value="4">T4 (Oct-Déc)</option>
+          </select>
+          <select value={fMois} onChange={(e) => setFMois(e.target.value)} className="h-8 cursor-pointer rounded-md border border-slate-200 bg-white px-2 text-xs" title="Mois">
+            <option value="">Mois (tous)</option>
+            {["Janvier","Février","Mars","Avril","Mai","Juin","Juillet","Août","Septembre","Octobre","Novembre","Décembre"].map((m, i) => (
+              <option key={m} value={String(i + 1).padStart(2, "0")}>{m}</option>
+            ))}
+          </select>
+          {hasFilters && (
+            <button onClick={resetFilters} className="ml-1 inline-flex cursor-pointer items-center gap-1 rounded-md border border-slate-200 bg-white px-2 py-1 text-xs text-slate-600 hover:bg-slate-100">
+              <X className="h-3 w-3" /> Réinitialiser
+            </button>
+          )}
+          <span className="ml-auto text-slate-500">{filtered.length} / {list.length} événement(s)</span>
+        </div>
+
         <div className="bg-slate-50 p-4">
+
           <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
             <div className="overflow-x-auto">
               <table className="w-full min-w-[1200px] text-sm">
