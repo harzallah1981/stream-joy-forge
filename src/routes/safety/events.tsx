@@ -130,6 +130,16 @@ function EventsRegister() {
             {isAdmin && (
               <Button
                 variant="outline"
+                onClick={() => setCfgOpen(true)}
+                className="h-9 cursor-pointer gap-1.5"
+                title="Configurer catégories & statuts"
+              >
+                <Settings2 className="h-4 w-4" /> Configurer
+              </Button>
+            )}
+            {isAdmin && (
+              <Button
+                variant="outline"
                 onClick={() => setNewYearOpen(true)}
                 className="h-9 cursor-pointer gap-1.5"
                 title="Archiver et créer une nouvelle année"
@@ -270,9 +280,10 @@ function EventsRegister() {
 
 
 function EditDialog({
-  event, onCancel, onSave,
+  event, cfg, onCancel, onSave,
 }: {
   event: SafetyEvent;
+  cfg: EventsConfig;
   onCancel: () => void;
   onSave: (e: SafetyEvent) => void;
 }) {
@@ -294,8 +305,7 @@ function EditDialog({
               onChange={(ev) => setE({ ...e, statut: ev.target.value as EventStatus })}
               className="h-9 w-full cursor-pointer rounded-md border border-slate-200 px-3 text-sm"
             >
-              <option value="EN COURS">EN COURS</option>
-              <option value="CLÔTURÉ">CLÔTURÉ</option>
+              {cfg.statuses.map((s) => <option key={s.name} value={s.name}>{s.name}</option>)}
             </select>
           </div>
           <div>
@@ -305,7 +315,7 @@ function EditDialog({
               onChange={(ev) => setE({ ...e, categorie: ev.target.value as Category })}
               className="h-9 w-full cursor-pointer rounded-md border border-slate-200 px-3 text-sm"
             >
-              {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
+              {cfg.categories.map((c) => <option key={c.name} value={c.name}>{c.name}</option>)}
             </select>
           </div>
           <div>
