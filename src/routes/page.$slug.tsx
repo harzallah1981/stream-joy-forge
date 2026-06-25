@@ -397,6 +397,9 @@ function UploadDialog({
   const [docTitle, setDocTitle] = useState("");
   const [version, setVersion] = useState("Rev 1");
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
+  const [validFrom, setValidFrom] = useState("");
+  const [validTo, setValidTo] = useState("");
+  const hasValidity = slug === "cdn" || slug === "ceirb" || slug === "aoc";
   const [files, setFiles] = useState<File[]>([]);
   const [requireAck, setRequireAck] = useState(true);
   const inputRef = useRef<HTMLInputElement>(null);
