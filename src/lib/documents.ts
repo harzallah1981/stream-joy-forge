@@ -8,6 +8,9 @@ export type DocItem = {
   title: string;
   version: string;
   date: string; // yyyy-mm-dd
+  /** For certificates (CDN, CEIRB, AOC...) — validity range */
+  validFrom?: string;
+  validTo?: string;
   status: "En diffusion" | "Périmé" | "En revue";
   fileName: string;
   /** data URL or http URL */
