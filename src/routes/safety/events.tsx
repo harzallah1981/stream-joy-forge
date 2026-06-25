@@ -222,7 +222,24 @@ function EventsRegister() {
                           </span>
                         </td>
                         <td className="px-3 py-3 text-center">
-                          <AttachmentsCell event={e} />
+                          <AttachmentsCell
+                            event={e}
+                            isAdmin={isAdmin}
+                            onUpload={(atts) => {
+                              const next = list.map((x) =>
+                                x.id === e.id ? { ...x, attachments: [...(x.attachments ?? []), ...atts] } : x,
+                              );
+                              persist(next);
+                            }}
+                            onRemove={(attId) => {
+                              const next = list.map((x) =>
+                                x.id === e.id
+                                  ? { ...x, attachments: (x.attachments ?? []).filter((a) => a.id !== attId) }
+                                  : x,
+                              );
+                              persist(next);
+                            }}
+                          />
                         </td>
                         {isAdmin && (
                           <td className="px-3 py-3 text-center">
