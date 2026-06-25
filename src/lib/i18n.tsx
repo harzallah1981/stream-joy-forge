@@ -37,6 +37,7 @@ export const dict: Dict = {
   c_immat: { fr: "C-IMMATRICULATION", en: "C-IMMATRICULATION" },
   cln: { fr: "CLN", en: "CLN" },
   aoc: { fr: "AOC", en: "AOC" },
+  notes_flash: { fr: "Notes & Flash sécurité", en: "Safety notes & flashes" },
 
   // POS/IOS sub-children
   pos_427: { fr: "POS 427", en: "POS 427" },
