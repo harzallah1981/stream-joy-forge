@@ -240,7 +240,11 @@ function DocumentsPage({ slug }: { slug: string }) {
                       <td className="px-4 py-3 font-mono text-xs text-slate-700">{d.reference}</td>
                       <td className="px-4 py-3 text-slate-900">{d.title}</td>
                       <td className="px-4 py-3 text-slate-600">{d.version}</td>
-                      <td className="px-4 py-3 text-slate-600">{d.date}</td>
+                      <td className="px-4 py-3 text-slate-600">
+                        {d.validFrom && d.validTo
+                          ? <span className="text-xs">Du <b>{d.validFrom}</b><br/>au <b>{d.validTo}</b></span>
+                          : d.date}
+                      </td>
                       <td className="px-4 py-3">
                         <StatusPill s={d.status} />
                       </td>
@@ -393,6 +397,9 @@ function UploadDialog({
   const [docTitle, setDocTitle] = useState("");
   const [version, setVersion] = useState("Rev 1");
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
+  const [validFrom, setValidFrom] = useState("");
+  const [validTo, setValidTo] = useState("");
+  const hasValidity = slug === "cdn" || slug === "ceirb" || slug === "aoc";
   const [files, setFiles] = useState<File[]>([]);
   const [requireAck, setRequireAck] = useState(true);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -413,6 +420,8 @@ function UploadDialog({
         title: files.length > 1 ? `${docTitle} (${f.name})` : docTitle,
         version,
         date,
+        validFrom: hasValidity && validFrom ? validFrom : undefined,
+        validTo: hasValidity && validTo ? validTo : undefined,
         status: "En diffusion",
         fileName: f.name,
         url,
@@ -423,6 +432,7 @@ function UploadDialog({
     saveUserDocs(docs);
     toast.success(`${files.length} document${files.length > 1 ? "s" : ""} ajouté${files.length > 1 ? "s" : ""}`);
     setReference(""); setDocTitle(""); setVersion("Rev 1"); setFiles([]); setRequireAck(true);
+    setValidFrom(""); setValidTo("");
     setOpen(false);
     onDone();
   };
@@ -456,9 +466,21 @@ function UploadDialog({
             <Input value={docTitle} onChange={(e) => setDocTitle(e.target.value)} />
           </div>
           <div>
-            <Label>Date</Label>
+            <Label>Date d'émission</Label>
             <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
           </div>
+          {hasValidity && (
+            <div className="grid grid-cols-2 gap-3 rounded-md border border-blue-200 bg-blue-50 p-3">
+              <div>
+                <Label>Valide du</Label>
+                <Input type="date" value={validFrom} onChange={(e) => setValidFrom(e.target.value)} />
+              </div>
+              <div>
+                <Label>Valide au</Label>
+                <Input type="date" value={validTo} onChange={(e) => setValidTo(e.target.value)} />
+              </div>
+            </div>
+          )}
           <div>
             <Label>Fichier(s) — PDF, Word, Excel, PowerPoint, JPG, PNG…</Label>
             <input
@@ -892,25 +914,31 @@ function AcksPage() {
   }
 
 
-  const downloadCsv = (rows: Enriched[], filename: string) => {
+  const downloadPdf = async (rows: Enriched[], title: string, filename: string) => {
     if (rows.length === 0) { toast.error("Aucune ligne à exporter"); return; }
-    const headers = ["Date", "Utilisateur", "Email", "Type", "Lieu de travail", "Document", "Référence", "Catégorie", "Action"];
-    const esc = (v: string) => `"${(v ?? "").replace(/"/g, '""')}"`;
-    const lines = [
-      headers.join(";"),
-      ...rows.map((a) => [
+    const { jsPDF } = await import("jspdf");
+    const autoTable = (await import("jspdf-autotable")).default;
+    const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "a4" });
+    doc.setFontSize(14);
+    doc.setTextColor(15, 23, 42);
+    doc.text(`Accusés de Réception — ${title}`, 40, 40);
+    doc.setFontSize(9);
+    doc.setTextColor(100);
+    doc.text(`Tunisair Ground Ops · ${new Date().toLocaleString()} · ${rows.length} ligne(s)`, 40, 56);
+    autoTable(doc, {
+      startY: 70,
+      head: [["Date", "Utilisateur", "Email", "Type", "Lieu", "Document", "Référence", "Action"]],
+      body: rows.map((a) => [
         new Date(a.date).toLocaleString(),
         a.userName, a.userEmail, a.userType, a.workplace,
-        a.docTitle, a.docReference, a.category,
+        a.docTitle, a.docReference,
         a.action === "view" ? "Consultation" : "Téléchargement",
-      ].map(esc).join(";")),
-    ];
-    const blob = new Blob(["\ufeff" + lines.join("\n")], { type: "text/csv;charset=utf-8" });
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = filename;
-    a.click();
-    URL.revokeObjectURL(a.href);
+      ]),
+      styles: { fontSize: 8, cellPadding: 4 },
+      headStyles: { fillColor: [15, 23, 42], textColor: 255 },
+      alternateRowStyles: { fillColor: [248, 250, 252] },
+    });
+    doc.save(filename);
   };
 
   const Table = ({ rows, title, tone }: { rows: Enriched[]; title: string; tone: string }) => (
@@ -924,10 +952,10 @@ function AcksPage() {
         <Button
           size="sm"
           variant="outline"
-          onClick={() => downloadCsv(rows, `accuses-${title.toLowerCase().replace(/\s+/g, "-")}-${Date.now()}.csv`)}
+          onClick={() => downloadPdf(rows, title, `accuses-${title.toLowerCase().replace(/\s+/g, "-")}-${Date.now()}.pdf`)}
           className="ml-auto h-8 gap-1.5"
         >
-          <Download className="h-3.5 w-3.5" /> Exporter CSV
+          <Download className="h-3.5 w-3.5" /> Exporter PDF
         </Button>
       </div>
       <div className="overflow-x-auto">
@@ -999,10 +1027,10 @@ function AcksPage() {
           <span className="ml-auto text-slate-500">{filtered.length} / {acks.length} accusé(s)</span>
           <Button
             size="sm"
-            onClick={() => downloadCsv(filtered, `accuses-tous-${Date.now()}.csv`)}
+            onClick={() => downloadPdf(filtered, "Tous (filtré)", `accuses-tous-${Date.now()}.pdf`)}
             className="h-8 gap-1.5 bg-blue-600 hover:bg-blue-700"
           >
-            <Download className="h-3.5 w-3.5" /> Exporter tout (filtré)
+            <Download className="h-3.5 w-3.5" /> Exporter PDF (filtré)
           </Button>
         </div>
       </div>
