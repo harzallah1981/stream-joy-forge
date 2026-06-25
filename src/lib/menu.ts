@@ -99,6 +99,7 @@ export const MENU_GROUPS: MenuGroup[] = [
     items: [
       { key: "registre_evt", to: "/safety/events" },
       { key: "indic_spi", to: "/safety/spi" },
+      { key: "safa_d03_module", to: "/safety/safa-d03" },
     ],
   },
   {

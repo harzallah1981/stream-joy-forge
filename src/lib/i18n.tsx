@@ -69,6 +69,8 @@ export const dict: Dict = {
   // Safety
   registre_evt: { fr: "Registre Evenements", en: "Events register" },
   indic_spi: { fr: "Indicateurs SPI", en: "SPI indicators" },
+  safa_d03_module: { fr: "Suivi SAFA D03", en: "SAFA D03 tracking" },
+
 
   // Admin
   gestion_users: { fr: "Gestion Utilisateurs", en: "User management" },
