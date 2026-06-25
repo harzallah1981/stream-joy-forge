@@ -852,9 +852,6 @@ function AcksPage() {
     userType: "internal" | "external" | "admin" | "unknown";
     workplace: string;
   };
-    userType: "internal" | "external" | "admin" | "unknown";
-    workplace: string;
-  };
 
   const enriched: Enriched[] = useMemo(() => {
     const byEmail = new Map(users.map((u) => [u.email.toLowerCase(), u]));
