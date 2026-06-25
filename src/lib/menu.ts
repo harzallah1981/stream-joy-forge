@@ -110,6 +110,7 @@ export const MENU_GROUPS: MenuGroup[] = [
       { key: "gestion_users", to: stub("gestion-utilisateurs") },
       { key: "credentials", to: stub("credentials") },
       { key: "accuses", to: stub("accuses-reception") },
+      { key: "form_recipients", to: "/admin/recipients" },
     ],
   },
 ];
