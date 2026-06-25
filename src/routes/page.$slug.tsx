@@ -1043,6 +1043,10 @@ function AcksPage() {
             </button>
           )}
           <span className="ml-auto text-slate-500">{filtered.length} / {acks.length} accusé(s)</span>
+          <Button size="sm" variant="outline" onClick={refetchAcks} className="h-8 gap-1.5">
+            🔄 Rafraîchir
+          </Button>
+
           <Button
             size="sm"
             onClick={() => downloadPdf(filtered, "Tous (filtré)", `accuses-tous-${Date.now()}.pdf`)}
