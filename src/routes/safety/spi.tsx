@@ -101,6 +101,9 @@ function SpiDashboard() {
   useEffect(() => { setYears(listYears()); }, []);
   useEffect(() => { setData(loadSpi(year)); }, [year]);
 
+  const autoAnomalies = useMemo(() => autoAnomaliesByMonth(year), [year]);
+
+
   const persist = (next: SpiSnapshot) => {
     setData(next);
     saveSpi(year, next);
