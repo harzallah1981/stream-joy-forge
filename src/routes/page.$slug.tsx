@@ -32,7 +32,7 @@ const SLUG_TO_KEY: Record<string, string> = {
   "ahm-fleet": "ahm_fleet", "load-trim-fleet": "load_trim",
   "loading-instructions-fleet": "loading_instr",
   cdn: "cdn", ceirb: "ceirb", "c-immatriculation": "c_immat",
-  cln: "cln", aoc: "aoc",
+  cln: "cln", aoc: "aoc", "notes-flash": "notes_flash",
   dgac: "dgac", iata: "iata", "ac-affretees": "affretees", "safa-d03": "safa_d03",
   "liste-personnel": "liste_personnel",
   "suivi-formation": "suivi_formation",
@@ -112,6 +112,11 @@ function DocumentsPage({ slug }: { slug: string }) {
       performAction(doc, action);
       return;
     }
+    // Admin can mark a doc as not requiring an ack ("optional ack per doc")
+    if (doc.requireAck === false) {
+      performAction(doc, action);
+      return;
+    }
     // T24: ack required only on first time per (user, doc)
     if (user && hasAcked(user.email, doc.id)) {
       performAction(doc, action);
@@ -119,6 +124,7 @@ function DocumentsPage({ slug }: { slug: string }) {
     }
     setAckTarget({ doc, action });
   };
+
 
   const performAction = (doc: DocItem, action: "view" | "download") => {
     if (action === "view") {
@@ -385,6 +391,7 @@ function UploadDialog({
   const [version, setVersion] = useState("Rev 1");
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
   const [files, setFiles] = useState<File[]>([]);
+  const [requireAck, setRequireAck] = useState(true);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const submit = async () => {
@@ -407,11 +414,12 @@ function UploadDialog({
         fileName: f.name,
         url,
         uploadedBy: user?.email,
+        requireAck,
       });
     }
     saveUserDocs(docs);
     toast.success(`${files.length} document${files.length > 1 ? "s" : ""} ajouté${files.length > 1 ? "s" : ""}`);
-    setReference(""); setDocTitle(""); setVersion("Rev 1"); setFiles([]);
+    setReference(""); setDocTitle(""); setVersion("Rev 1"); setFiles([]); setRequireAck(true);
     setOpen(false);
     onDone();
   };
@@ -466,6 +474,20 @@ function UploadDialog({
               </ul>
             )}
           </div>
+          <label className="flex cursor-pointer items-start gap-2 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-700">
+            <input
+              type="checkbox"
+              checked={requireAck}
+              onChange={(e) => setRequireAck(e.target.checked)}
+              className="mt-0.5 h-4 w-4 cursor-pointer accent-blue-600"
+            />
+            <span>
+              <b>Exiger un accusé de réception</b> avant consultation/téléchargement
+              <span className="block text-[11px] text-slate-500">
+                Décocher pour rendre ce document librement consultable par les utilisateurs internes standard et externes.
+              </span>
+            </span>
+          </label>
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => setOpen(false)} className="cursor-pointer">Annuler</Button>
