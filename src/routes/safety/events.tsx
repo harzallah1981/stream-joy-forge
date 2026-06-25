@@ -64,6 +64,12 @@ function EventsRegister() {
   const [years, setYears] = useState<number[]>([CURRENT_YEAR]);
   const [list, setList] = useState<SafetyEvent[]>([]);
   const [search, setSearch] = useState("");
+  const [fEscale, setFEscale] = useState("");
+  const [fSeverite, setFSeverite] = useState<"" | "acceptable" | "moyen" | "non">("");
+  const [fStatut, setFStatut] = useState("");
+  const [fCategorie, setFCategorie] = useState("");
+  const [fMois, setFMois] = useState<string>(""); // "01".."12"
+  const [fTrim, setFTrim] = useState<string>(""); // "1".."4"
   const [editing, setEditing] = useState<SafetyEvent | null>(null);
   const [newYearOpen, setNewYearOpen] = useState(false);
   const [cfg, setCfg] = useState<EventsConfig>(() => loadEventsConfig());
@@ -78,18 +84,47 @@ function EventsRegister() {
     saveEvents(year, next);
   };
 
+  const escales = useMemo(
+    () => Array.from(new Set(list.map((e) => e.escale).filter(Boolean))).sort(),
+    [list],
+  );
+
   const filtered = useMemo(() => {
     const q = search.toLowerCase().trim();
-    if (!q) return list;
-    return list.filter(
-      (e) =>
+    return list.filter((e) => {
+      if (q && !(
         e.id.toLowerCase().includes(q) ||
         e.escale.toLowerCase().includes(q) ||
         e.description.toLowerCase().includes(q) ||
         e.source.toLowerCase().includes(q) ||
-        e.categorie.toLowerCase().includes(q),
-    );
-  }, [list, search]);
+        e.categorie.toLowerCase().includes(q)
+      )) return false;
+      if (fEscale && e.escale !== fEscale) return false;
+      if (fStatut && e.statut !== fStatut) return false;
+      if (fCategorie && e.categorie !== fCategorie) return false;
+      if (fSeverite) {
+        const s = e.prob * e.grav;
+        if (fSeverite === "acceptable" && !(s <= 8)) return false;
+        if (fSeverite === "moyen" && !(s >= 9 && s <= 19)) return false;
+        if (fSeverite === "non" && !(s >= 20)) return false;
+      }
+      if (fMois || fTrim) {
+        const m = Number((e.date || "").slice(5, 7));
+        if (fMois && String(m).padStart(2, "0") !== fMois) return false;
+        if (fTrim) {
+          const t = Math.ceil(m / 3);
+          if (String(t) !== fTrim) return false;
+        }
+      }
+      return true;
+    });
+  }, [list, search, fEscale, fStatut, fCategorie, fSeverite, fMois, fTrim]);
+
+  const resetFilters = () => {
+    setSearch(""); setFEscale(""); setFSeverite(""); setFStatut("");
+    setFCategorie(""); setFMois(""); setFTrim("");
+  };
+  const hasFilters = !!(search || fEscale || fSeverite || fStatut || fCategorie || fMois || fTrim);
 
   const addEvent = () => {
     const id = `GS-${year}-${String(list.length + 1).padStart(3, "0")}`;
@@ -176,7 +211,49 @@ function EventsRegister() {
           </div>
         </div>
 
+        <div className="flex flex-wrap items-center gap-2 border-b border-slate-200 bg-slate-50 px-5 py-3 text-xs">
+          <span className="font-semibold text-slate-600">Filtres :</span>
+          <select value={fEscale} onChange={(e) => setFEscale(e.target.value)} className="h-8 cursor-pointer rounded-md border border-slate-200 bg-white px-2 text-xs" title="Escale">
+            <option value="">Escale (toutes)</option>
+            {escales.map((x) => <option key={x} value={x}>{x}</option>)}
+          </select>
+          <select value={fSeverite} onChange={(e) => setFSeverite(e.target.value as "" | "acceptable" | "moyen" | "non")} className="h-8 cursor-pointer rounded-md border border-slate-200 bg-white px-2 text-xs" title="Sévérité">
+            <option value="">Sévérité (toutes)</option>
+            <option value="acceptable">Acceptable (1-8)</option>
+            <option value="moyen">Moyen (9-19)</option>
+            <option value="non">Non acceptable (20-25)</option>
+          </select>
+          <select value={fStatut} onChange={(e) => setFStatut(e.target.value)} className="h-8 cursor-pointer rounded-md border border-slate-200 bg-white px-2 text-xs" title="Statut de clôture">
+            <option value="">Statut (tous)</option>
+            {cfg.statuses.map((s) => <option key={s.name} value={s.name}>{s.name}</option>)}
+          </select>
+          <select value={fCategorie} onChange={(e) => setFCategorie(e.target.value)} className="h-8 cursor-pointer rounded-md border border-slate-200 bg-white px-2 text-xs" title="Catégorie">
+            <option value="">Catégorie (toutes)</option>
+            {cfg.categories.map((c) => <option key={c.name} value={c.name}>{c.name}</option>)}
+          </select>
+          <select value={fTrim} onChange={(e) => setFTrim(e.target.value)} className="h-8 cursor-pointer rounded-md border border-slate-200 bg-white px-2 text-xs" title="Trimestre">
+            <option value="">Trimestre (tous)</option>
+            <option value="1">T1 (Jan-Mar)</option>
+            <option value="2">T2 (Avr-Juin)</option>
+            <option value="3">T3 (Juil-Sep)</option>
+            <option value="4">T4 (Oct-Déc)</option>
+          </select>
+          <select value={fMois} onChange={(e) => setFMois(e.target.value)} className="h-8 cursor-pointer rounded-md border border-slate-200 bg-white px-2 text-xs" title="Mois">
+            <option value="">Mois (tous)</option>
+            {["Janvier","Février","Mars","Avril","Mai","Juin","Juillet","Août","Septembre","Octobre","Novembre","Décembre"].map((m, i) => (
+              <option key={m} value={String(i + 1).padStart(2, "0")}>{m}</option>
+            ))}
+          </select>
+          {hasFilters && (
+            <button onClick={resetFilters} className="ml-1 inline-flex cursor-pointer items-center gap-1 rounded-md border border-slate-200 bg-white px-2 py-1 text-xs text-slate-600 hover:bg-slate-100">
+              <X className="h-3 w-3" /> Réinitialiser
+            </button>
+          )}
+          <span className="ml-auto text-slate-500">{filtered.length} / {list.length} événement(s)</span>
+        </div>
+
         <div className="bg-slate-50 p-4">
+
           <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
             <div className="overflow-x-auto">
               <table className="w-full min-w-[1200px] text-sm">
