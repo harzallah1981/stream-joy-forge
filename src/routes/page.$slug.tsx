@@ -861,10 +861,14 @@ function AcksPage() {
   const { user } = useAuth();
   usePageTitle("Accusés de Réception", "Traçabilité des consultations documentaires");
   const [acks, setAcks] = useState<ReturnType<typeof loadAcks>>(() => loadAcks());
+  const refetchAcks = () => { loadAcksRemote().then((rows) => setAcks(rows)); };
   useEffect(() => {
     let alive = true;
     loadAcksRemote().then((rows) => { if (alive) setAcks(rows); });
-    return () => { alive = false; };
+    const onFocus = () => { loadAcksRemote().then((rows) => { if (alive) setAcks(rows); }); };
+    window.addEventListener("focus", onFocus);
+    const id = window.setInterval(onFocus, 15000);
+    return () => { alive = false; window.removeEventListener("focus", onFocus); window.clearInterval(id); };
   }, []);
   const users = useMemo(() => loadUsers(), []);
 
@@ -880,11 +884,19 @@ function AcksPage() {
     workplace: string;
   };
 
+  // Infer internal/external from email domain when user not found locally
+  // (admins on a different browser may not have the user record cached).
+  const inferType = (email: string): Enriched["userType"] => {
+    const e = email.toLowerCase();
+    if (e.endsWith("@tunisair.com.tn") || e.endsWith("@tunisair.com")) return "internal";
+    return "external";
+  };
+
   const enriched: Enriched[] = useMemo(() => {
     const byEmail = new Map(users.map((u) => [u.email.toLowerCase(), u]));
     return acks.map((a) => {
       const u = byEmail.get(a.userEmail.toLowerCase());
-      const role = (u?.role ?? "unknown") as Enriched["userType"];
+      const role = (u?.role ?? inferType(a.userEmail)) as Enriched["userType"];
       return { ...a, userType: role, workplace: u?.workplace ?? "—" };
     });
   }, [acks, users]);
@@ -913,6 +925,7 @@ function AcksPage() {
 
   const internes = filtered.filter((a) => a.userType === "internal" || a.userType === "admin");
   const externes = filtered.filter((a) => a.userType === "external");
+
 
   if (!isAdmin) {
     return <div className="p-8 text-sm text-slate-600">🔒 Accès réservé aux administrateurs.</div>;
