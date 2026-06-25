@@ -839,59 +839,180 @@ function AcksPage() {
   const { user } = useAuth();
   usePageTitle("Accusés de Réception", "Traçabilité des consultations documentaires");
   const acks = useMemo(() => loadAcks(), []);
+  const users = useMemo(() => loadUsers(), []);
 
-  if (user?.role !== "admin") {
+  const [fDoc, setFDoc] = useState("");
+  const [fUser, setFUser] = useState("");
+  const [fType, setFType] = useState<"" | "internal" | "external">("");
+  const [fWorkplace, setFWorkplace] = useState("");
+
+  const isAdmin = user?.role === "admin";
+
+  type Enriched = (typeof acks)[number] & {
+    userType: "internal" | "external" | "admin" | "unknown";
+    workplace: string;
+  };
+
+  const enriched: Enriched[] = useMemo(() => {
+    const byEmail = new Map(users.map((u) => [u.email.toLowerCase(), u]));
+    return acks.map((a) => {
+      const u = byEmail.get(a.userEmail.toLowerCase());
+      const role = (u?.role ?? "unknown") as Enriched["userType"];
+      return { ...a, userType: role, workplace: u?.workplace ?? "—" };
+    });
+  }, [acks, users]);
+
+  const docs = useMemo(
+    () => Array.from(new Set(enriched.map((a) => a.docTitle))).sort(),
+    [enriched],
+  );
+  const usersList = useMemo(
+    () => Array.from(new Set(enriched.map((a) => a.userEmail))).sort(),
+    [enriched],
+  );
+  const workplaces = useMemo(
+    () => Array.from(new Set(enriched.map((a) => a.workplace).filter((w) => w && w !== "—"))).sort(),
+    [enriched],
+  );
+
+  const filtered = enriched.filter((a) => {
+    if (fDoc && a.docTitle !== fDoc) return false;
+    if (fUser && a.userEmail !== fUser) return false;
+    if (fType === "internal" && !(a.userType === "internal" || a.userType === "admin")) return false;
+    if (fType === "external" && a.userType !== "external") return false;
+    if (fWorkplace && a.workplace !== fWorkplace) return false;
+    return true;
+  });
+
+  const internes = filtered.filter((a) => a.userType === "internal" || a.userType === "admin");
+  const externes = filtered.filter((a) => a.userType === "external");
+
+  if (!isAdmin) {
     return <div className="p-8 text-sm text-slate-600">🔒 Accès réservé aux administrateurs.</div>;
   }
 
-  return (
-    <div className="p-4 md:p-6 lg:p-8">
-      <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-        <div className="flex items-center gap-3 border-b border-slate-200 px-5 py-4">
-          <ShieldCheck className="h-4 w-4 text-blue-600" />
-          <h2 className="text-sm font-semibold text-slate-900">Accusés de Réception</h2>
-          <span className="rounded-full bg-blue-50 px-2 py-0.5 text-[11px] font-semibold text-blue-700">
-            {acks.length} enregistré{acks.length > 1 ? "s" : ""}
-          </span>
-        </div>
-        <div className="bg-slate-50 p-4">
-          <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b bg-slate-50 text-xs uppercase text-slate-500">
-                  <th className="px-4 py-3 text-left font-semibold">Date</th>
-                  <th className="px-4 py-3 text-left font-semibold">Utilisateur</th>
-                  <th className="px-4 py-3 text-left font-semibold">Document</th>
-                  <th className="px-4 py-3 text-left font-semibold">Référence</th>
-                  <th className="px-4 py-3 text-left font-semibold">Catégorie</th>
-                  <th className="px-4 py-3 text-left font-semibold">Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {acks.length === 0 ? (
-                  <tr><td colSpan={6} className="py-10 text-center text-sm text-slate-500">Aucun accusé enregistré.</td></tr>
-                ) : acks.slice().reverse().map((a) => (
-                  <tr key={a.id} className="border-b last:border-0">
-                    <td className="px-4 py-3 text-xs text-slate-600">{new Date(a.date).toLocaleString()}</td>
-                    <td className="px-4 py-3 text-slate-900">{a.userName} <span className="text-xs text-slate-500">({a.userEmail})</span></td>
-                    <td className="px-4 py-3 text-slate-700">{a.docTitle}</td>
-                    <td className="px-4 py-3 font-mono text-xs text-slate-700">{a.docReference}</td>
-                    <td className="px-4 py-3 text-xs text-slate-600">{a.category}</td>
-                    <td className="px-4 py-3">
-                      <span className={"rounded-full px-2 py-0.5 text-[11px] font-semibold " + (a.action === "view" ? "bg-blue-100 text-blue-700" : "bg-green-100 text-green-700")}>
-                        {a.action === "view" ? "Consultation" : "Téléchargement"}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
+
+  const downloadCsv = (rows: Enriched[], filename: string) => {
+    if (rows.length === 0) { toast.error("Aucune ligne à exporter"); return; }
+    const headers = ["Date", "Utilisateur", "Email", "Type", "Lieu de travail", "Document", "Référence", "Catégorie", "Action"];
+    const esc = (v: string) => `"${(v ?? "").replace(/"/g, '""')}"`;
+    const lines = [
+      headers.join(";"),
+      ...rows.map((a) => [
+        new Date(a.date).toLocaleString(),
+        a.userName, a.userEmail, a.userType, a.workplace,
+        a.docTitle, a.docReference, a.category,
+        a.action === "view" ? "Consultation" : "Téléchargement",
+      ].map(esc).join(";")),
+    ];
+    const blob = new Blob(["\ufeff" + lines.join("\n")], { type: "text/csv;charset=utf-8" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  };
+
+  const Table = ({ rows, title, tone }: { rows: Enriched[]; title: string; tone: string }) => (
+    <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+      <div className="flex items-center gap-3 border-b border-slate-200 px-5 py-3">
+        <ShieldCheck className={"h-4 w-4 " + tone} />
+        <h3 className="text-sm font-semibold text-slate-900">{title}</h3>
+        <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-700">
+          {rows.length}
+        </span>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => downloadCsv(rows, `accuses-${title.toLowerCase().replace(/\s+/g, "-")}-${Date.now()}.csv`)}
+          className="ml-auto h-8 gap-1.5"
+        >
+          <Download className="h-3.5 w-3.5" /> Exporter CSV
+        </Button>
+      </div>
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[900px] text-sm">
+          <thead>
+            <tr className="border-b bg-slate-50 text-xs uppercase text-slate-500">
+              <th className="px-4 py-3 text-left font-semibold">Date</th>
+              <th className="px-4 py-3 text-left font-semibold">Utilisateur</th>
+              <th className="px-4 py-3 text-left font-semibold">Lieu</th>
+              <th className="px-4 py-3 text-left font-semibold">Document</th>
+              <th className="px-4 py-3 text-left font-semibold">Référence</th>
+              <th className="px-4 py-3 text-left font-semibold">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.length === 0 ? (
+              <tr><td colSpan={6} className="py-8 text-center text-sm text-slate-500">Aucun accusé.</td></tr>
+            ) : rows.slice().reverse().map((a) => (
+              <tr key={a.id} className="border-b last:border-0">
+                <td className="px-4 py-3 text-xs text-slate-600">{new Date(a.date).toLocaleString()}</td>
+                <td className="px-4 py-3 text-slate-900">{a.userName} <span className="text-xs text-slate-500">({a.userEmail})</span></td>
+                <td className="px-4 py-3 text-xs text-slate-600">{a.workplace}</td>
+                <td className="px-4 py-3 text-slate-700">{a.docTitle}</td>
+                <td className="px-4 py-3 font-mono text-xs text-slate-700">{a.docReference}</td>
+                <td className="px-4 py-3">
+                  <span className={"rounded-full px-2 py-0.5 text-[11px] font-semibold " + (a.action === "view" ? "bg-blue-100 text-blue-700" : "bg-green-100 text-green-700")}>
+                    {a.action === "view" ? "Consultation" : "Téléchargement"}
+                  </span>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
     </div>
   );
+
+  return (
+    <div className="space-y-4 p-4 md:p-6 lg:p-8">
+      <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+        <div className="flex flex-wrap items-center gap-2 border-b border-slate-200 px-5 py-3 text-xs">
+          <ShieldCheck className="h-4 w-4 text-blue-600" />
+          <span className="font-semibold text-slate-700">Filtres :</span>
+          <select value={fDoc} onChange={(e) => setFDoc(e.target.value)} className="h-8 cursor-pointer rounded-md border border-slate-200 bg-white px-2">
+            <option value="">Document (tous)</option>
+            {docs.map((d) => <option key={d} value={d}>{d}</option>)}
+          </select>
+          <select value={fUser} onChange={(e) => setFUser(e.target.value)} className="h-8 cursor-pointer rounded-md border border-slate-200 bg-white px-2">
+            <option value="">Utilisateur (tous)</option>
+            {usersList.map((u) => <option key={u} value={u}>{u}</option>)}
+          </select>
+          <select value={fType} onChange={(e) => setFType(e.target.value as "" | "internal" | "external")} className="h-8 cursor-pointer rounded-md border border-slate-200 bg-white px-2">
+            <option value="">Type (tous)</option>
+            <option value="internal">Interne</option>
+            <option value="external">Externe</option>
+          </select>
+          <select value={fWorkplace} onChange={(e) => setFWorkplace(e.target.value)} className="h-8 cursor-pointer rounded-md border border-slate-200 bg-white px-2">
+            <option value="">Escale / Lieu (tous)</option>
+            {workplaces.map((w) => <option key={w} value={w}>{w}</option>)}
+          </select>
+          {(fDoc || fUser || fType || fWorkplace) && (
+            <button
+              onClick={() => { setFDoc(""); setFUser(""); setFType(""); setFWorkplace(""); }}
+              className="cursor-pointer rounded-md border border-slate-200 bg-white px-2 py-1 text-xs text-slate-600 hover:bg-slate-100"
+            >
+              Réinitialiser
+            </button>
+          )}
+          <span className="ml-auto text-slate-500">{filtered.length} / {acks.length} accusé(s)</span>
+          <Button
+            size="sm"
+            onClick={() => downloadCsv(filtered, `accuses-tous-${Date.now()}.csv`)}
+            className="h-8 gap-1.5 bg-blue-600 hover:bg-blue-700"
+          >
+            <Download className="h-3.5 w-3.5" /> Exporter tout (filtré)
+          </Button>
+        </div>
+      </div>
+
+      <Table rows={internes} title="Utilisateurs Internes" tone="text-blue-600" />
+      <Table rows={externes} title="Utilisateurs Externes" tone="text-amber-600" />
+    </div>
+  );
 }
+
 
 // ---- Chartered Aircraft: free-text blocks editable by the principal admin ----
 type CharteredBlock = { id: string; title: string; body: string };
