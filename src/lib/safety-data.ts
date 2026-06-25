@@ -74,6 +74,15 @@ export const categoryColor: Record<Category, string> = {
 
 export type EventStatus = "CLÔTURÉ" | "EN COURS";
 
+export interface EventAttachment {
+  id: string;
+  name: string;
+  type: string;
+  size: number;
+  dataUrl: string; // base64 data URL
+  addedAt: string;
+}
+
 export interface SafetyEvent {
   id: string;
   date: string;
@@ -86,6 +95,7 @@ export interface SafetyEvent {
   action: string;
   statut: EventStatus;
   categorie: Category;
+  attachments?: EventAttachment[];
 }
 
 export const events: SafetyEvent[] = [
