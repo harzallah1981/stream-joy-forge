@@ -391,6 +391,7 @@ function UploadDialog({
   const [version, setVersion] = useState("Rev 1");
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
   const [files, setFiles] = useState<File[]>([]);
+  const [requireAck, setRequireAck] = useState(true);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const submit = async () => {
