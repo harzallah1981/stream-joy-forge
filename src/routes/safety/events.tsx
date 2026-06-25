@@ -190,12 +190,12 @@ function EventsRegister() {
                         </td>
                         <td className="max-w-[220px] px-3 py-3 text-slate-600">{e.action}</td>
                         <td className="px-3 py-3 text-center">
-                          <span className={"inline-flex rounded-full px-2.5 py-0.5 text-[11px] font-semibold " + (e.statut === "CLÔTURÉ" ? "bg-green-100 text-green-700" : "bg-orange-100 text-orange-700")}>
+                          <span className={"inline-flex rounded-full px-2.5 py-0.5 text-[11px] font-semibold " + statusClass(cfg, e.statut)}>
                             {e.statut}
                           </span>
                         </td>
                         <td className="px-3 py-3 text-center">
-                          <span className={"inline-flex whitespace-nowrap rounded-md border px-2 py-0.5 text-[10px] font-bold " + categoryColor[e.categorie]}>
+                          <span className={"inline-flex whitespace-nowrap rounded-md border px-2 py-0.5 text-[10px] font-bold " + categoryClass(cfg, e.categorie)}>
                             {e.categorie}
                           </span>
                         </td>
