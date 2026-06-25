@@ -346,6 +346,13 @@ function EditDialog({
           </div>
           <div className="col-span-2"><Label>Description</Label><Input value={e.description} onChange={(ev) => setE({ ...e, description: ev.target.value })} /></div>
           <div className="col-span-2"><Label>Réponse / Action</Label><Input value={e.action} onChange={(ev) => setE({ ...e, action: ev.target.value })} /></div>
+          <div className="col-span-2">
+            <Label>Pièces jointes</Label>
+            <AttachmentsEditor
+              value={e.attachments ?? []}
+              onChange={(att) => setE({ ...e, attachments: att })}
+            />
+          </div>
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={onCancel}>Annuler</Button>
