@@ -63,6 +63,9 @@ function EventsRegister() {
   const [search, setSearch] = useState("");
   const [editing, setEditing] = useState<SafetyEvent | null>(null);
   const [newYearOpen, setNewYearOpen] = useState(false);
+  const [cfg, setCfg] = useState<EventsConfig>(() => loadEventsConfig());
+  const [cfgOpen, setCfgOpen] = useState(false);
+
 
   useEffect(() => { setYears(listYears()); }, []);
   useEffect(() => { setList(loadEvents(year)); }, [year]);
