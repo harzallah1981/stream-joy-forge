@@ -466,9 +466,21 @@ function UploadDialog({
             <Input value={docTitle} onChange={(e) => setDocTitle(e.target.value)} />
           </div>
           <div>
-            <Label>Date</Label>
+            <Label>Date d'émission</Label>
             <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
           </div>
+          {hasValidity && (
+            <div className="grid grid-cols-2 gap-3 rounded-md border border-blue-200 bg-blue-50 p-3">
+              <div>
+                <Label>Valide du</Label>
+                <Input type="date" value={validFrom} onChange={(e) => setValidFrom(e.target.value)} />
+              </div>
+              <div>
+                <Label>Valide au</Label>
+                <Input type="date" value={validTo} onChange={(e) => setValidTo(e.target.value)} />
+              </div>
+            </div>
+          )}
           <div>
             <Label>Fichier(s) — PDF, Word, Excel, PowerPoint, JPG, PNG…</Label>
             <input
