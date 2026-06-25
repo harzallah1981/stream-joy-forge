@@ -21,6 +21,8 @@ export const dict: Dict = {
   docs_internes: { fr: "Documents Internes", en: "Internal Documents" },
   docs_externes: { fr: "Documents Externes", en: "External Documents" },
   forms: { fr: "Forms", en: "Forms" },
+  read_sign: { fr: "Read & Sign", en: "Read & Sign" },
+
 
   // Internes children
   gom: { fr: "GOM", en: "GOM" },
