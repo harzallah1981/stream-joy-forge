@@ -14,7 +14,7 @@ import { useAuth } from "@/lib/auth";
 import {
   getDocsForCategory, loadUserDocs, saveUserDocs, fileToDataUrl, type DocItem,
 } from "@/lib/documents";
-import { addAck, hasAcked, loadAcks } from "@/lib/acknowledgements";
+import { addAck, hasAcked, loadAcks, loadAcksRemote } from "@/lib/acknowledgements";
 import { markRead as markDocRead } from "@/lib/notifications";
 import {
   loadUsers, addUser, updateUser, removeUser,
