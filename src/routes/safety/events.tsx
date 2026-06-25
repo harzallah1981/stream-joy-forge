@@ -237,6 +237,7 @@ function EventsRegister() {
       {editing && (
         <EditDialog
           event={editing}
+          cfg={cfg}
           onCancel={() => setEditing(null)}
           onSave={(ev) => {
             const exists = list.some((x) => x.id === ev.id);
@@ -255,9 +256,18 @@ function EventsRegister() {
           onConfirm={archiveAndNewYear}
         />
       )}
+
+      {cfgOpen && (
+        <ConfigDialog
+          cfg={cfg}
+          onCancel={() => setCfgOpen(false)}
+          onSave={(next) => { setCfg(next); saveEventsConfig(next); setCfgOpen(false); toast.success("Configuration enregistrée"); }}
+        />
+      )}
     </div>
   );
 }
+
 
 function EditDialog({
   event, onCancel, onSave,
