@@ -887,6 +887,11 @@ function AcksPage() {
   const internes = filtered.filter((a) => a.userType === "internal" || a.userType === "admin");
   const externes = filtered.filter((a) => a.userType === "external");
 
+  if (!isAdmin) {
+    return <div className="p-8 text-sm text-slate-600">🔒 Accès réservé aux administrateurs.</div>;
+  }
+
+
   const downloadCsv = (rows: Enriched[], filename: string) => {
     if (rows.length === 0) { toast.error("Aucune ligne à exporter"); return; }
     const headers = ["Date", "Utilisateur", "Email", "Type", "Lieu de travail", "Document", "Référence", "Catégorie", "Action"];
