@@ -414,11 +414,12 @@ function UploadDialog({
         fileName: f.name,
         url,
         uploadedBy: user?.email,
+        requireAck,
       });
     }
     saveUserDocs(docs);
     toast.success(`${files.length} document${files.length > 1 ? "s" : ""} ajouté${files.length > 1 ? "s" : ""}`);
-    setReference(""); setDocTitle(""); setVersion("Rev 1"); setFiles([]);
+    setReference(""); setDocTitle(""); setVersion("Rev 1"); setFiles([]); setRequireAck(true);
     setOpen(false);
     onDone();
   };
