@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Bell, Clock, LogOut, Plane, FileText, RefreshCw, BookOpen } from "lucide-react";
+import { Bell, Clock, LogOut, Plane, FileText, RefreshCw } from "lucide-react";
 import { usePageMeta } from "@/lib/page-title";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { useAuth } from "@/lib/auth";
