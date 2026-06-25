@@ -14,7 +14,7 @@ import { useAuth } from "@/lib/auth";
 import {
   getDocsForCategory, loadUserDocs, saveUserDocs, fileToDataUrl, type DocItem,
 } from "@/lib/documents";
-import { addAck, hasAcked, loadAcks } from "@/lib/acknowledgements";
+import { addAck, hasAcked, loadAcks, loadAcksRemote } from "@/lib/acknowledgements";
 import { markRead as markDocRead } from "@/lib/notifications";
 import {
   loadUsers, addUser, updateUser, removeUser,
@@ -860,7 +860,12 @@ function UserDialog({
 function AcksPage() {
   const { user } = useAuth();
   usePageTitle("Accusés de Réception", "Traçabilité des consultations documentaires");
-  const acks = useMemo(() => loadAcks(), []);
+  const [acks, setAcks] = useState<ReturnType<typeof loadAcks>>(() => loadAcks());
+  useEffect(() => {
+    let alive = true;
+    loadAcksRemote().then((rows) => { if (alive) setAcks(rows); });
+    return () => { alive = false; };
+  }, []);
   const users = useMemo(() => loadUsers(), []);
 
   const [fDoc, setFDoc] = useState("");
