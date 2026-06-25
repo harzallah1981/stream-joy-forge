@@ -240,7 +240,7 @@ function EventsRegister() {
                   })}
                   {filtered.length === 0 && (
                     <tr>
-                      <td colSpan={isAdmin ? 11 : 10} className="py-10 text-center text-sm text-slate-500">
+                      <td colSpan={isAdmin ? 12 : 11} className="py-10 text-center text-sm text-slate-500">
                         Aucun evenement.
                       </td>
                     </tr>
