@@ -126,6 +126,7 @@ function SafaD03Page() {
                     <th className="px-3 py-3 text-left font-semibold">Description</th>
                     <th className="px-3 py-3 text-left font-semibold">Envoi / Notification</th>
                     <th className="px-3 py-3 text-center font-semibold">Statut</th>
+                    <th className="px-3 py-3 text-center font-semibold">PJ</th>
                     {isAdmin && <th className="px-3 py-3 text-center font-semibold">Actions</th>}
                   </tr>
                 </thead>
@@ -145,6 +146,21 @@ function SafaD03Page() {
                           {r.statut}
                         </span>
                       </td>
+                      <td className="px-3 py-3 text-center">
+                        {r.attachments && r.attachments.length > 0 ? (
+                          <div className="flex flex-col items-center gap-1">
+                            {r.attachments.map((a, i) => (
+                              <a key={i} href={a.dataUrl} download={a.name} title={a.name}
+                                 className="inline-flex max-w-[140px] items-center gap-1 truncate rounded-md border border-blue-200 bg-blue-50 px-2 py-0.5 text-[11px] text-blue-700 hover:bg-blue-100">
+                                <Download className="h-3 w-3 shrink-0" />
+                                <span className="truncate">{a.name}</span>
+                              </a>
+                            ))}
+                          </div>
+                        ) : (
+                          <span className="text-xs text-slate-400">—</span>
+                        )}
+                      </td>
                       {isAdmin && (
                         <td className="px-3 py-3 text-center">
                           <button
@@ -159,7 +175,7 @@ function SafaD03Page() {
                   ))}
                   {filtered.length === 0 && (
                     <tr>
-                      <td colSpan={isAdmin ? 8 : 7} className="py-10 text-center text-sm text-slate-500">
+                      <td colSpan={isAdmin ? 9 : 8} className="py-10 text-center text-sm text-slate-500">
                         Aucune déficience SAFA enregistrée.
                       </td>
                     </tr>
