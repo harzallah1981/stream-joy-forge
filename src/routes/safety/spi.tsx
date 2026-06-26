@@ -263,8 +263,12 @@ function SpiDashboard() {
                   const auto = autoAnomalies[m] ?? 0;
                   const isAuto = manual === null;
                   const val = isAuto ? auto : manual;
+                  const list = eventsM[m] ?? [];
+                  const tip = list.length > 0
+                    ? list.map((e) => `• [${e.date} · ${e.escale}] ${e.description}`).join("\n")
+                    : (isAuto ? "Auto depuis le registre" : "Saisie admin");
                   return (
-                    <td key={m} className={"px-1.5 py-2 text-center tabular-nums " + (isAuto ? "italic text-blue-600" : "text-slate-700")} title={isAuto ? "Auto depuis le registre" : "Saisie admin"}>
+                    <td key={m} className={"px-1.5 py-2 text-center tabular-nums " + (isAuto ? "italic text-blue-600" : "text-slate-700") + (list.length ? " cursor-help underline decoration-dotted decoration-slate-300" : "")} title={tip}>
                       {val ?? "—"}
                     </td>
                   );
