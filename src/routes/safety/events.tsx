@@ -406,8 +406,30 @@ function EditDialog({
           <div><Label>Date</Label><Input type="date" value={e.date} onChange={(ev) => setE({ ...e, date: ev.target.value })} /></div>
           <div><Label>Source</Label><Input value={e.source} onChange={(ev) => setE({ ...e, source: ev.target.value })} /></div>
           <div><Label>Escale</Label><Input value={e.escale} onChange={(ev) => setE({ ...e, escale: ev.target.value })} /></div>
-          <div><Label>Probabilité (1-5)</Label><Input type="number" min={1} max={5} value={e.prob} onChange={(ev) => setE({ ...e, prob: Number(ev.target.value) })} /></div>
-          <div><Label>Gravité (1-5)</Label><Input type="number" min={1} max={5} value={e.grav} onChange={(ev) => setE({ ...e, grav: Number(ev.target.value) })} /></div>
+          <div>
+            <Label>Probabilité</Label>
+            <select
+              value={e.prob}
+              onChange={(ev) => setE({ ...e, prob: Number(ev.target.value) })}
+              className="h-9 w-full cursor-pointer rounded-md border border-slate-200 px-3 text-sm"
+            >
+              {cfg.probabilities.map((p) => (
+                <option key={p.value} value={p.value}>{p.value} — {p.label}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <Label>Gravité</Label>
+            <select
+              value={e.grav}
+              onChange={(ev) => setE({ ...e, grav: Number(ev.target.value) })}
+              className="h-9 w-full cursor-pointer rounded-md border border-slate-200 px-3 text-sm"
+            >
+              {cfg.gravities.map((g) => (
+                <option key={g.value} value={g.value}>{g.value} — {g.label}</option>
+              ))}
+            </select>
+          </div>
           <div>
             <Label>Statut</Label>
             <select
@@ -428,14 +450,13 @@ function EditDialog({
               {cfg.categories.map((c) => <option key={c.name} value={c.name}>{c.name}</option>)}
             </select>
           </div>
-          <div>
+          <div className="col-span-2">
             <Label>Sévérité (auto = Prob × Grav)</Label>
             <div className="flex h-9 items-center gap-2 rounded-md border border-slate-200 bg-slate-50 px-3 text-sm">
               {(() => {
                 const s = e.prob * e.grav;
-                const tone = s >= 20 ? "bg-red-100 text-red-700" : s >= 9 ? "bg-orange-100 text-orange-700" : "bg-green-100 text-green-700";
-                const lib = s >= 20 ? "Non acceptable" : s >= 9 ? "Moyen" : "Acceptable";
-                return <><span className={"inline-flex min-w-[2rem] justify-center rounded px-1.5 py-0.5 font-bold " + tone}>{s}</span><span className="text-slate-700">{lib}</span></>;
+                const band = severityFor(cfg, s);
+                return <><span className={"inline-flex min-w-[2rem] justify-center rounded px-1.5 py-0.5 font-bold " + band.color}>{s}</span><span className="text-slate-700">{band.name}</span></>;
               })()}
             </div>
           </div>
