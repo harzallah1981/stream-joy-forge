@@ -37,15 +37,21 @@ function SafaD03Page() {
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase().trim();
-    if (!q) return list;
-    return list.filter((r) =>
+    // Non-admins only see records of their own escale (workplace).
+    const escale = (user?.workplace ?? "").trim().toUpperCase();
+    let base = list;
+    if (!isAdmin && escale) {
+      base = list.filter((r) => r.escale.toUpperCase() === escale);
+    }
+    if (!q) return base;
+    return base.filter((r) =>
       r.id.toLowerCase().includes(q) ||
       r.escale.toLowerCase().includes(q) ||
       r.vol.toLowerCase().includes(q) ||
       r.description.toLowerCase().includes(q) ||
       r.notification.toLowerCase().includes(q),
     );
-  }, [list, search]);
+  }, [list, search, isAdmin, user]);
 
   const ecarts = list.length;
   const inspections = 17; // synced with SPI seed; admin editable in SPI
