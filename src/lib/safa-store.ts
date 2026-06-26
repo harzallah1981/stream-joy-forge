@@ -1,6 +1,8 @@
 // SAFA D03 records store — multi-year, localStorage backed
 export type SafaStatus = "EN COURS" | "CLÔTURÉ";
 
+export type SafaAttachment = { name: string; dataUrl: string };
+
 export type SafaRecord = {
   id: string;
   date: string;        // ISO yyyy-mm-dd
@@ -10,6 +12,7 @@ export type SafaRecord = {
   description: string;
   notification: string; // "Envoyée à TH par ..."
   statut: SafaStatus;
+  attachments?: SafaAttachment[];
 };
 
 const KEY = (y: number) => `tunisair_safa_d03_${y}`;
