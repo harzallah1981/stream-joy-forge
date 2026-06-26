@@ -9,11 +9,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SubmitEmailDialog } from "@/components/submit-email-dialog";
 import { Send, RotateCcw, AlertTriangle } from "lucide-react";
 import { iataDgrEdition } from "@/lib/iata";
-import { InternalOnly } from "@/components/internal-only";
 
 export const Route = createFileRoute("/forms/dg-incident")({
   head: () => ({ meta: [{ title: "DG Incident / Accident Report — IATA DGR" }] }),
-  component: () => <InternalOnly><Form /></InternalOnly>,
+  component: Form,
 });
 
 // 32 numbered fields, taken directly from the DG report template.
