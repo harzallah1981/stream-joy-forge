@@ -18,8 +18,8 @@ import {
   type EventAttachment,
 } from "@/lib/safety-data";
 import {
-  loadEventsConfig, saveEventsConfig, categoryClass, statusClass,
-  COLOR_PRESETS, type EventsConfig,
+  loadEventsConfig, saveEventsConfig, categoryClass, statusClass, severityFor,
+  COLOR_PRESETS, type EventsConfig, type ScaleDef, type SeverityBand,
 } from "@/lib/events-config";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth";
