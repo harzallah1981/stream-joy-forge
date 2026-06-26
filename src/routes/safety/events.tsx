@@ -286,17 +286,6 @@ function EventsRegister() {
                         <td className="px-3 py-3 text-center font-semibold tabular-nums">
                           <span className={"inline-flex min-w-[2rem] rounded px-1.5 py-0.5 " + severityFor(cfg, sev).color} title={severityFor(cfg, sev).name}>{sev}</span>
                         </td>
-                        <td className="max-w-[220px] px-3 py-3 text-slate-600">{e.action}</td>
-                        <td className="px-3 py-3 text-center">
-                          <span className={"inline-flex rounded-full px-2.5 py-0.5 text-[11px] font-semibold " + statusClass(cfg, e.statut)}>
-                            {e.statut}
-                          </span>
-                        </td>
-                        <td className="px-3 py-3 text-center">
-                          <span className={"inline-flex whitespace-nowrap rounded-md border px-2 py-0.5 text-[10px] font-bold " + categoryClass(cfg, e.categorie)}>
-                            {e.categorie}
-                          </span>
-                        </td>
                         <td className="px-3 py-3 text-center">
                           <AttachmentsCell
                             event={e}
@@ -316,6 +305,17 @@ function EventsRegister() {
                               persist(next);
                             }}
                           />
+                        </td>
+                        <td className="max-w-[220px] px-3 py-3 text-slate-600">{e.action}</td>
+                        <td className="px-3 py-3 text-center">
+                          <span className={"inline-flex rounded-full px-2.5 py-0.5 text-[11px] font-semibold " + statusClass(cfg, e.statut)}>
+                            {e.statut}
+                          </span>
+                        </td>
+                        <td className="px-3 py-3 text-center">
+                          <span className={"inline-flex whitespace-nowrap rounded-md border px-2 py-0.5 text-[10px] font-bold " + categoryClass(cfg, e.categorie)}>
+                            {e.categorie}
+                          </span>
                         </td>
                         {isAdmin && (
                           <td className="px-3 py-3 text-center">
