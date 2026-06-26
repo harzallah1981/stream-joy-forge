@@ -343,11 +343,13 @@ function EventsRegister() {
             </div>
           </div>
 
-          <div className="mt-4 flex flex-wrap items-center gap-4 px-2 text-xs text-slate-600">
-            <span className="font-semibold">Legende severite :</span>
-            <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-sm bg-red-500" />20-25 : Non acceptable</span>
-            <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-sm bg-orange-400" />9-19 : Moyen</span>
-            <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-sm bg-green-500" />1-8 : Acceptable</span>
+          <div className="mt-4 flex flex-wrap items-center gap-3 px-2 text-xs text-slate-600">
+            <span className="font-semibold">Légende sévérité :</span>
+            {cfg.severities.map((b) => (
+              <span key={b.name} className={"inline-flex items-center gap-1.5 rounded px-2 py-0.5 " + b.color}>
+                <span className="font-semibold">{b.min}-{b.max}</span> · {b.name}
+              </span>
+            ))}
           </div>
         </div>
       </div>
