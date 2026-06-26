@@ -292,7 +292,7 @@ function DocumentsPage({ slug }: { slug: string }) {
                           >
                             <Download className="h-4 w-4" />
                           </button>
-                          {isAdmin && d.id.startsWith("u-") && (
+                          {isAdmin && (d.id.startsWith("u-") || d.category === "notes-flash") && (
                             <button
                               onClick={() => handleDelete(d.id)}
                               className="cursor-pointer rounded p-1.5 text-slate-500 hover:bg-red-50 hover:text-red-700"
