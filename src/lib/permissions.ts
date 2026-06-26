@@ -20,11 +20,15 @@ export function userModules(u: AuthUser | null | undefined): string[] {
 // Sidebar group visibility.
 export function canSeeGroup(groupKey: string, u: AuthUser | null | undefined): boolean {
   if (!u) return false;
+  const isExternal = u.role === "external" || u.userType === "external";
+  if (isExternal) {
+    // Externals: no dashboard, no safety, no admin. Only the documentation tree.
+    return groupKey === "documentation";
+  }
   if (groupKey === "dashboard") return true;
   const t = userType(u);
   if (t === "admin") return true;
   if (t === "internal_manager") return groupKey !== "admin"; // view all except admin tools
-  if (t === "external") return groupKey === "documentation";
   // internal_standard: only granted modules
   const mods = userModules(u);
   if (groupKey === "documentation") return mods.includes("documentation");
