@@ -118,6 +118,13 @@ function DocumentsPage({ slug }: { slug: string }) {
       performAction(doc, action);
       return;
     }
+    // Ack is required ONLY for these document categories:
+    // GOM / DAM / DOI-DOW / AHM / POS / IOS / LOAD AND TRIM SHEET /
+    // LOADING INSTRUCTIONS REPORTS / SAFETY NOTES AND FLASHES
+    if (!ACK_REQUIRED_PREFIXES.some((p) => doc.category.startsWith(p))) {
+      performAction(doc, action);
+      return;
+    }
     // T24: ack required only on first time per (user, doc)
     if (user && hasAcked(user.email, doc.id)) {
       performAction(doc, action);
