@@ -18,12 +18,16 @@ import {
   pct,
   type SafetyEvent,
 } from "@/lib/safety-data";
+import { loadSafa, SAFA_CURRENT_YEAR, type SafaRecord } from "@/lib/safa-store";
 import { useAuth } from "@/lib/auth";
 import { toast } from "sonner";
 
 const MONTH_INDEX: Record<string, number> = {
   JAN: 0, "FÉV": 1, MAR: 2, AVR: 3, MAI: 4, JUN: 5,
   JUL: 6, "AOÛ": 7, SEP: 8, OCT: 9, NOV: 10, "DÉC": 11,
+};
+const QUARTER_MONTHS: Record<string, number[]> = {
+  T1: [0, 1, 2], T2: [3, 4, 5], T3: [6, 7, 8], T4: [9, 10, 11],
 };
 function loadEventsForYear(year: number): SafetyEvent[] {
   if (typeof window === "undefined") return [];
@@ -39,6 +43,40 @@ function autoAnomaliesByMonth(year: number): Record<string, number> {
     if (d.getFullYear() !== year) continue;
     const m = Object.keys(MONTH_INDEX).find((k) => MONTH_INDEX[k] === d.getMonth());
     if (m) out[m] = (out[m] ?? 0) + 1;
+  }
+  return out;
+}
+function eventsByMonth(year: number): Record<string, SafetyEvent[]> {
+  const out: Record<string, SafetyEvent[]> = {};
+  for (const e of loadEventsForYear(year)) {
+    const d = new Date(e.date);
+    if (d.getFullYear() !== year) continue;
+    const m = Object.keys(MONTH_INDEX).find((k) => MONTH_INDEX[k] === d.getMonth());
+    if (m) (out[m] = out[m] ?? []).push(e);
+  }
+  return out;
+}
+function damagesByQuarter(year: number, scope: "tunisie" | "etranger"): Record<string, SafetyEvent[]> {
+  const out: Record<string, SafetyEvent[]> = { T1: [], T2: [], T3: [], T4: [] };
+  for (const e of loadEventsForYear(year)) {
+    if (e.categorie !== "GSE/DAMAGE") continue;
+    const d = new Date(e.date);
+    if (d.getFullYear() !== year) continue;
+    const isTun = e.escale.toUpperCase() === "TUN";
+    if (scope === "tunisie" && !isTun) continue;
+    if (scope === "etranger" && isTun) continue;
+    const q = Object.entries(QUARTER_MONTHS).find(([, ms]) => ms.includes(d.getMonth()))?.[0];
+    if (q) out[q].push(e);
+  }
+  return out;
+}
+function safaByQuarter(year: number): Record<string, SafaRecord[]> {
+  const out: Record<string, SafaRecord[]> = { T1: [], T2: [], T3: [], T4: [] };
+  for (const r of loadSafa(year)) {
+    const d = new Date(r.date);
+    if (d.getFullYear() !== year) continue;
+    const q = Object.entries(QUARTER_MONTHS).find(([, ms]) => ms.includes(d.getMonth()))?.[0];
+    if (q) out[q].push(r);
   }
   return out;
 }
