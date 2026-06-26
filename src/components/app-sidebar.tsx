@@ -17,10 +17,10 @@ function hasActiveDescendant(node: MenuNode, pathname: string): boolean {
 function NavItem({ node, depth, pathname }: { node: MenuNode; depth: number; pathname: string }) {
   const { t } = useI18n();
   const { user } = useAuth();
-  if (!canSeeMenuNode(node, user)) return null;
   const active = node.to === pathname;
   const childActive = node.children && hasActiveDescendant(node, pathname);
   const [open, setOpen] = useState(!!childActive);
+  if (!canSeeMenuNode(node, user)) return null;
   const visibleChildren = node.children?.filter((c) => canSeeMenuNode(c, user)) ?? [];
 
   if (node.children?.length) {
