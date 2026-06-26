@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { Plus, Search, Plane, Pencil, Archive } from "lucide-react";
+import { Plus, Search, Plane, Pencil, Archive, Paperclip, X, Download } from "lucide-react";
 import { usePageTitle } from "@/lib/page-title";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -10,7 +10,7 @@ import { useAuth } from "@/lib/auth";
 import { toast } from "sonner";
 import {
   loadSafa, saveSafa, listSafaYears, SAFA_CURRENT_YEAR,
-  type SafaRecord, type SafaStatus,
+  type SafaRecord, type SafaStatus, type SafaAttachment,
 } from "@/lib/safa-store";
 
 export const Route = createFileRoute("/safety/safa-d03")({
