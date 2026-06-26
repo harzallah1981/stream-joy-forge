@@ -100,7 +100,7 @@ function AdminDashboard() {
   const safaOpen = safa.filter((s) => s.statut !== "CLÔTURÉ").length;
   const safaClosed = safa.filter((s) => s.statut === "CLÔTURÉ").length;
 
-  const { acks, users, alerts, readingRate, totalRead, totalAssignments } = useMemo(() => {
+  const { acks, users, alerts, readingRate, totalRead, totalAssignments, docsCount } = useMemo(() => {
     const acks = loadAcks();
     const users = loadKnownUsers().filter((u) => u.userType !== "admin");
     const dynamicAlerts = computeOverdueAlerts(users);
@@ -115,7 +115,7 @@ function AdminDashboard() {
       totalRead += docs.filter((d) => reads[d.id]).length;
     }
     const readingRate = totalAssignments > 0 ? Math.round((totalRead / totalAssignments) * 100) : 0;
-    return { acks, users, alerts, readingRate, totalRead, totalAssignments };
+    return { acks, users, alerts, readingRate, totalRead, totalAssignments, docsCount: docs.length };
   }, []);
 
   // Build bar groups
@@ -131,8 +131,8 @@ function AdminDashboard() {
     { label: "Clôturés", value: safaClosed, color: "bg-emerald-500", max: Math.max(safa.length, 1) },
   ];
   const indicatorBars = [
-    { label: "Utilisateurs suivis", value: users.length, color: "bg-indigo-500", max: Math.max(users.length, SAMPLE_DOCS.length, 1) },
-    { label: "Documents diffusés", value: getAllDocs().length, color: "bg-blue-500", max: Math.max(users.length, getAllDocs().length, 1) },
+    { label: "Utilisateurs suivis", value: users.length, color: "bg-indigo-500", max: Math.max(users.length, docsCount, 1) },
+    { label: "Documents diffusés", value: docsCount, color: "bg-blue-500", max: Math.max(users.length, docsCount, 1) },
     { label: "Accusés enregistrés", value: acks.length, color: "bg-emerald-500", max: Math.max(acks.length, totalAssignments, 1) },
     { label: "Lectures effectuées", value: totalRead, color: "bg-teal-500", max: Math.max(acks.length, totalAssignments, 1) },
   ];
