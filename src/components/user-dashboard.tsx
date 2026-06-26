@@ -3,7 +3,7 @@ import { BookOpen, CheckCircle2, AlertCircle, X, ArrowRight, ShieldAlert, Plane 
 import { Link } from "@tanstack/react-router";
 import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
-import { SAMPLE_DOCS, type DocItem } from "@/lib/documents";
+import { getAllDocs, type DocItem } from "@/lib/documents";
 import { loadReads, markRead, unreadDocs } from "@/lib/notifications";
 import { addAck } from "@/lib/acknowledgements";
 import { HoverCard, HoverCardTrigger, HoverCardContent } from "@/components/ui/hover-card";
@@ -33,8 +33,9 @@ export function UserDashboard() {
   const stats = useMemo(() => {
     if (!user) return { total: 0, read: 0, unread: [] as DocItem[] };
     const reads = loadReads(user.email);
-    const total = SAMPLE_DOCS.length;
-    const read = Object.keys(reads).filter((id) => SAMPLE_DOCS.some((d) => d.id === id)).length;
+    const docs = getAllDocs();
+    const total = docs.length;
+    const read = Object.keys(reads).filter((id) => docs.some((d) => d.id === id)).length;
     return { total, read, unread: unreadDocs(user.email) };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, tick]);
