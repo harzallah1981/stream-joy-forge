@@ -1150,10 +1150,13 @@ function AcksPage() {
 function ReadingRecap({ acks }: { acks: ReturnType<typeof loadAcks> }) {
   const users = useMemo(() => loadKnownUsers(), []);
   const allDocs = useMemo(
-    () => getAllDocs().filter((d) =>
-      d.requireAck !== false && (requiresAckForCategory(d.category) || d.category === "read-sign"),
-    ),
-    [],
+    () => {
+      const ackedDocIds = new Set(acks.map((a) => a.docId));
+      return getAllDocs().filter((d) =>
+        (d.requireAck !== false && requiresAckForCategory(d.category)) || ackedDocIds.has(d.id),
+      );
+    },
+    [acks],
   );
   const [docId, setDocId] = useState<string>(allDocs[0]?.id ?? "");
   const selectedDoc = allDocs.find((d) => d.id === docId);
