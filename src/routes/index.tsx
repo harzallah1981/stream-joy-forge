@@ -3,13 +3,13 @@ import { Shield, BookOpen, AlertTriangle, BarChart3, Plane } from "lucide-react"
 import { useMemo } from "react";
 import { usePageTitle } from "@/lib/page-title";
 import { events as DEFAULT_EVENTS, type SafetyEvent } from "@/lib/safety-data";
-import { useAuth } from "@/lib/auth";
+import { TEST_CREDENTIALS, useAuth } from "@/lib/auth";
 import { UserDashboard } from "@/components/user-dashboard";
 import { useI18n } from "@/lib/i18n";
 import { loadAcks } from "@/lib/acknowledgements";
-import { loadUsers } from "@/lib/users-store";
+import { defaultModulesFor, loadUsers, type StoredUser, type UserType } from "@/lib/users-store";
 import { loadAdminAlerts } from "@/lib/reminders";
-import { SAMPLE_DOCS } from "@/lib/documents";
+import { canUserSeeReadSignDoc, getAllDocs, requiresAckForCategory } from "@/lib/documents";
 import { loadReads } from "@/lib/notifications";
 import { loadSafa, SAFA_CURRENT_YEAR } from "@/lib/safa-store";
 
@@ -42,6 +42,54 @@ function loadCurrentYearEvents(): SafetyEvent[] {
   } catch { return DEFAULT_EVENTS; }
 }
 
+function seededUserType(u: (typeof TEST_CREDENTIALS)[number]): UserType {
+  return u.userType ?? (u.role === "admin" ? "admin" : u.role === "external" ? "external" : "internal_standard");
+}
+
+function loadKnownUsers(): StoredUser[] {
+  const byEmail = new Map<string, StoredUser>();
+  for (const u of TEST_CREDENTIALS) {
+    const userType = seededUserType(u);
+    byEmail.set(u.email.toLowerCase(), {
+      id: `seed-${u.email}`,
+      email: u.email,
+      emails: u.emails ?? [u.email],
+      username: u.username,
+      role: u.role,
+      userType,
+      modules: u.modules ?? defaultModulesFor(userType),
+      org: u.org,
+      workplace: u.workplace ?? u.org ?? "—",
+      adminScope: u.adminScope,
+      createdAt: "2026-01-01T00:00:00.000Z",
+    });
+  }
+  for (const u of loadUsers()) byEmail.set(u.email.toLowerCase(), u);
+  return Array.from(byEmail.values());
+}
+
+function computeOverdueAlerts(users: StoredUser[]) {
+  const now = Date.now();
+  const docs = getAllDocs().filter((d) => d.requireAck !== false && requiresAckForCategory(d.category));
+  return users.flatMap((u) => {
+    if (u.userType === "admin") return [];
+    const reads = loadReads(u.email);
+    return docs
+      .filter((doc) => canUserSeeReadSignDoc(doc, u.userType))
+      .map((doc) => ({ doc, daysOverdue: Math.floor((now - new Date(doc.date).getTime()) / 86400000) }))
+      .filter(({ doc, daysOverdue }) => daysOverdue >= 8 && !reads[doc.id])
+      .map(({ doc, daysOverdue }) => ({
+        id: `dyn-${u.email}-${doc.id}`,
+        at: new Date().toISOString(),
+        email: u.email,
+        username: u.username,
+        docId: doc.id,
+        docTitle: doc.title,
+        daysOverdue,
+      }));
+  });
+}
+
 function AdminDashboard() {
   const events = useMemo(() => loadCurrentYearEvents(), []);
   const safa = useMemo(() => loadSafa(SAFA_CURRENT_YEAR), []);
@@ -51,18 +99,22 @@ function AdminDashboard() {
   const safaOpen = safa.filter((s) => s.statut !== "CLÔTURÉ").length;
   const safaClosed = safa.filter((s) => s.statut === "CLÔTURÉ").length;
 
-  const { acks, users, alerts, readingRate, totalRead, totalAssignments } = useMemo(() => {
+  const { acks, users, alerts, readingRate, totalRead, totalAssignments, docsCount } = useMemo(() => {
     const acks = loadAcks();
-    const users = loadUsers().filter((u) => u.userType !== "admin");
-    const alerts = loadAdminAlerts();
-    const totalAssignments = users.length * SAMPLE_DOCS.length;
+    const users = loadKnownUsers().filter((u) => u.userType !== "admin");
+    const dynamicAlerts = computeOverdueAlerts(users);
+    const storedAlerts = loadAdminAlerts();
+    const alertMap = new Map([...storedAlerts, ...dynamicAlerts].map((a) => [`${a.email}|${a.docId}`, a]));
+    const alerts = Array.from(alertMap.values()).sort((a, b) => b.daysOverdue - a.daysOverdue);
+    const docs = getAllDocs();
+    const totalAssignments = users.length * docs.length;
     let totalRead = 0;
     for (const u of users) {
       const reads = loadReads(u.email);
-      totalRead += SAMPLE_DOCS.filter((d) => reads[d.id]).length;
+      totalRead += docs.filter((d) => reads[d.id]).length;
     }
     const readingRate = totalAssignments > 0 ? Math.round((totalRead / totalAssignments) * 100) : 0;
-    return { acks, users, alerts, readingRate, totalRead, totalAssignments };
+    return { acks, users, alerts, readingRate, totalRead, totalAssignments, docsCount: docs.length };
   }, []);
 
   // Build bar groups
@@ -78,8 +130,8 @@ function AdminDashboard() {
     { label: "Clôturés", value: safaClosed, color: "bg-emerald-500", max: Math.max(safa.length, 1) },
   ];
   const indicatorBars = [
-    { label: "Utilisateurs suivis", value: users.length, color: "bg-indigo-500", max: Math.max(users.length, SAMPLE_DOCS.length, 1) },
-    { label: "Documents diffusés", value: SAMPLE_DOCS.length, color: "bg-blue-500", max: Math.max(users.length, SAMPLE_DOCS.length, 1) },
+    { label: "Utilisateurs suivis", value: users.length, color: "bg-indigo-500", max: Math.max(users.length, docsCount, 1) },
+    { label: "Documents diffusés", value: docsCount, color: "bg-blue-500", max: Math.max(users.length, docsCount, 1) },
     { label: "Accusés enregistrés", value: acks.length, color: "bg-emerald-500", max: Math.max(acks.length, totalAssignments, 1) },
     { label: "Lectures effectuées", value: totalRead, color: "bg-teal-500", max: Math.max(acks.length, totalAssignments, 1) },
   ];

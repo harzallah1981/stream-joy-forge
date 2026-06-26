@@ -19,7 +19,25 @@ export type DocItem = {
   /** When false, document can be viewed/downloaded without an ack.
    *  When true or undefined, the legacy ack flow applies (per user type). */
   requireAck?: boolean;
+  /** Read & Sign audience chosen by admin for uploaded documents. Undefined = all non-admin users. */
+  readSignUserTypes?: Array<"internal_standard" | "internal_manager" | "external">;
 };
+
+export const ACK_REQUIRED_PREFIXES: string[] = [
+  "gom",
+  "dam",
+  "dow-doi",
+  "ahm",
+  "pos-",
+  "ios-",
+  "load-trim",
+  "loading-instructions",
+  "notes-flash",
+];
+
+export function requiresAckForCategory(category: string): boolean {
+  return ACK_REQUIRED_PREFIXES.some((p) => category.startsWith(p));
+}
 
 // Minimal valid 1-page PDF (will render "Tunisair — <title>")
 function buildSamplePdf(title: string): string {
@@ -147,6 +165,16 @@ export function getAllDocs(): DocItem[] {
     ...SAMPLE_DOCS.filter((d) => !hidden.has(d.id)),
     ...loadUserDocs(),
   ];
+}
+
+export function canUserSeeReadSignDoc(
+  doc: DocItem,
+  userType: "admin" | "internal_standard" | "internal_manager" | "external" | undefined,
+): boolean {
+  if (!userType) return false;
+  if (userType === "admin") return true;
+  if (!doc.readSignUserTypes || doc.readSignUserTypes.length === 0) return true;
+  return doc.readSignUserTypes.includes(userType);
 }
 
 export async function fileToDataUrl(file: File): Promise<string> {

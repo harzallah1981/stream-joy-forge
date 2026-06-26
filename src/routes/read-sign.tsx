@@ -6,8 +6,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/lib/auth";
 import { usePageTitle } from "@/lib/page-title";
-import { SAMPLE_DOCS, loadUserDocs, type DocItem } from "@/lib/documents";
+import { canUserSeeReadSignDoc, getAllDocs, type DocItem } from "@/lib/documents";
 import { addSignature, hasSigned, loadSignatures } from "@/lib/signatures";
+import { markRead } from "@/lib/notifications";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/read-sign")({
@@ -23,8 +24,8 @@ function ReadSignPage() {
   const [active, setActive] = useState<DocItem | null>(null);
 
   const docs = useMemo(() => {
-    return [...SAMPLE_DOCS, ...loadUserDocs()];
-  }, [refresh]);
+    return getAllDocs().filter((d) => canUserSeeReadSignDoc(d, user?.userType));
+  }, [refresh, user]);
 
   const signedSet = useMemo(() => {
     if (!user) return new Set<string>();
@@ -162,6 +163,7 @@ function ReadSignViewer({
       docReference: doc.reference,
       signatureText: sig.trim(),
     });
+    markRead(user.email, doc.id);
     toast.success("Document signé");
     onSigned();
   };

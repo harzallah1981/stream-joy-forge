@@ -7,7 +7,7 @@
 // added or revised relative to that baseline are notified. The
 // indicator clears for a given doc only when the user performs a
 // real access (view / download), which calls `markRead`.
-import { SAMPLE_DOCS, type DocItem } from "@/lib/documents";
+import { getAllDocs, type DocItem } from "@/lib/documents";
 
 const READ_KEY = "tunisair_doc_reads_v1";
 const BASELINE_KEY = "tunisair_doc_baseline_v1";
@@ -30,7 +30,7 @@ export function markRead(userEmail: string, docId: string) {
   // Also refresh the baseline entry for that doc so a later revision
   // re-triggers a notification.
   const b = loadBaseline(userEmail);
-  const cur = SAMPLE_DOCS.find((d) => d.id === docId);
+  const cur = getAllDocs().find((d) => d.id === docId);
   if (cur) {
     b[docId] = cur.version;
     localStorage.setItem(`${BASELINE_KEY}:${userEmail}`, JSON.stringify(b));
@@ -54,18 +54,18 @@ export function loadBaseline(userEmail: string): BaselineMap {
   // First visit: snapshot the current catalogue so nothing is flagged
   // as "new" until something actually changes server-side.
   const seed: BaselineMap = {};
-  for (const d of SAMPLE_DOCS) seed[d.id] = d.version;
+  for (const d of getAllDocs()) seed[d.id] = d.version;
   localStorage.setItem(`${BASELINE_KEY}:${userEmail}`, JSON.stringify(seed));
   return seed;
 }
 
 export function unreadDocs(userEmail: string): DocItem[] {
   const m = loadReads(userEmail);
-  return SAMPLE_DOCS.filter((d) => !m[d.id]);
+  return getAllDocs().filter((d) => !m[d.id]);
 }
 export function readDocs(userEmail: string): DocItem[] {
   const m = loadReads(userEmail);
-  return SAMPLE_DOCS.filter((d) => !!m[d.id]);
+  return getAllDocs().filter((d) => !!m[d.id]);
 }
 
 export type Notif = {
@@ -81,7 +81,7 @@ export function buildNotifications(userEmail: string): Notif[] {
   const baseline = loadBaseline(userEmail);
   const reads = loadReads(userEmail);
   const out: Notif[] = [];
-  for (const d of SAMPLE_DOCS) {
+  for (const d of getAllDocs()) {
     if (reads[d.id]) continue;
     const known = baseline[d.id];
     if (known === undefined) {

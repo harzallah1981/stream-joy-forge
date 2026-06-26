@@ -2,7 +2,7 @@
 // Frontend-only demo: runs on each app load (per user).
 // - J+3 / J+5 / J+7 → user reminder (toast + notification badge already covers UI)
 // - J+8 → admin alert (logged in tunisair_admin_alerts_v1)
-import { SAMPLE_DOCS } from "./documents";
+import { getAllDocs, requiresAckForCategory } from "./documents";
 import { loadReads } from "./notifications";
 import { loadUsers } from "./users-store";
 import { toast } from "sonner";
@@ -46,12 +46,13 @@ export function runReminderCheck(currentUserEmail: string | undefined) {
   const fired = loadFired();
   const now = Date.now();
   const users = loadUsers();
+  const docs = getAllDocs().filter((d) => d.requireAck !== false && requiresAckForCategory(d.category));
 
   // 1) Per-user reminders for the *current* signed-in user (silent toast batch).
   if (currentUserEmail) {
     const reads = loadReads(currentUserEmail);
     let toastedCount = 0;
-    for (const doc of SAMPLE_DOCS) {
+    for (const doc of docs) {
       if (reads[doc.id]) continue;
       const days = daysBetween(doc.date, now);
       for (const stage of STAGES) {
@@ -73,7 +74,7 @@ export function runReminderCheck(currentUserEmail: string | undefined) {
   for (const u of users) {
     if (u.userType === "admin") continue;
     const reads = loadReads(u.email);
-    for (const doc of SAMPLE_DOCS) {
+    for (const doc of docs) {
       if (reads[doc.id]) continue;
       const days = daysBetween(doc.date, now);
       if (days >= 8) {

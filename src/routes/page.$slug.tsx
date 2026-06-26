@@ -10,11 +10,11 @@ import {
 } from "@/components/ui/dialog";
 import { useI18n } from "@/lib/i18n";
 import { usePageTitle } from "@/lib/page-title";
-import { useAuth } from "@/lib/auth";
+import { TEST_CREDENTIALS, useAuth, type AuthUser } from "@/lib/auth";
 import {
-  getDocsForCategory, getAllDocs, loadUserDocs, saveUserDocs, hideSeedDoc, fileToDataUrl, type DocItem,
+  canUserSeeReadSignDoc, getDocsForCategory, getAllDocs, loadUserDocs, saveUserDocs, hideSeedDoc, fileToDataUrl, requiresAckForCategory, type DocItem,
 } from "@/lib/documents";
-import { addAck, hasAcked, loadAcks, loadAcksRemote } from "@/lib/acknowledgements";
+import { addAck, hasAcked, loadAcks, loadAcksRemote, type Ack } from "@/lib/acknowledgements";
 import { markRead as markDocRead } from "@/lib/notifications";
 import {
   loadUsers, addUser, updateUser, removeUser,
@@ -23,21 +23,6 @@ import {
 } from "@/lib/users-store";
 import { isPrincipalAdmin as isPrincipalAdminFn } from "@/lib/permissions";
 import { toast } from "sonner";
-
-// Categories that REQUIRE an acknowledgement before view/download
-// (GOM, DAM, DOI-DOW, AHM, POS, IOS, Load & Trim Sheet,
-//  Loading Instructions Reports, Safety Notes & Flashes).
-const ACK_REQUIRED_PREFIXES: string[] = [
-  "gom",
-  "dam",
-  "dow-doi",
-  "ahm",
-  "pos-",
-  "ios-",
-  "load-trim",
-  "loading-instructions",
-  "notes-flash",
-];
 
 const SLUG_TO_KEY: Record<string, string> = {
   gom: "gom", dam: "dam",
@@ -140,7 +125,7 @@ function DocumentsPage({ slug }: { slug: string }) {
     // Ack is required ONLY for these document categories:
     // GOM / DAM / DOI-DOW / AHM / POS / IOS / LOAD AND TRIM SHEET /
     // LOADING INSTRUCTIONS REPORTS / SAFETY NOTES AND FLASHES
-    if (!ACK_REQUIRED_PREFIXES.some((p) => doc.category.startsWith(p))) {
+    if (!requiresAckForCategory(doc.category)) {
       performAction(doc, action);
       return;
     }
@@ -428,7 +413,17 @@ function UploadDialog({
   const hasValidity = slug === "cdn" || slug === "ceirb" || slug === "aoc";
   const [files, setFiles] = useState<File[]>([]);
   const [requireAck, setRequireAck] = useState(true);
+  const [readSignUserTypes, setReadSignUserTypes] = useState<Array<"internal_standard" | "internal_manager" | "external">>([
+    "internal_standard",
+    "internal_manager",
+    "external",
+  ]);
   const inputRef = useRef<HTMLInputElement>(null);
+  const toggleReadSignAudience = (type: "internal_standard" | "internal_manager" | "external") => {
+    setReadSignUserTypes((items) =>
+      items.includes(type) ? items.filter((item) => item !== type) : [...items, type],
+    );
+  };
 
   const submit = async () => {
     if (files.length === 0 || !reference || !docTitle) {
@@ -453,11 +448,13 @@ function UploadDialog({
         url,
         uploadedBy: user?.email,
         requireAck,
+        readSignUserTypes,
       });
     }
     saveUserDocs(docs);
     toast.success(`${files.length} document${files.length > 1 ? "s" : ""} ajouté${files.length > 1 ? "s" : ""}`);
     setReference(""); setDocTitle(""); setVersion("Rev 1"); setFiles([]); setRequireAck(true);
+    setReadSignUserTypes(["internal_standard", "internal_manager", "external"]);
     setValidFrom(""); setValidTo("");
     setOpen(false);
     onDone();
@@ -539,6 +536,26 @@ function UploadDialog({
               </span>
             </span>
           </label>
+          <div className="rounded-md border border-slate-200 bg-white p-3">
+            <Label className="text-xs">Read & Sign — visible pour</Label>
+            <div className="mt-2 grid gap-2 sm:grid-cols-3">
+              {([
+                ["internal_standard", "Internes standard"],
+                ["internal_manager", "Gestionnaires"],
+                ["external", "Externes"],
+              ] as const).map(([type, label]) => (
+                <label key={type} className="flex cursor-pointer items-center gap-2 rounded-md border border-slate-200 bg-slate-50 px-2 py-1.5 text-xs">
+                  <input
+                    type="checkbox"
+                    checked={readSignUserTypes.includes(type)}
+                    onChange={() => toggleReadSignAudience(type)}
+                    className="h-3.5 w-3.5 cursor-pointer accent-blue-600"
+                  />
+                  {label}
+                </label>
+              ))}
+            </div>
+          </div>
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => setOpen(false)} className="cursor-pointer">Annuler</Button>
@@ -776,6 +793,44 @@ function UserManagementPage() {
 
 type UserDialogPayload = { email: string; emails: string[]; username: string; userType: UserType; modules: string[]; org: string; workplace: string; adminScope?: "principal" | "specific" };
 
+type TrackableUser = StoredUser;
+
+function seededUserType(u: AuthUser): UserType {
+  return u.userType ?? (u.role === "admin" ? "admin" : u.role === "external" ? "external" : "internal_standard");
+}
+
+function loadKnownUsers(): TrackableUser[] {
+  const byEmail = new Map<string, TrackableUser>();
+  for (const u of TEST_CREDENTIALS) {
+    const userType = seededUserType(u);
+    byEmail.set(u.email.toLowerCase(), {
+      id: `seed-${u.email}`,
+      email: u.email,
+      emails: u.emails ?? [u.email],
+      username: u.username,
+      role: u.role,
+      userType,
+      modules: u.modules ?? defaultModulesFor(userType),
+      org: u.org,
+      workplace: u.workplace ?? u.org ?? "—",
+      adminScope: u.adminScope,
+      createdAt: "2026-01-01T00:00:00.000Z",
+    });
+  }
+  for (const u of loadUsers()) byEmail.set(u.email.toLowerCase(), u);
+  return Array.from(byEmail.values());
+}
+
+function usersForDocAudience(users: TrackableUser[], doc: DocItem): TrackableUser[] {
+  return users.filter((u) => u.userType !== "admin" && canUserSeeReadSignDoc(doc, u.userType));
+}
+
+function ackActionLabel(action: Ack["action"]): string {
+  if (action === "download") return "Téléchargement";
+  if (action === "sign") return "Signature Read & Sign";
+  return "Consultation";
+}
+
 function UserDialog({
   mode, initial, onCancel, onSave,
 }: {
@@ -817,7 +872,7 @@ function UserDialog({
             <div><Label>Email tertiaire (optionnel)</Label><Input value={email3} onChange={(e) => setEmail3(e.target.value)} placeholder="alt2@example.com" /></div>
           </div>
           <div><Label>Nom d'utilisateur *</Label><Input value={username} onChange={(e) => setUsername(e.target.value)} /></div>
-          <div><Label>Lieu de travail *</Label><Input value={workplace} onChange={(e) => setWorkplace(e.target.value)} placeholder="Aéroport TUN, Escale DJE, Siège…" /></div>
+          <div><Label>Escale/emplacement *</Label><Input value={workplace} onChange={(e) => setWorkplace(e.target.value)} placeholder="Aéroport TUN, Escale DJE, Siège…" /></div>
           <div>
             <Label>Type d'utilisateur</Label>
             <select
@@ -896,7 +951,7 @@ function AcksPage() {
     const id = window.setInterval(onFocus, 15000);
     return () => { alive = false; window.removeEventListener("focus", onFocus); window.clearInterval(id); };
   }, []);
-  const users = useMemo(() => loadUsers(), []);
+  const users = useMemo(() => loadKnownUsers(), []);
 
   const [fDoc, setFDoc] = useState("");
   const [fUser, setFUser] = useState("");
@@ -976,7 +1031,7 @@ function AcksPage() {
         new Date(a.date).toLocaleString(),
         a.userName, a.userEmail, a.userType, a.workplace,
         a.docTitle, a.docReference,
-        a.action === "view" ? "Consultation" : "Téléchargement",
+        ackActionLabel(a.action),
       ]),
       styles: { fontSize: 8, cellPadding: 4 },
       headStyles: { fillColor: [15, 23, 42], textColor: 255 },
@@ -1025,8 +1080,8 @@ function AcksPage() {
                 <td className="px-4 py-3 text-slate-700">{a.docTitle}</td>
                 <td className="px-4 py-3 font-mono text-xs text-slate-700">{a.docReference}</td>
                 <td className="px-4 py-3">
-                  <span className={"rounded-full px-2 py-0.5 text-[11px] font-semibold " + (a.action === "view" ? "bg-blue-100 text-blue-700" : "bg-green-100 text-green-700")}>
-                    {a.action === "view" ? "Consultation" : "Téléchargement"}
+                  <span className={"rounded-full px-2 py-0.5 text-[11px] font-semibold " + (a.action === "view" ? "bg-blue-100 text-blue-700" : a.action === "sign" ? "bg-purple-100 text-purple-700" : "bg-green-100 text-green-700")}>
+                    {ackActionLabel(a.action)}
                   </span>
                 </td>
               </tr>
@@ -1093,18 +1148,20 @@ function AcksPage() {
 
 /* ---- Reading / Signature recap: who read vs who didn't (admin) ---- */
 function ReadingRecap({ acks }: { acks: ReturnType<typeof loadAcks> }) {
-  const users = useMemo(() => loadUsers(), []);
+  const users = useMemo(() => loadKnownUsers(), []);
   const allDocs = useMemo(
-    () => getAllDocs().filter((d) =>
-      ACK_REQUIRED_PREFIXES.some((p) => d.category.startsWith(p)),
-    ),
-    [],
+    () => {
+      const ackedDocIds = new Set(acks.map((a) => a.docId));
+      return getAllDocs().filter((d) =>
+        (d.requireAck !== false && requiresAckForCategory(d.category)) || ackedDocIds.has(d.id),
+      );
+    },
+    [acks],
   );
   const [docId, setDocId] = useState<string>(allDocs[0]?.id ?? "");
   const selectedDoc = allDocs.find((d) => d.id === docId);
 
-  // Audience = all non-admin users (internal + external + managers).
-  const audience = users.filter((u) => u.role !== "admin");
+  const audience = selectedDoc ? usersForDocAudience(users, selectedDoc) : [];
 
   const ackByEmail = useMemo(() => {
     const m = new Map<string, (typeof acks)[number]>();
