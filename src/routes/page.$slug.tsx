@@ -117,8 +117,12 @@ function DocumentsPage({ slug }: { slug: string }) {
   }, [isChartered]);
 
   const handleDelete = (id: string) => {
-    const u = loadUserDocs().filter((d) => d.id !== id);
-    saveUserDocs(u);
+    if (id.startsWith("u-")) {
+      const u = loadUserDocs().filter((d) => d.id !== id);
+      saveUserDocs(u);
+    } else {
+      hideSeedDoc(id);
+    }
     setRefresh((r) => r + 1);
     toast.success("Document supprimé");
   };
