@@ -135,6 +135,7 @@ function SpiDashboard() {
   const [data, setData] = useState<SpiSnapshot>(() => loadSpi(CURRENT_YEAR));
   const [editing, setEditing] = useState<null | { table: keyof SpiSnapshot; key: string; labels: [string, string]; values: { a: number | null; b: number | null }; aKey: string; bKey: string }>(null);
   const [newYearOpen, setNewYearOpen] = useState(false);
+  const [details, setDetails] = useState<null | { title: string; columns: string[]; rows: (string | number)[][] }>(null);
 
   useEffect(() => { setYears(listYears()); }, []);
   useEffect(() => { setData(loadSpi(year)); }, [year]);
@@ -148,6 +149,21 @@ function SpiDashboard() {
   const tipFor = <T extends { date: string; description: string; escale?: string; id?: string }>(items: T[]): string => {
     if (!items || items.length === 0) return "Aucun élément";
     return items.map((it) => `• [${it.date}${it.escale ? " · " + it.escale : ""}] ${it.description}`).join("\n");
+  };
+
+  const openEventsDetails = (title: string, items: SafetyEvent[]) => {
+    setDetails({
+      title,
+      columns: ["Date", "Escale", "Vol", "Catégorie", "Description"],
+      rows: items.map((e) => [e.date, e.escale, (e as unknown as { vol?: string }).vol ?? "—", e.categorie ?? "—", e.description]),
+    });
+  };
+  const openSafaDetails = (title: string, items: SafaRecord[]) => {
+    setDetails({
+      title,
+      columns: ["Date", "Escale", "Vol", "Catégorie", "Description", "Statut"],
+      rows: items.map((r) => [r.date, r.escale, r.vol, r.category, r.description, r.statut]),
+    });
   };
 
 
@@ -207,6 +223,7 @@ function SpiDashboard() {
             showTaux
             accent="blue"
             row2Tooltip={(q) => tipFor(damagesTunisie[q] ?? [])}
+            onRow2Click={(q) => openEventsDetails(`Dommages au sol — Tunisie · ${q} ${year}`, damagesTunisie[q] ?? [])}
           />
         </Panel>
         <Panel title="Taux Ground Damages — Étranger" icon={<Shield className="h-3.5 w-3.5" />} tone="from-emerald-600 to-emerald-700">
@@ -224,6 +241,7 @@ function SpiDashboard() {
             showTaux
             accent="emerald"
             row2Tooltip={(q) => tipFor(damagesEtranger[q] ?? [])}
+            onRow2Click={(q) => openEventsDetails(`Dommages au sol — Étranger · ${q} ${year}`, damagesEtranger[q] ?? [])}
           />
         </Panel>
         <Panel title="Indicateur SAFA D03" icon={<BarChart3 className="h-3.5 w-3.5" />} tone="from-amber-600 to-orange-600" className="lg:col-span-2">
@@ -241,6 +259,7 @@ function SpiDashboard() {
             showTaux
             accent="amber"
             row2Tooltip={(q) => tipFor(safaQ[q] ?? [])}
+            onRow2Click={(q) => openSafaDetails(`SAFA Findings · ${q} ${year}`, safaQ[q] ?? [])}
           />
         </Panel>
       </div>
@@ -267,9 +286,18 @@ function SpiDashboard() {
                   const tip = list.length > 0
                     ? list.map((e) => `• [${e.date} · ${e.escale}] ${e.description}`).join("\n")
                     : (isAuto ? "Auto depuis le registre" : "Saisie admin");
+                  const clickable = list.length > 0;
                   return (
-                    <td key={m} className={"px-1.5 py-2 text-center tabular-nums " + (isAuto ? "italic text-blue-600" : "text-slate-700") + (list.length ? " cursor-help underline decoration-dotted decoration-slate-300" : "")} title={tip}>
-                      {val ?? "—"}
+                    <td key={m} className={"px-1.5 py-2 text-center tabular-nums " + (isAuto ? "italic text-blue-600" : "text-slate-700")} title={tip}>
+                      {clickable ? (
+                        <button
+                          type="button"
+                          onClick={() => openEventsDetails(`Anomalies OPS SOL · ${m} ${year}`, list)}
+                          className="cursor-pointer rounded px-1.5 py-0.5 font-semibold text-indigo-700 underline decoration-dotted underline-offset-2 hover:bg-indigo-50"
+                        >
+                          {val}
+                        </button>
+                      ) : (val ?? "—")}
                     </td>
                   );
                 })}
@@ -369,6 +397,42 @@ function SpiDashboard() {
           onConfirm={archiveAndNewYear}
         />
       )}
+
+      {details && (
+        <Dialog open onOpenChange={(v) => !v && setDetails(null)}>
+          <DialogContent className="max-w-4xl">
+            <DialogHeader>
+              <DialogTitle>{details.title}</DialogTitle>
+            </DialogHeader>
+            <p className="text-[11px] text-slate-500">📋 Affichage uniquement — lecture seule, non modifiable et non téléchargeable.</p>
+            <div className="max-h-[60vh] overflow-auto rounded-md border border-slate-200">
+              <table className="w-full text-xs">
+                <thead className="sticky top-0 bg-slate-900 text-white">
+                  <tr>
+                    {details.columns.map((c) => (
+                      <th key={c} className="px-2 py-2 text-left font-semibold">{c}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {details.rows.length === 0 ? (
+                    <tr><td colSpan={details.columns.length} className="py-6 text-center text-slate-500">Aucun élément.</td></tr>
+                  ) : details.rows.map((row, i) => (
+                    <tr key={i} className="border-b border-slate-100 last:border-0">
+                      {row.map((c, j) => (
+                        <td key={j} className="px-2 py-1.5 align-top text-slate-700">{c}</td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setDetails(null)}>Fermer</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }
@@ -393,7 +457,7 @@ const ACCENTS: Record<string, { head: string; head_text: string; taux: string; r
 };
 
 function QuarterTable({
-  data, keys, labels, showTaux, isAdmin, onEdit, accent = "blue", row2Tooltip,
+  data, keys, labels, showTaux, isAdmin, onEdit, accent = "blue", row2Tooltip, onRow2Click,
 }: {
   data: Record<string, Record<string, number | null>>;
   keys: [string, string];
@@ -403,6 +467,7 @@ function QuarterTable({
   onEdit: (q: string) => void;
   accent?: string;
   row2Tooltip?: (q: string) => string;
+  onRow2Click?: (q: string) => void;
 }) {
   const a = ACCENTS[accent] ?? ACCENTS.blue;
   return (
@@ -422,13 +487,22 @@ function QuarterTable({
           <td className="py-1.5 pl-2 pr-3 text-slate-700">{labels[1]}</td>
           {QUARTERS.map((q) => {
             const tip = row2Tooltip ? row2Tooltip(q) : undefined;
+            const val = data[q][keys[1]];
+            const clickable = !!onRow2Click && (val ?? 0) > 0;
             return (
-              <td
-                key={q}
-                title={tip}
-                className={"px-2 py-1.5 text-center tabular-nums text-slate-700 " + (tip ? "cursor-help underline decoration-dotted decoration-slate-300" : "")}
-              >
-                {data[q][keys[1]] ?? "—"}
+              <td key={q} className="px-2 py-1.5 text-center tabular-nums text-slate-700">
+                {clickable ? (
+                  <button
+                    type="button"
+                    title={tip}
+                    onClick={() => onRow2Click!(q)}
+                    className="cursor-pointer rounded px-1.5 py-0.5 font-semibold text-blue-700 underline decoration-dotted underline-offset-2 hover:bg-blue-50"
+                  >
+                    {val}
+                  </button>
+                ) : (
+                  <span title={tip} className={tip ? "cursor-help underline decoration-dotted decoration-slate-300" : ""}>{val ?? "—"}</span>
+                )}
               </td>
             );
           })}

@@ -141,6 +141,14 @@ export function getDocsForCategory(slug: string): DocItem[] {
   ];
 }
 
+export function getAllDocs(): DocItem[] {
+  const hidden = new Set(loadHiddenSeedIds());
+  return [
+    ...SAMPLE_DOCS.filter((d) => !hidden.has(d.id)),
+    ...loadUserDocs(),
+  ];
+}
+
 export async function fileToDataUrl(file: File): Promise<string> {
   return new Promise((res, rej) => {
     const r = new FileReader();

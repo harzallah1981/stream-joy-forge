@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { Plus, Search, Plane, Pencil, Archive } from "lucide-react";
+import { Plus, Search, Plane, Pencil, Archive, Paperclip, X, Download } from "lucide-react";
 import { usePageTitle } from "@/lib/page-title";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -10,7 +10,7 @@ import { useAuth } from "@/lib/auth";
 import { toast } from "sonner";
 import {
   loadSafa, saveSafa, listSafaYears, SAFA_CURRENT_YEAR,
-  type SafaRecord, type SafaStatus,
+  type SafaRecord, type SafaStatus, type SafaAttachment,
 } from "@/lib/safa-store";
 
 export const Route = createFileRoute("/safety/safa-d03")({
@@ -126,6 +126,7 @@ function SafaD03Page() {
                     <th className="px-3 py-3 text-left font-semibold">Description</th>
                     <th className="px-3 py-3 text-left font-semibold">Envoi / Notification</th>
                     <th className="px-3 py-3 text-center font-semibold">Statut</th>
+                    <th className="px-3 py-3 text-center font-semibold">PJ</th>
                     {isAdmin && <th className="px-3 py-3 text-center font-semibold">Actions</th>}
                   </tr>
                 </thead>
@@ -145,6 +146,21 @@ function SafaD03Page() {
                           {r.statut}
                         </span>
                       </td>
+                      <td className="px-3 py-3 text-center">
+                        {r.attachments && r.attachments.length > 0 ? (
+                          <div className="flex flex-col items-center gap-1">
+                            {r.attachments.map((a, i) => (
+                              <a key={i} href={a.dataUrl} download={a.name} title={a.name}
+                                 className="inline-flex max-w-[140px] items-center gap-1 truncate rounded-md border border-blue-200 bg-blue-50 px-2 py-0.5 text-[11px] text-blue-700 hover:bg-blue-100">
+                                <Download className="h-3 w-3 shrink-0" />
+                                <span className="truncate">{a.name}</span>
+                              </a>
+                            ))}
+                          </div>
+                        ) : (
+                          <span className="text-xs text-slate-400">—</span>
+                        )}
+                      </td>
                       {isAdmin && (
                         <td className="px-3 py-3 text-center">
                           <button
@@ -159,7 +175,7 @@ function SafaD03Page() {
                   ))}
                   {filtered.length === 0 && (
                     <tr>
-                      <td colSpan={isAdmin ? 8 : 7} className="py-10 text-center text-sm text-slate-500">
+                      <td colSpan={isAdmin ? 9 : 8} className="py-10 text-center text-sm text-slate-500">
                         Aucune déficience SAFA enregistrée.
                       </td>
                     </tr>
@@ -222,6 +238,44 @@ function EditDialog({ rec, onCancel, onSave }: { rec: SafaRecord; onCancel: () =
               <option value="EN COURS">EN COURS</option>
               <option value="CLÔTURÉ">CLÔTURÉ</option>
             </select>
+          </div>
+          <div className="col-span-2">
+            <Label className="flex items-center gap-1"><Paperclip className="h-3.5 w-3.5" /> Pièces jointes (une ou plusieurs)</Label>
+            <input
+              type="file"
+              multiple
+              onChange={async (e) => {
+                const files = Array.from(e.target.files ?? []);
+                if (files.length === 0) return;
+                const toDataUrl = (f: File) => new Promise<SafaAttachment>((resolve, reject) => {
+                  const fr = new FileReader();
+                  fr.onload = () => resolve({ name: f.name, dataUrl: String(fr.result) });
+                  fr.onerror = reject;
+                  fr.readAsDataURL(f);
+                });
+                const news = await Promise.all(files.map(toDataUrl));
+                setR({ ...r, attachments: [...(r.attachments ?? []), ...news] });
+                e.target.value = "";
+              }}
+              className="block w-full cursor-pointer rounded-md border border-slate-200 bg-slate-50 px-2 py-1.5 text-xs file:mr-2 file:cursor-pointer file:rounded file:border-0 file:bg-blue-600 file:px-2 file:py-1 file:text-xs file:text-white"
+            />
+            {(r.attachments?.length ?? 0) > 0 && (
+              <ul className="mt-2 space-y-1">
+                {r.attachments!.map((a, i) => (
+                  <li key={i} className="flex items-center gap-2 rounded-md border border-slate-200 bg-white px-2 py-1 text-xs">
+                    <Paperclip className="h-3 w-3 text-slate-500" />
+                    <span className="flex-1 truncate">{a.name}</span>
+                    <button
+                      onClick={() => setR({ ...r, attachments: r.attachments!.filter((_, j) => j !== i) })}
+                      className="cursor-pointer rounded p-0.5 text-slate-400 hover:bg-red-50 hover:text-red-600"
+                      title="Retirer"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
         </div>
         <DialogFooter>
