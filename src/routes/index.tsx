@@ -28,6 +28,10 @@ function Home() {
   const { user } = useAuth();
   usePageTitle(t("welcome"), t("welcome_desc"));
 
+  const isExternal = user?.role === "external" || user?.userType === "external";
+  if (isExternal) {
+    return <Navigate to="/read-sign" replace />;
+  }
   if (user && user.role !== "admin") {
     return <UserDashboard />;
   }
