@@ -319,20 +319,27 @@ function SpiDashboard() {
   );
 }
 
-function Panel({ title, icon, children, className }: { title: string; icon: React.ReactNode; children: React.ReactNode; className?: string; }) {
+function Panel({ title, icon, children, className, tone }: { title: string; icon: React.ReactNode; children: React.ReactNode; className?: string; tone?: string; }) {
+  const grad = tone ?? "from-slate-800 to-slate-900";
   return (
     <div className={"overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm " + (className ?? "")}>
-      <div className="flex items-center gap-2 bg-slate-900 px-4 py-3 text-white">
-        <span className="text-blue-300">{icon}</span>
-        <span className="text-sm font-semibold">{title}</span>
+      <div className={"flex items-center gap-2 bg-gradient-to-r px-3 py-2 text-white " + grad}>
+        <span className="text-white/90">{icon}</span>
+        <span className="text-xs font-semibold tracking-wide uppercase">{title}</span>
       </div>
-      <div className="p-4">{children}</div>
+      <div className="p-3">{children}</div>
     </div>
   );
 }
 
+const ACCENTS: Record<string, { head: string; head_text: string; taux: string; row: string }> = {
+  blue:    { head: "bg-blue-50",    head_text: "text-blue-700",    taux: "text-blue-700 bg-blue-50/60",       row: "bg-blue-50/40" },
+  emerald: { head: "bg-emerald-50", head_text: "text-emerald-700", taux: "text-emerald-700 bg-emerald-50/60", row: "bg-emerald-50/40" },
+  amber:   { head: "bg-amber-50",   head_text: "text-amber-700",   taux: "text-amber-700 bg-amber-50/60",     row: "bg-amber-50/40" },
+};
+
 function QuarterTable({
-  data, keys, labels, showTaux, isAdmin, onEdit,
+  data, keys, labels, showTaux, isAdmin, onEdit, accent = "blue",
 }: {
   data: Record<string, Record<string, number | null>>;
   keys: [string, string];
@@ -340,41 +347,43 @@ function QuarterTable({
   showTaux?: boolean;
   isAdmin: boolean;
   onEdit: (q: string) => void;
+  accent?: string;
 }) {
+  const a = ACCENTS[accent] ?? ACCENTS.blue;
   return (
-    <table className="w-full text-sm">
+    <table className="w-full text-xs">
       <thead>
-        <tr className="border-b border-slate-200 text-xs uppercase text-slate-500">
-          <th className="py-3 pl-2 pr-4 text-left font-semibold" />
-          {QUARTERS.map((q) => (<th key={q} className="px-3 py-3 text-center font-semibold">{q}</th>))}
+        <tr className={"border-b border-slate-200 text-[10px] uppercase " + a.head + " " + a.head_text}>
+          <th className="py-2 pl-2 pr-3 text-left font-semibold" />
+          {QUARTERS.map((q) => (<th key={q} className="px-2 py-2 text-center font-semibold">{q}</th>))}
         </tr>
       </thead>
       <tbody>
         <tr className="border-b border-slate-100">
-          <td className="py-3 pl-2 pr-4 text-slate-700">{labels[0]}</td>
-          {QUARTERS.map((q) => (<td key={q} className="px-3 py-3 text-center tabular-nums text-slate-700">{data[q][keys[0]] ?? "—"}</td>))}
+          <td className="py-1.5 pl-2 pr-3 text-slate-700">{labels[0]}</td>
+          {QUARTERS.map((q) => (<td key={q} className="px-2 py-1.5 text-center tabular-nums text-slate-700">{data[q][keys[0]] ?? "—"}</td>))}
         </tr>
         <tr className={showTaux ? "border-b border-slate-100" : ""}>
-          <td className="py-3 pl-2 pr-4 text-slate-700">{labels[1]}</td>
-          {QUARTERS.map((q) => (<td key={q} className="px-3 py-3 text-center tabular-nums text-slate-700">{data[q][keys[1]] ?? "—"}</td>))}
+          <td className="py-1.5 pl-2 pr-3 text-slate-700">{labels[1]}</td>
+          {QUARTERS.map((q) => (<td key={q} className="px-2 py-1.5 text-center tabular-nums text-slate-700">{data[q][keys[1]] ?? "—"}</td>))}
         </tr>
         {showTaux && (
-          <tr className={isAdmin ? "border-b border-slate-100" : ""}>
-            <td className="py-3 pl-2 pr-4 font-semibold text-slate-900">Taux</td>
-            {QUARTERS.map((q) => (<td key={q} className="px-3 py-3 text-center font-semibold tabular-nums text-blue-600">{pct(data[q][keys[1]] ?? null, data[q][keys[0]] ?? null)}</td>))}
+          <tr className={(isAdmin ? "border-b border-slate-100 " : "") + a.row}>
+            <td className="py-1.5 pl-2 pr-3 font-semibold text-slate-900">Taux</td>
+            {QUARTERS.map((q) => (<td key={q} className={"px-2 py-1.5 text-center font-semibold tabular-nums " + a.taux}>{pct(data[q][keys[1]] ?? null, data[q][keys[0]] ?? null)}</td>))}
           </tr>
         )}
         {isAdmin && (
           <tr>
-            <td className="py-2 pl-2 pr-4 text-xs text-slate-400">Actions</td>
+            <td className="py-1 pl-2 pr-3 text-[10px] text-slate-400">Actions</td>
             {QUARTERS.map((q) => (
-              <td key={q} className="px-1 py-2 text-center">
+              <td key={q} className="px-1 py-1 text-center">
                 <button
                   onClick={() => onEdit(q)}
-                  className="cursor-pointer rounded p-1 text-slate-500 hover:bg-blue-50 hover:text-blue-700"
+                  className="cursor-pointer rounded p-0.5 text-slate-500 hover:bg-blue-50 hover:text-blue-700"
                   title={`Modifier ${q}`}
                 >
-                  <Pencil className="h-3.5 w-3.5" />
+                  <Pencil className="h-3 w-3" />
                 </button>
               </td>
             ))}
