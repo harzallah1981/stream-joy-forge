@@ -216,11 +216,11 @@ function EventsRegister() {
             <option value="">Escale (toutes)</option>
             {escales.map((x) => <option key={x} value={x}>{x}</option>)}
           </select>
-          <select value={fSeverite} onChange={(e) => setFSeverite(e.target.value as "" | "acceptable" | "moyen" | "non")} className="h-8 cursor-pointer rounded-md border border-slate-200 bg-white px-2 text-xs" title="Sévérité">
+          <select value={fSeverite} onChange={(e) => setFSeverite(e.target.value)} className="h-8 cursor-pointer rounded-md border border-slate-200 bg-white px-2 text-xs" title="Sévérité">
             <option value="">Sévérité (toutes)</option>
-            <option value="acceptable">Acceptable (1-8)</option>
-            <option value="moyen">Moyen (9-19)</option>
-            <option value="non">Non acceptable (20-25)</option>
+            {cfg.severities.map((s) => (
+              <option key={s.name} value={s.name.toLowerCase()}>{s.name} ({s.min}-{s.max})</option>
+            ))}
           </select>
           <select value={fStatut} onChange={(e) => setFStatut(e.target.value)} className="h-8 cursor-pointer rounded-md border border-slate-200 bg-white px-2 text-xs" title="Statut de clôture">
             <option value="">Statut (tous)</option>
