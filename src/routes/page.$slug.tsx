@@ -12,7 +12,7 @@ import { useI18n } from "@/lib/i18n";
 import { usePageTitle } from "@/lib/page-title";
 import { useAuth } from "@/lib/auth";
 import {
-  getDocsForCategory, loadUserDocs, saveUserDocs, hideSeedDoc, fileToDataUrl, type DocItem,
+  getDocsForCategory, getAllDocs, loadUserDocs, saveUserDocs, hideSeedDoc, fileToDataUrl, type DocItem,
 } from "@/lib/documents";
 import { addAck, hasAcked, loadAcks, loadAcksRemote } from "@/lib/acknowledgements";
 import { markRead as markDocRead } from "@/lib/notifications";
