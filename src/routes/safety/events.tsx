@@ -18,8 +18,8 @@ import {
   type EventAttachment,
 } from "@/lib/safety-data";
 import {
-  loadEventsConfig, saveEventsConfig, categoryClass, statusClass,
-  COLOR_PRESETS, type EventsConfig,
+  loadEventsConfig, saveEventsConfig, categoryClass, statusClass, severityFor,
+  COLOR_PRESETS, type EventsConfig, type ScaleDef, type SeverityBand,
 } from "@/lib/events-config";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth";
@@ -65,7 +65,7 @@ function EventsRegister() {
   const [list, setList] = useState<SafetyEvent[]>([]);
   const [search, setSearch] = useState("");
   const [fEscale, setFEscale] = useState("");
-  const [fSeverite, setFSeverite] = useState<"" | "acceptable" | "moyen" | "non">("");
+  const [fSeverite, setFSeverite] = useState<string>("");
   const [fStatut, setFStatut] = useState("");
   const [fCategorie, setFCategorie] = useState("");
   const [fMois, setFMois] = useState<string>(""); // "01".."12"
@@ -104,9 +104,8 @@ function EventsRegister() {
       if (fCategorie && e.categorie !== fCategorie) return false;
       if (fSeverite) {
         const s = e.prob * e.grav;
-        if (fSeverite === "acceptable" && !(s <= 8)) return false;
-        if (fSeverite === "moyen" && !(s >= 9 && s <= 19)) return false;
-        if (fSeverite === "non" && !(s >= 20)) return false;
+        const band = severityFor(cfg, s);
+        if (band.name.toLowerCase() !== fSeverite) return false;
       }
       if (fMois || fTrim) {
         const m = Number((e.date || "").slice(5, 7));
@@ -217,11 +216,11 @@ function EventsRegister() {
             <option value="">Escale (toutes)</option>
             {escales.map((x) => <option key={x} value={x}>{x}</option>)}
           </select>
-          <select value={fSeverite} onChange={(e) => setFSeverite(e.target.value as "" | "acceptable" | "moyen" | "non")} className="h-8 cursor-pointer rounded-md border border-slate-200 bg-white px-2 text-xs" title="Sévérité">
+          <select value={fSeverite} onChange={(e) => setFSeverite(e.target.value)} className="h-8 cursor-pointer rounded-md border border-slate-200 bg-white px-2 text-xs" title="Sévérité">
             <option value="">Sévérité (toutes)</option>
-            <option value="acceptable">Acceptable (1-8)</option>
-            <option value="moyen">Moyen (9-19)</option>
-            <option value="non">Non acceptable (20-25)</option>
+            {cfg.severities.map((s) => (
+              <option key={s.name} value={s.name.toLowerCase()}>{s.name} ({s.min}-{s.max})</option>
+            ))}
           </select>
           <select value={fStatut} onChange={(e) => setFStatut(e.target.value)} className="h-8 cursor-pointer rounded-md border border-slate-200 bg-white px-2 text-xs" title="Statut de clôture">
             <option value="">Statut (tous)</option>
@@ -285,7 +284,7 @@ function EventsRegister() {
                         <td className="px-3 py-3 text-center tabular-nums text-slate-700">{e.prob}</td>
                         <td className="px-3 py-3 text-center tabular-nums text-slate-700">{e.grav}</td>
                         <td className="px-3 py-3 text-center font-semibold tabular-nums">
-                          <span className={"inline-flex min-w-[2rem] rounded px-1.5 py-0.5 " + (sev >= 20 ? "bg-red-100 text-red-700" : sev >= 9 ? "bg-orange-100 text-orange-700" : "bg-green-100 text-green-700")}>{sev}</span>
+                          <span className={"inline-flex min-w-[2rem] rounded px-1.5 py-0.5 " + severityFor(cfg, sev).color} title={severityFor(cfg, sev).name}>{sev}</span>
                         </td>
                         <td className="max-w-[220px] px-3 py-3 text-slate-600">{e.action}</td>
                         <td className="px-3 py-3 text-center">
@@ -344,11 +343,13 @@ function EventsRegister() {
             </div>
           </div>
 
-          <div className="mt-4 flex flex-wrap items-center gap-4 px-2 text-xs text-slate-600">
-            <span className="font-semibold">Legende severite :</span>
-            <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-sm bg-red-500" />20-25 : Non acceptable</span>
-            <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-sm bg-orange-400" />9-19 : Moyen</span>
-            <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-sm bg-green-500" />1-8 : Acceptable</span>
+          <div className="mt-4 flex flex-wrap items-center gap-3 px-2 text-xs text-slate-600">
+            <span className="font-semibold">Légende sévérité :</span>
+            {cfg.severities.map((b) => (
+              <span key={b.name} className={"inline-flex items-center gap-1.5 rounded px-2 py-0.5 " + b.color}>
+                <span className="font-semibold">{b.min}-{b.max}</span> · {b.name}
+              </span>
+            ))}
           </div>
         </div>
       </div>
@@ -405,8 +406,30 @@ function EditDialog({
           <div><Label>Date</Label><Input type="date" value={e.date} onChange={(ev) => setE({ ...e, date: ev.target.value })} /></div>
           <div><Label>Source</Label><Input value={e.source} onChange={(ev) => setE({ ...e, source: ev.target.value })} /></div>
           <div><Label>Escale</Label><Input value={e.escale} onChange={(ev) => setE({ ...e, escale: ev.target.value })} /></div>
-          <div><Label>Probabilité (1-5)</Label><Input type="number" min={1} max={5} value={e.prob} onChange={(ev) => setE({ ...e, prob: Number(ev.target.value) })} /></div>
-          <div><Label>Gravité (1-5)</Label><Input type="number" min={1} max={5} value={e.grav} onChange={(ev) => setE({ ...e, grav: Number(ev.target.value) })} /></div>
+          <div>
+            <Label>Probabilité</Label>
+            <select
+              value={e.prob}
+              onChange={(ev) => setE({ ...e, prob: Number(ev.target.value) })}
+              className="h-9 w-full cursor-pointer rounded-md border border-slate-200 px-3 text-sm"
+            >
+              {cfg.probabilities.map((p) => (
+                <option key={p.value} value={p.value}>{p.value} — {p.label}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <Label>Gravité</Label>
+            <select
+              value={e.grav}
+              onChange={(ev) => setE({ ...e, grav: Number(ev.target.value) })}
+              className="h-9 w-full cursor-pointer rounded-md border border-slate-200 px-3 text-sm"
+            >
+              {cfg.gravities.map((g) => (
+                <option key={g.value} value={g.value}>{g.value} — {g.label}</option>
+              ))}
+            </select>
+          </div>
           <div>
             <Label>Statut</Label>
             <select
@@ -427,14 +450,13 @@ function EditDialog({
               {cfg.categories.map((c) => <option key={c.name} value={c.name}>{c.name}</option>)}
             </select>
           </div>
-          <div>
+          <div className="col-span-2">
             <Label>Sévérité (auto = Prob × Grav)</Label>
             <div className="flex h-9 items-center gap-2 rounded-md border border-slate-200 bg-slate-50 px-3 text-sm">
               {(() => {
                 const s = e.prob * e.grav;
-                const tone = s >= 20 ? "bg-red-100 text-red-700" : s >= 9 ? "bg-orange-100 text-orange-700" : "bg-green-100 text-green-700";
-                const lib = s >= 20 ? "Non acceptable" : s >= 9 ? "Moyen" : "Acceptable";
-                return <><span className={"inline-flex min-w-[2rem] justify-center rounded px-1.5 py-0.5 font-bold " + tone}>{s}</span><span className="text-slate-700">{lib}</span></>;
+                const band = severityFor(cfg, s);
+                return <><span className={"inline-flex min-w-[2rem] justify-center rounded px-1.5 py-0.5 font-bold " + band.color}>{s}</span><span className="text-slate-700">{band.name}</span></>;
               })()}
             </div>
           </div>
@@ -523,24 +545,62 @@ function ConfigDialog({
   const setStatusColor = (name: string, color: string) =>
     setDraft({ ...draft, statuses: draft.statuses.map((s) => s.name === name ? { ...s, color } : s) });
 
+  // Probabilities
+  const [newProbLabel, setNewProbLabel] = useState("");
+  const addProb = () => {
+    const label = newProbLabel.trim();
+    if (!label) return;
+    const value = (draft.probabilities.reduce((m, p) => Math.max(m, p.value), 0) || 0) + 1;
+    setDraft({ ...draft, probabilities: [...draft.probabilities, { value, label }] });
+    setNewProbLabel("");
+  };
+  const setProb = (i: number, patch: Partial<ScaleDef>) =>
+    setDraft({ ...draft, probabilities: draft.probabilities.map((p, idx) => idx === i ? { ...p, ...patch } : p) });
+  const removeProb = (i: number) =>
+    setDraft({ ...draft, probabilities: draft.probabilities.filter((_, idx) => idx !== i) });
+
+  // Gravities
+  const [newGravLabel, setNewGravLabel] = useState("");
+  const addGrav = () => {
+    const label = newGravLabel.trim();
+    if (!label) return;
+    const value = (draft.gravities.reduce((m, p) => Math.max(m, p.value), 0) || 0) + 1;
+    setDraft({ ...draft, gravities: [...draft.gravities, { value, label }] });
+    setNewGravLabel("");
+  };
+  const setGrav = (i: number, patch: Partial<ScaleDef>) =>
+    setDraft({ ...draft, gravities: draft.gravities.map((g, idx) => idx === i ? { ...g, ...patch } : g) });
+  const removeGrav = (i: number) =>
+    setDraft({ ...draft, gravities: draft.gravities.filter((_, idx) => idx !== i) });
+
+  // Severity bands
+  const [newSev, setNewSev] = useState<SeverityBand>({ name: "", min: 1, max: 5, color: COLOR_PRESETS[0].status });
+  const addSev = () => {
+    const n = newSev.name.trim();
+    if (!n) return;
+    if (draft.severities.some((s) => s.name === n)) { toast.error("Bande déjà existante"); return; }
+    setDraft({ ...draft, severities: [...draft.severities, { ...newSev, name: n }] });
+    setNewSev({ name: "", min: 1, max: 5, color: COLOR_PRESETS[0].status });
+  };
+  const setSev = (i: number, patch: Partial<SeverityBand>) =>
+    setDraft({ ...draft, severities: draft.severities.map((s, idx) => idx === i ? { ...s, ...patch } : s) });
+  const removeSev = (i: number) =>
+    setDraft({ ...draft, severities: draft.severities.filter((_, idx) => idx !== i) });
+
   return (
     <Dialog open onOpenChange={(v) => !v && onCancel()}>
-      <DialogContent className="max-w-3xl">
-        <DialogHeader><DialogTitle>Configurer catégories & statuts</DialogTitle></DialogHeader>
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader><DialogTitle>Configurer le registre (catégories, statuts, probabilités, gravités, sévérités)</DialogTitle></DialogHeader>
 
         <div className="grid gap-5 md:grid-cols-2">
           {/* Categories */}
           <div className="rounded-lg border border-slate-200 p-3">
             <h4 className="mb-2 text-sm font-semibold text-slate-900">Catégories</h4>
-            <ul className="mb-3 space-y-1.5 max-h-64 overflow-y-auto pr-1">
+            <ul className="mb-3 space-y-1.5 max-h-48 overflow-y-auto pr-1">
               {draft.categories.map((c) => (
                 <li key={c.name} className="flex items-center gap-2">
                   <span className={"inline-flex min-w-[6rem] justify-center rounded-md border px-2 py-0.5 text-[10px] font-bold " + c.color}>{c.name}</span>
-                  <select
-                    value={c.color}
-                    onChange={(e) => setCatColor(c.name, e.target.value)}
-                    className="h-7 flex-1 cursor-pointer rounded border border-slate-200 px-2 text-xs"
-                  >
+                  <select value={c.color} onChange={(e) => setCatColor(c.name, e.target.value)} className="h-7 flex-1 cursor-pointer rounded border border-slate-200 px-2 text-xs">
                     {COLOR_PRESETS.map((p) => <option key={p.label} value={p.cat}>{p.label}</option>)}
                   </select>
                   <button onClick={() => removeCat(c.name)} className="rounded p-1 text-red-600 hover:bg-red-50" title="Supprimer">
@@ -548,42 +608,25 @@ function ConfigDialog({
                   </button>
                 </li>
               ))}
-              {draft.categories.length === 0 && (
-                <li className="text-xs text-slate-400">Aucune catégorie</li>
-              )}
+              {draft.categories.length === 0 && <li className="text-xs text-slate-400">Aucune catégorie</li>}
             </ul>
             <div className="flex gap-2">
-              <Input
-                value={newCat}
-                onChange={(e) => setNewCat(e.target.value)}
-                placeholder="Nouvelle catégorie"
-                className="h-8 flex-1 text-xs"
-              />
-              <select
-                value={newCatColor}
-                onChange={(e) => setNewCatColor(e.target.value)}
-                className="h-8 cursor-pointer rounded border border-slate-200 px-2 text-xs"
-              >
+              <Input value={newCat} onChange={(e) => setNewCat(e.target.value)} placeholder="Nouvelle catégorie" className="h-8 flex-1 text-xs" />
+              <select value={newCatColor} onChange={(e) => setNewCatColor(e.target.value)} className="h-8 cursor-pointer rounded border border-slate-200 px-2 text-xs">
                 {COLOR_PRESETS.map((p) => <option key={p.label} value={p.cat}>{p.label}</option>)}
               </select>
-              <Button size="sm" onClick={addCat} className="h-8 cursor-pointer">
-                <Plus className="h-3.5 w-3.5" />
-              </Button>
+              <Button size="sm" onClick={addCat} className="h-8 cursor-pointer"><Plus className="h-3.5 w-3.5" /></Button>
             </div>
           </div>
 
           {/* Statuses */}
           <div className="rounded-lg border border-slate-200 p-3">
             <h4 className="mb-2 text-sm font-semibold text-slate-900">Statuts</h4>
-            <ul className="mb-3 space-y-1.5 max-h-64 overflow-y-auto pr-1">
+            <ul className="mb-3 space-y-1.5 max-h-48 overflow-y-auto pr-1">
               {draft.statuses.map((s) => (
                 <li key={s.name} className="flex items-center gap-2">
                   <span className={"inline-flex min-w-[6rem] justify-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold " + s.color}>{s.name}</span>
-                  <select
-                    value={s.color}
-                    onChange={(e) => setStatusColor(s.name, e.target.value)}
-                    className="h-7 flex-1 cursor-pointer rounded border border-slate-200 px-2 text-xs"
-                  >
+                  <select value={s.color} onChange={(e) => setStatusColor(s.name, e.target.value)} className="h-7 flex-1 cursor-pointer rounded border border-slate-200 px-2 text-xs">
                     {COLOR_PRESETS.map((p) => <option key={p.label} value={p.status}>{p.label}</option>)}
                   </select>
                   <button onClick={() => removeStatus(s.name)} className="rounded p-1 text-red-600 hover:bg-red-50" title="Supprimer">
@@ -591,27 +634,84 @@ function ConfigDialog({
                   </button>
                 </li>
               ))}
-              {draft.statuses.length === 0 && (
-                <li className="text-xs text-slate-400">Aucun statut</li>
-              )}
+              {draft.statuses.length === 0 && <li className="text-xs text-slate-400">Aucun statut</li>}
             </ul>
             <div className="flex gap-2">
-              <Input
-                value={newStatus}
-                onChange={(e) => setNewStatus(e.target.value)}
-                placeholder="Nouveau statut"
-                className="h-8 flex-1 text-xs"
-              />
-              <select
-                value={newStatusColor}
-                onChange={(e) => setNewStatusColor(e.target.value)}
-                className="h-8 cursor-pointer rounded border border-slate-200 px-2 text-xs"
-              >
+              <Input value={newStatus} onChange={(e) => setNewStatus(e.target.value)} placeholder="Nouveau statut" className="h-8 flex-1 text-xs" />
+              <select value={newStatusColor} onChange={(e) => setNewStatusColor(e.target.value)} className="h-8 cursor-pointer rounded border border-slate-200 px-2 text-xs">
                 {COLOR_PRESETS.map((p) => <option key={p.label} value={p.status}>{p.label}</option>)}
               </select>
-              <Button size="sm" onClick={addStatus} className="h-8 cursor-pointer">
-                <Plus className="h-3.5 w-3.5" />
-              </Button>
+              <Button size="sm" onClick={addStatus} className="h-8 cursor-pointer"><Plus className="h-3.5 w-3.5" /></Button>
+            </div>
+          </div>
+
+          {/* Probabilities */}
+          <div className="rounded-lg border border-slate-200 p-3">
+            <h4 className="mb-2 text-sm font-semibold text-slate-900">Probabilités (échelle)</h4>
+            <ul className="mb-3 space-y-1.5 max-h-48 overflow-y-auto pr-1">
+              {draft.probabilities.map((p, i) => (
+                <li key={i} className="flex items-center gap-2">
+                  <Input type="number" value={p.value} onChange={(e) => setProb(i, { value: Number(e.target.value) })} className="h-7 w-14 text-xs" />
+                  <Input value={p.label} onChange={(e) => setProb(i, { label: e.target.value })} className="h-7 flex-1 text-xs" />
+                  <button onClick={() => removeProb(i)} className="rounded p-1 text-red-600 hover:bg-red-50" title="Supprimer">
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                </li>
+              ))}
+            </ul>
+            <div className="flex gap-2">
+              <Input value={newProbLabel} onChange={(e) => setNewProbLabel(e.target.value)} placeholder="Nouveau libellé probabilité" className="h-8 flex-1 text-xs" />
+              <Button size="sm" onClick={addProb} className="h-8 cursor-pointer"><Plus className="h-3.5 w-3.5" /></Button>
+            </div>
+          </div>
+
+          {/* Gravities */}
+          <div className="rounded-lg border border-slate-200 p-3">
+            <h4 className="mb-2 text-sm font-semibold text-slate-900">Gravités (échelle)</h4>
+            <ul className="mb-3 space-y-1.5 max-h-48 overflow-y-auto pr-1">
+              {draft.gravities.map((g, i) => (
+                <li key={i} className="flex items-center gap-2">
+                  <Input type="number" value={g.value} onChange={(e) => setGrav(i, { value: Number(e.target.value) })} className="h-7 w-14 text-xs" />
+                  <Input value={g.label} onChange={(e) => setGrav(i, { label: e.target.value })} className="h-7 flex-1 text-xs" />
+                  <button onClick={() => removeGrav(i)} className="rounded p-1 text-red-600 hover:bg-red-50" title="Supprimer">
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                </li>
+              ))}
+            </ul>
+            <div className="flex gap-2">
+              <Input value={newGravLabel} onChange={(e) => setNewGravLabel(e.target.value)} placeholder="Nouveau libellé gravité" className="h-8 flex-1 text-xs" />
+              <Button size="sm" onClick={addGrav} className="h-8 cursor-pointer"><Plus className="h-3.5 w-3.5" /></Button>
+            </div>
+          </div>
+
+          {/* Severity bands */}
+          <div className="rounded-lg border border-slate-200 p-3 md:col-span-2">
+            <h4 className="mb-2 text-sm font-semibold text-slate-900">Sévérités (bandes Prob × Grav)</h4>
+            <ul className="mb-3 space-y-1.5 max-h-48 overflow-y-auto pr-1">
+              {draft.severities.map((s, i) => (
+                <li key={i} className="flex items-center gap-2">
+                  <span className={"inline-flex min-w-[7rem] justify-center rounded px-2 py-0.5 text-xs font-bold " + s.color}>{s.name}</span>
+                  <Input value={s.name} onChange={(e) => setSev(i, { name: e.target.value })} className="h-7 flex-1 text-xs" placeholder="Nom" />
+                  <Input type="number" value={s.min} onChange={(e) => setSev(i, { min: Number(e.target.value) })} className="h-7 w-16 text-xs" placeholder="min" />
+                  <Input type="number" value={s.max} onChange={(e) => setSev(i, { max: Number(e.target.value) })} className="h-7 w-16 text-xs" placeholder="max" />
+                  <select value={s.color} onChange={(e) => setSev(i, { color: e.target.value })} className="h-7 w-28 cursor-pointer rounded border border-slate-200 px-2 text-xs">
+                    {COLOR_PRESETS.map((p) => <option key={p.label} value={p.status}>{p.label}</option>)}
+                  </select>
+                  <button onClick={() => removeSev(i)} className="rounded p-1 text-red-600 hover:bg-red-50" title="Supprimer">
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                </li>
+              ))}
+            </ul>
+            <div className="flex gap-2">
+              <Input value={newSev.name} onChange={(e) => setNewSev({ ...newSev, name: e.target.value })} placeholder="Nom bande" className="h-8 flex-1 text-xs" />
+              <Input type="number" value={newSev.min} onChange={(e) => setNewSev({ ...newSev, min: Number(e.target.value) })} className="h-8 w-16 text-xs" placeholder="min" />
+              <Input type="number" value={newSev.max} onChange={(e) => setNewSev({ ...newSev, max: Number(e.target.value) })} className="h-8 w-16 text-xs" placeholder="max" />
+              <select value={newSev.color} onChange={(e) => setNewSev({ ...newSev, color: e.target.value })} className="h-8 cursor-pointer rounded border border-slate-200 px-2 text-xs">
+                {COLOR_PRESETS.map((p) => <option key={p.label} value={p.status}>{p.label}</option>)}
+              </select>
+              <Button size="sm" onClick={addSev} className="h-8 cursor-pointer"><Plus className="h-3.5 w-3.5" /></Button>
             </div>
           </div>
         </div>
@@ -628,6 +728,7 @@ function ConfigDialog({
     </Dialog>
   );
 }
+
 
 // ============================================================
 // Attachments

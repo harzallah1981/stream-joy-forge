@@ -24,6 +24,21 @@ import {
 import { isPrincipalAdmin as isPrincipalAdminFn } from "@/lib/permissions";
 import { toast } from "sonner";
 
+// Categories that REQUIRE an acknowledgement before view/download
+// (GOM, DAM, DOI-DOW, AHM, POS, IOS, Load & Trim Sheet,
+//  Loading Instructions Reports, Safety Notes & Flashes).
+const ACK_REQUIRED_PREFIXES: string[] = [
+  "gom",
+  "dam",
+  "dow-doi",
+  "ahm",
+  "pos-",
+  "ios-",
+  "load-trim",
+  "loading-instructions",
+  "notes-flash",
+];
+
 const SLUG_TO_KEY: Record<string, string> = {
   gom: "gom", dam: "dam",
   "pos-427": "pos_427", "pos-428": "pos_428", "pos-429": "pos_429",
@@ -115,6 +130,13 @@ function DocumentsPage({ slug }: { slug: string }) {
     }
     // Admin can mark a doc as not requiring an ack ("optional ack per doc")
     if (doc.requireAck === false) {
+      performAction(doc, action);
+      return;
+    }
+    // Ack is required ONLY for these document categories:
+    // GOM / DAM / DOI-DOW / AHM / POS / IOS / LOAD AND TRIM SHEET /
+    // LOADING INSTRUCTIONS REPORTS / SAFETY NOTES AND FLASHES
+    if (!ACK_REQUIRED_PREFIXES.some((p) => doc.category.startsWith(p))) {
       performAction(doc, action);
       return;
     }
