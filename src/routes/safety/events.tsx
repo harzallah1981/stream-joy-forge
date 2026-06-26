@@ -104,9 +104,8 @@ function EventsRegister() {
       if (fCategorie && e.categorie !== fCategorie) return false;
       if (fSeverite) {
         const s = e.prob * e.grav;
-        if (fSeverite === "acceptable" && !(s <= 8)) return false;
-        if (fSeverite === "moyen" && !(s >= 9 && s <= 19)) return false;
-        if (fSeverite === "non" && !(s >= 20)) return false;
+        const band = severityFor(cfg, s);
+        if (band.name.toLowerCase() !== fSeverite) return false;
       }
       if (fMois || fTrim) {
         const m = Number((e.date || "").slice(5, 7));
