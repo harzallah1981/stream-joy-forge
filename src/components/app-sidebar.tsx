@@ -5,7 +5,7 @@ import { Sidebar, SidebarContent, SidebarHeader, SidebarFooter } from "@/compone
 import { MENU_GROUPS, type MenuNode, type MenuGroup } from "@/lib/menu";
 import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/lib/auth";
-import { canSeeGroup } from "@/lib/permissions";
+import { canSeeGroup, canSeeMenuNode } from "@/lib/permissions";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -16,11 +16,15 @@ function hasActiveDescendant(node: MenuNode, pathname: string): boolean {
 
 function NavItem({ node, depth, pathname }: { node: MenuNode; depth: number; pathname: string }) {
   const { t } = useI18n();
+  const { user } = useAuth();
+  if (!canSeeMenuNode(node, user)) return null;
   const active = node.to === pathname;
   const childActive = node.children && hasActiveDescendant(node, pathname);
   const [open, setOpen] = useState(!!childActive);
+  const visibleChildren = node.children?.filter((c) => canSeeMenuNode(c, user)) ?? [];
 
   if (node.children?.length) {
+    if (visibleChildren.length === 0) return null;
     return (
       <div>
         <button
@@ -42,7 +46,7 @@ function NavItem({ node, depth, pathname }: { node: MenuNode; depth: number; pat
         </button>
         {open && (
           <div className="mt-0.5 space-y-0.5">
-            {node.children.map((c) => (
+            {visibleChildren.map((c) => (
               <NavItem key={c.key} node={c} depth={depth + 1} pathname={pathname} />
             ))}
           </div>
@@ -109,7 +113,7 @@ export function AppSidebar() {
                   </div>
                 )}
                 <div className="space-y-0.5">
-                  {group.items.map((node) =>
+                  {group.items.filter((node) => canSeeMenuNode(node, user)).map((node) =>
                     isDashboard ? (
                       <Link
                         key={node.key}
