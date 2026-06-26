@@ -139,7 +139,7 @@ function ReadSignViewer({
   const { user } = useAuth();
   const alreadySigned = !!user && hasSigned(user.email, doc.id);
   const [scrolledEnd, setScrolledEnd] = useState(alreadySigned);
-  const [sig, setSig] = useState("");
+  const [sig, setSig] = useState(user?.username ?? "");
   const [agree, setAgree] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 

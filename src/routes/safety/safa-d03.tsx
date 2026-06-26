@@ -37,15 +37,21 @@ function SafaD03Page() {
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase().trim();
-    if (!q) return list;
-    return list.filter((r) =>
+    // Non-admins only see records of their own escale (workplace).
+    const escale = (user?.workplace ?? "").trim().toUpperCase();
+    let base = list;
+    if (!isAdmin && escale) {
+      base = list.filter((r) => r.escale.toUpperCase() === escale);
+    }
+    if (!q) return base;
+    return base.filter((r) =>
       r.id.toLowerCase().includes(q) ||
       r.escale.toLowerCase().includes(q) ||
       r.vol.toLowerCase().includes(q) ||
       r.description.toLowerCase().includes(q) ||
       r.notification.toLowerCase().includes(q),
     );
-  }, [list, search]);
+  }, [list, search, isAdmin, user]);
 
   const ecarts = list.length;
   const inspections = 17; // synced with SPI seed; admin editable in SPI
@@ -147,19 +153,46 @@ function SafaD03Page() {
                         </span>
                       </td>
                       <td className="px-3 py-3 text-center">
-                        {r.attachments && r.attachments.length > 0 ? (
-                          <div className="flex flex-col items-center gap-1">
-                            {r.attachments.map((a, i) => (
-                              <a key={i} href={a.dataUrl} download={a.name} title={a.name}
-                                 className="inline-flex max-w-[140px] items-center gap-1 truncate rounded-md border border-blue-200 bg-blue-50 px-2 py-0.5 text-[11px] text-blue-700 hover:bg-blue-100">
-                                <Download className="h-3 w-3 shrink-0" />
-                                <span className="truncate">{a.name}</span>
-                              </a>
-                            ))}
-                          </div>
-                        ) : (
-                          <span className="text-xs text-slate-400">—</span>
-                        )}
+                        <div className="flex flex-col items-center gap-1">
+                          {r.attachments?.map((a, i) => (
+                            <a key={i} href={a.dataUrl} download={a.name} title={a.name}
+                               className="inline-flex max-w-[140px] items-center gap-1 truncate rounded-md border border-blue-200 bg-blue-50 px-2 py-0.5 text-[11px] text-blue-700 hover:bg-blue-100">
+                              <Download className="h-3 w-3 shrink-0" />
+                              <span className="truncate">{a.name}</span>
+                            </a>
+                          ))}
+                          {isAdmin && (
+                            <label
+                              className="inline-flex cursor-pointer items-center gap-1 rounded-md border border-dashed border-blue-300 bg-white px-2 py-0.5 text-[11px] font-medium text-blue-700 hover:bg-blue-50"
+                              title="Ajouter des pièces jointes"
+                            >
+                              <Paperclip className="h-3 w-3" /> Ajouter PJ
+                              <input
+                                type="file"
+                                multiple
+                                className="hidden"
+                                onChange={async (e) => {
+                                  const files = Array.from(e.target.files ?? []);
+                                  if (files.length === 0) return;
+                                  const toDataUrl = (f: File) => new Promise<SafaAttachment>((resolve, reject) => {
+                                    const fr = new FileReader();
+                                    fr.onload = () => resolve({ name: f.name, dataUrl: String(fr.result) });
+                                    fr.onerror = reject;
+                                    fr.readAsDataURL(f);
+                                  });
+                                  const news = await Promise.all(files.map(toDataUrl));
+                                  const updated = { ...r, attachments: [...(r.attachments ?? []), ...news] };
+                                  persist(list.map((x) => (x.id === r.id ? updated : x)));
+                                  e.currentTarget.value = "";
+                                  toast.success(`${news.length} pièce(s) jointe(s) ajoutée(s)`);
+                                }}
+                              />
+                            </label>
+                          )}
+                          {!isAdmin && (!r.attachments || r.attachments.length === 0) && (
+                            <span className="text-xs text-slate-400">—</span>
+                          )}
+                        </div>
                       </td>
                       {isAdmin && (
                         <td className="px-3 py-3 text-center">

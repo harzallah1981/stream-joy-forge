@@ -35,18 +35,27 @@ export function canSeeGroup(groupKey: string, u: AuthUser | null | undefined): b
 
 type MenuLike = { key: string; to?: string; children?: MenuLike[] };
 
-const EXTERNAL_DOC_KEYS = new Set(["docs_externes", "dgac", "iata", "affretees", "safa_d03"]);
-const EXTERNAL_FORM_KEYS = new Set(["forms", "ios_428_01_checklist"]);
+// External users may ONLY see these nodes (plus parents that contain an allowed descendant).
+// docs_internes and its descendants are explicitly NOT in this set.
+const EXTERNAL_ALLOWED = new Set<string>([
+  "read_sign",
+  // External documents branch
+  "docs_externes", "dgac", "iata", "affretees", "safa_d03",
+  // Forms branch — only the CKL IOS-428-01 form
+  "forms", "ios_428_01_checklist",
+]);
 
 export function canSeeMenuNode(node: MenuLike, u: AuthUser | null | undefined): boolean {
   if (!u) return false;
+  // Role is the source of truth for external; userType may drift in storage.
+  const isExternal = u.role === "external" || u.userType === "external";
+  if (isExternal) {
+    if (EXTERNAL_ALLOWED.has(node.key)) return true;
+    if (node.children?.length) return node.children.some((child) => canSeeMenuNode(child, u));
+    return false;
+  }
   const t = userType(u);
   if (t === "admin" || t === "internal_manager") return true;
-  if (t === "external") {
-    if (node.key === "read_sign") return true;
-    if (EXTERNAL_DOC_KEYS.has(node.key) || EXTERNAL_FORM_KEYS.has(node.key)) return true;
-    return !!node.children?.some((child) => canSeeMenuNode(child, u));
-  }
   const mods = userModules(u);
   if (node.key === "read_sign") return mods.includes("documentation");
   if (node.key === "forms") return mods.includes("forms") || mods.includes("documentation");
