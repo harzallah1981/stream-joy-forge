@@ -9,11 +9,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { SubmitEmailDialog } from "@/components/submit-email-dialog";
 import { Send, RotateCcw } from "lucide-react";
-import { InternalOnly } from "@/components/internal-only";
 
 export const Route = createFileRoute("/forms/ahm-650")({
   head: () => ({ meta: [{ title: "AHM 650 — Ground Incident / Accident / Damage Report" }] }),
-  component: () => <InternalOnly><Form /></InternalOnly>,
+  component: Form,
 });
 
 // ---- Reference data taken directly from AHM 650 template ----
