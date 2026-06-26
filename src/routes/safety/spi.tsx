@@ -223,6 +223,7 @@ function SpiDashboard() {
             showTaux
             accent="blue"
             row2Tooltip={(q) => tipFor(damagesTunisie[q] ?? [])}
+            onRow2Click={(q) => openEventsDetails(`Dommages au sol — Tunisie · ${q} ${year}`, damagesTunisie[q] ?? [])}
           />
         </Panel>
         <Panel title="Taux Ground Damages — Étranger" icon={<Shield className="h-3.5 w-3.5" />} tone="from-emerald-600 to-emerald-700">
