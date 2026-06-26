@@ -284,7 +284,7 @@ function EventsRegister() {
                         <td className="px-3 py-3 text-center tabular-nums text-slate-700">{e.prob}</td>
                         <td className="px-3 py-3 text-center tabular-nums text-slate-700">{e.grav}</td>
                         <td className="px-3 py-3 text-center font-semibold tabular-nums">
-                          <span className={"inline-flex min-w-[2rem] rounded px-1.5 py-0.5 " + (sev >= 20 ? "bg-red-100 text-red-700" : sev >= 9 ? "bg-orange-100 text-orange-700" : "bg-green-100 text-green-700")}>{sev}</span>
+                          <span className={"inline-flex min-w-[2rem] rounded px-1.5 py-0.5 " + severityFor(cfg, sev).color} title={severityFor(cfg, sev).name}>{sev}</span>
                         </td>
                         <td className="max-w-[220px] px-3 py-3 text-slate-600">{e.action}</td>
                         <td className="px-3 py-3 text-center">
