@@ -135,6 +135,7 @@ function SpiDashboard() {
   const [data, setData] = useState<SpiSnapshot>(() => loadSpi(CURRENT_YEAR));
   const [editing, setEditing] = useState<null | { table: keyof SpiSnapshot; key: string; labels: [string, string]; values: { a: number | null; b: number | null }; aKey: string; bKey: string }>(null);
   const [newYearOpen, setNewYearOpen] = useState(false);
+  const [details, setDetails] = useState<null | { title: string; columns: string[]; rows: (string | number)[][] }>(null);
 
   useEffect(() => { setYears(listYears()); }, []);
   useEffect(() => { setData(loadSpi(year)); }, [year]);
@@ -148,6 +149,21 @@ function SpiDashboard() {
   const tipFor = <T extends { date: string; description: string; escale?: string; id?: string }>(items: T[]): string => {
     if (!items || items.length === 0) return "Aucun élément";
     return items.map((it) => `• [${it.date}${it.escale ? " · " + it.escale : ""}] ${it.description}`).join("\n");
+  };
+
+  const openEventsDetails = (title: string, items: SafetyEvent[]) => {
+    setDetails({
+      title,
+      columns: ["Date", "Escale", "Vol", "Catégorie", "Description"],
+      rows: items.map((e) => [e.date, e.escale, (e as unknown as { vol?: string }).vol ?? "—", e.categorie ?? "—", e.description]),
+    });
+  };
+  const openSafaDetails = (title: string, items: SafaRecord[]) => {
+    setDetails({
+      title,
+      columns: ["Date", "Escale", "Vol", "Catégorie", "Description", "Statut"],
+      rows: items.map((r) => [r.date, r.escale, r.vol, r.category, r.description, r.statut]),
+    });
   };
 
 
