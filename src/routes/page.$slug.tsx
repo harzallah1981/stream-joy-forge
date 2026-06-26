@@ -49,19 +49,8 @@ export const Route = createFileRoute("/page/$slug")({
   }),
 });
 
-const EXTERNAL_ALLOWED_SLUGS = new Set<string>([
-  "dgac", "iata", "ac-affretees", "safa-d03",
-]);
-
 function StubPage() {
   const { slug } = Route.useParams();
-  const { user } = useAuth();
-  const isExternal = user?.role === "external" || user?.userType === "external";
-
-  // Externals: block any slug outside the docs_externes branch.
-  if (isExternal && !EXTERNAL_ALLOWED_SLUGS.has(slug)) {
-    return <Navigate to="/read-sign" replace />;
-  }
 
   // Special-case admin pages
   if (slug === "gestion-utilisateurs") return <UserManagementPage />;
