@@ -12,7 +12,7 @@ import { useI18n } from "@/lib/i18n";
 import { usePageTitle } from "@/lib/page-title";
 import { useAuth } from "@/lib/auth";
 import {
-  getDocsForCategory, loadUserDocs, saveUserDocs, fileToDataUrl, type DocItem,
+  getDocsForCategory, loadUserDocs, saveUserDocs, hideSeedDoc, fileToDataUrl, type DocItem,
 } from "@/lib/documents";
 import { addAck, hasAcked, loadAcks, loadAcksRemote } from "@/lib/acknowledgements";
 import { markRead as markDocRead } from "@/lib/notifications";
@@ -117,8 +117,12 @@ function DocumentsPage({ slug }: { slug: string }) {
   }, [isChartered]);
 
   const handleDelete = (id: string) => {
-    const u = loadUserDocs().filter((d) => d.id !== id);
-    saveUserDocs(u);
+    if (id.startsWith("u-")) {
+      const u = loadUserDocs().filter((d) => d.id !== id);
+      saveUserDocs(u);
+    } else {
+      hideSeedDoc(id);
+    }
     setRefresh((r) => r + 1);
     toast.success("Document supprimé");
   };
@@ -288,7 +292,7 @@ function DocumentsPage({ slug }: { slug: string }) {
                           >
                             <Download className="h-4 w-4" />
                           </button>
-                          {isAdmin && d.id.startsWith("u-") && (
+                          {isAdmin && (d.id.startsWith("u-") || d.category === "notes-flash") && (
                             <button
                               onClick={() => handleDelete(d.id)}
                               className="cursor-pointer rounded p-1.5 text-slate-500 hover:bg-red-50 hover:text-red-700"

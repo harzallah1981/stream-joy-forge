@@ -103,6 +103,7 @@ export const SAMPLE_DOCS: DocItem[] = [
 ];
 
 const LS_KEY = "tunisair_docs_v1";
+const HIDDEN_KEY = "tunisair_docs_hidden_v1";
 
 export function loadUserDocs(): DocItem[] {
   try {
@@ -117,8 +118,27 @@ export function saveUserDocs(docs: DocItem[]) {
   localStorage.setItem(LS_KEY, JSON.stringify(docs));
 }
 
+export function loadHiddenSeedIds(): string[] {
+  try {
+    const raw = typeof localStorage !== "undefined" ? localStorage.getItem(HIDDEN_KEY) : null;
+    return raw ? JSON.parse(raw) : [];
+  } catch { return []; }
+}
+
+export function hideSeedDoc(id: string) {
+  const list = loadHiddenSeedIds();
+  if (!list.includes(id)) {
+    list.push(id);
+    localStorage.setItem(HIDDEN_KEY, JSON.stringify(list));
+  }
+}
+
 export function getDocsForCategory(slug: string): DocItem[] {
-  return [...SAMPLE_DOCS.filter((d) => d.category === slug), ...loadUserDocs().filter((d) => d.category === slug)];
+  const hidden = new Set(loadHiddenSeedIds());
+  return [
+    ...SAMPLE_DOCS.filter((d) => d.category === slug && !hidden.has(d.id)),
+    ...loadUserDocs().filter((d) => d.category === slug),
+  ];
 }
 
 export async function fileToDataUrl(file: File): Promise<string> {

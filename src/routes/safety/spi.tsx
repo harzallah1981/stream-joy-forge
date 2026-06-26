@@ -18,12 +18,16 @@ import {
   pct,
   type SafetyEvent,
 } from "@/lib/safety-data";
+import { loadSafa, SAFA_CURRENT_YEAR, type SafaRecord } from "@/lib/safa-store";
 import { useAuth } from "@/lib/auth";
 import { toast } from "sonner";
 
 const MONTH_INDEX: Record<string, number> = {
   JAN: 0, "FÉV": 1, MAR: 2, AVR: 3, MAI: 4, JUN: 5,
   JUL: 6, "AOÛ": 7, SEP: 8, OCT: 9, NOV: 10, "DÉC": 11,
+};
+const QUARTER_MONTHS: Record<string, number[]> = {
+  T1: [0, 1, 2], T2: [3, 4, 5], T3: [6, 7, 8], T4: [9, 10, 11],
 };
 function loadEventsForYear(year: number): SafetyEvent[] {
   if (typeof window === "undefined") return [];
@@ -39,6 +43,40 @@ function autoAnomaliesByMonth(year: number): Record<string, number> {
     if (d.getFullYear() !== year) continue;
     const m = Object.keys(MONTH_INDEX).find((k) => MONTH_INDEX[k] === d.getMonth());
     if (m) out[m] = (out[m] ?? 0) + 1;
+  }
+  return out;
+}
+function eventsByMonth(year: number): Record<string, SafetyEvent[]> {
+  const out: Record<string, SafetyEvent[]> = {};
+  for (const e of loadEventsForYear(year)) {
+    const d = new Date(e.date);
+    if (d.getFullYear() !== year) continue;
+    const m = Object.keys(MONTH_INDEX).find((k) => MONTH_INDEX[k] === d.getMonth());
+    if (m) (out[m] = out[m] ?? []).push(e);
+  }
+  return out;
+}
+function damagesByQuarter(year: number, scope: "tunisie" | "etranger"): Record<string, SafetyEvent[]> {
+  const out: Record<string, SafetyEvent[]> = { T1: [], T2: [], T3: [], T4: [] };
+  for (const e of loadEventsForYear(year)) {
+    if (e.categorie !== "GSE/DAMAGE") continue;
+    const d = new Date(e.date);
+    if (d.getFullYear() !== year) continue;
+    const isTun = e.escale.toUpperCase() === "TUN";
+    if (scope === "tunisie" && !isTun) continue;
+    if (scope === "etranger" && isTun) continue;
+    const q = Object.entries(QUARTER_MONTHS).find(([, ms]) => ms.includes(d.getMonth()))?.[0];
+    if (q) out[q].push(e);
+  }
+  return out;
+}
+function safaByQuarter(year: number): Record<string, SafaRecord[]> {
+  const out: Record<string, SafaRecord[]> = { T1: [], T2: [], T3: [], T4: [] };
+  for (const r of loadSafa(year)) {
+    const d = new Date(r.date);
+    if (d.getFullYear() !== year) continue;
+    const q = Object.entries(QUARTER_MONTHS).find(([, ms]) => ms.includes(d.getMonth()))?.[0];
+    if (q) out[q].push(r);
   }
   return out;
 }
@@ -102,6 +140,15 @@ function SpiDashboard() {
   useEffect(() => { setData(loadSpi(year)); }, [year]);
 
   const autoAnomalies = useMemo(() => autoAnomaliesByMonth(year), [year]);
+  const damagesTunisie = useMemo(() => damagesByQuarter(year, "tunisie"), [year]);
+  const damagesEtranger = useMemo(() => damagesByQuarter(year, "etranger"), [year]);
+  const safaQ = useMemo(() => safaByQuarter(year), [year]);
+  const eventsM = useMemo(() => eventsByMonth(year), [year]);
+
+  const tipFor = <T extends { date: string; description: string; escale?: string; id?: string }>(items: T[]): string => {
+    if (!items || items.length === 0) return "Aucun élément";
+    return items.map((it) => `• [${it.date}${it.escale ? " · " + it.escale : ""}] ${it.description}`).join("\n");
+  };
 
 
   const persist = (next: SpiSnapshot) => {
@@ -159,6 +206,7 @@ function SpiDashboard() {
             })}
             showTaux
             accent="blue"
+            row2Tooltip={(q) => tipFor(damagesTunisie[q] ?? [])}
           />
         </Panel>
         <Panel title="Taux Ground Damages — Étranger" icon={<Shield className="h-3.5 w-3.5" />} tone="from-emerald-600 to-emerald-700">
@@ -175,6 +223,7 @@ function SpiDashboard() {
             })}
             showTaux
             accent="emerald"
+            row2Tooltip={(q) => tipFor(damagesEtranger[q] ?? [])}
           />
         </Panel>
         <Panel title="Indicateur SAFA D03" icon={<BarChart3 className="h-3.5 w-3.5" />} tone="from-amber-600 to-orange-600" className="lg:col-span-2">
@@ -191,6 +240,7 @@ function SpiDashboard() {
             })}
             showTaux
             accent="amber"
+            row2Tooltip={(q) => tipFor(safaQ[q] ?? [])}
           />
         </Panel>
       </div>
@@ -213,8 +263,12 @@ function SpiDashboard() {
                   const auto = autoAnomalies[m] ?? 0;
                   const isAuto = manual === null;
                   const val = isAuto ? auto : manual;
+                  const list = eventsM[m] ?? [];
+                  const tip = list.length > 0
+                    ? list.map((e) => `• [${e.date} · ${e.escale}] ${e.description}`).join("\n")
+                    : (isAuto ? "Auto depuis le registre" : "Saisie admin");
                   return (
-                    <td key={m} className={"px-1.5 py-2 text-center tabular-nums " + (isAuto ? "italic text-blue-600" : "text-slate-700")} title={isAuto ? "Auto depuis le registre" : "Saisie admin"}>
+                    <td key={m} className={"px-1.5 py-2 text-center tabular-nums " + (isAuto ? "italic text-blue-600" : "text-slate-700") + (list.length ? " cursor-help underline decoration-dotted decoration-slate-300" : "")} title={tip}>
                       {val ?? "—"}
                     </td>
                   );
@@ -339,7 +393,7 @@ const ACCENTS: Record<string, { head: string; head_text: string; taux: string; r
 };
 
 function QuarterTable({
-  data, keys, labels, showTaux, isAdmin, onEdit, accent = "blue",
+  data, keys, labels, showTaux, isAdmin, onEdit, accent = "blue", row2Tooltip,
 }: {
   data: Record<string, Record<string, number | null>>;
   keys: [string, string];
@@ -348,6 +402,7 @@ function QuarterTable({
   isAdmin: boolean;
   onEdit: (q: string) => void;
   accent?: string;
+  row2Tooltip?: (q: string) => string;
 }) {
   const a = ACCENTS[accent] ?? ACCENTS.blue;
   return (
@@ -365,7 +420,18 @@ function QuarterTable({
         </tr>
         <tr className={showTaux ? "border-b border-slate-100" : ""}>
           <td className="py-1.5 pl-2 pr-3 text-slate-700">{labels[1]}</td>
-          {QUARTERS.map((q) => (<td key={q} className="px-2 py-1.5 text-center tabular-nums text-slate-700">{data[q][keys[1]] ?? "—"}</td>))}
+          {QUARTERS.map((q) => {
+            const tip = row2Tooltip ? row2Tooltip(q) : undefined;
+            return (
+              <td
+                key={q}
+                title={tip}
+                className={"px-2 py-1.5 text-center tabular-nums text-slate-700 " + (tip ? "cursor-help underline decoration-dotted decoration-slate-300" : "")}
+              >
+                {data[q][keys[1]] ?? "—"}
+              </td>
+            );
+          })}
         </tr>
         {showTaux && (
           <tr className={(isAdmin ? "border-b border-slate-100 " : "") + a.row}>

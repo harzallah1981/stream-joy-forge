@@ -265,10 +265,10 @@ function EventsRegister() {
                     <th className="px-3 py-3 text-center font-semibold">Prob.</th>
                     <th className="px-3 py-3 text-center font-semibold">Grav.</th>
                     <th className="px-3 py-3 text-center font-semibold">Sev.</th>
+                    <th className="px-3 py-3 text-center font-semibold">PJ</th>
                     <th className="px-3 py-3 text-left font-semibold">Reponse / Action</th>
                     <th className="px-3 py-3 text-center font-semibold">Statut</th>
                     <th className="px-3 py-3 text-center font-semibold">Categorie</th>
-                    <th className="px-3 py-3 text-center font-semibold">PJ</th>
                     {isAdmin && <th className="px-3 py-3 text-center font-semibold">Actions</th>}
                   </tr>
                 </thead>
@@ -285,17 +285,6 @@ function EventsRegister() {
                         <td className="px-3 py-3 text-center tabular-nums text-slate-700">{e.grav}</td>
                         <td className="px-3 py-3 text-center font-semibold tabular-nums">
                           <span className={"inline-flex min-w-[2rem] rounded px-1.5 py-0.5 " + severityFor(cfg, sev).color} title={severityFor(cfg, sev).name}>{sev}</span>
-                        </td>
-                        <td className="max-w-[220px] px-3 py-3 text-slate-600">{e.action}</td>
-                        <td className="px-3 py-3 text-center">
-                          <span className={"inline-flex rounded-full px-2.5 py-0.5 text-[11px] font-semibold " + statusClass(cfg, e.statut)}>
-                            {e.statut}
-                          </span>
-                        </td>
-                        <td className="px-3 py-3 text-center">
-                          <span className={"inline-flex whitespace-nowrap rounded-md border px-2 py-0.5 text-[10px] font-bold " + categoryClass(cfg, e.categorie)}>
-                            {e.categorie}
-                          </span>
                         </td>
                         <td className="px-3 py-3 text-center">
                           <AttachmentsCell
@@ -316,6 +305,17 @@ function EventsRegister() {
                               persist(next);
                             }}
                           />
+                        </td>
+                        <td className="max-w-[220px] px-3 py-3 text-slate-600">{e.action}</td>
+                        <td className="px-3 py-3 text-center">
+                          <span className={"inline-flex rounded-full px-2.5 py-0.5 text-[11px] font-semibold " + statusClass(cfg, e.statut)}>
+                            {e.statut}
+                          </span>
+                        </td>
+                        <td className="px-3 py-3 text-center">
+                          <span className={"inline-flex whitespace-nowrap rounded-md border px-2 py-0.5 text-[10px] font-bold " + categoryClass(cfg, e.categorie)}>
+                            {e.categorie}
+                          </span>
                         </td>
                         {isAdmin && (
                           <td className="px-3 py-3 text-center">
@@ -461,14 +461,14 @@ function EditDialog({
             </div>
           </div>
           <div className="col-span-2"><Label>Description</Label><Input value={e.description} onChange={(ev) => setE({ ...e, description: ev.target.value })} /></div>
-          <div className="col-span-2"><Label>Réponse / Action</Label><Input value={e.action} onChange={(ev) => setE({ ...e, action: ev.target.value })} /></div>
           <div className="col-span-2">
-            <Label>Pièces jointes</Label>
+            <Label>Pièces jointes (plusieurs fichiers possibles)</Label>
             <AttachmentsEditor
               value={e.attachments ?? []}
               onChange={(att) => setE({ ...e, attachments: att })}
             />
           </div>
+          <div className="col-span-2"><Label>Réponse / Action</Label><Input value={e.action} onChange={(ev) => setE({ ...e, action: ev.target.value })} /></div>
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={onCancel}>Annuler</Button>
