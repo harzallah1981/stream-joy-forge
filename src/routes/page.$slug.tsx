@@ -834,7 +834,7 @@ function UserDialog({
             <div><Label>Email tertiaire (optionnel)</Label><Input value={email3} onChange={(e) => setEmail3(e.target.value)} placeholder="alt2@example.com" /></div>
           </div>
           <div><Label>Nom d'utilisateur *</Label><Input value={username} onChange={(e) => setUsername(e.target.value)} /></div>
-          <div><Label>Lieu de travail *</Label><Input value={workplace} onChange={(e) => setWorkplace(e.target.value)} placeholder="Aéroport TUN, Escale DJE, Siège…" /></div>
+          <div><Label>Escale/emplacement *</Label><Input value={workplace} onChange={(e) => setWorkplace(e.target.value)} placeholder="Aéroport TUN, Escale DJE, Siège…" /></div>
           <div>
             <Label>Type d'utilisateur</Label>
             <select
