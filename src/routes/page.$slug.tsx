@@ -1080,7 +1080,7 @@ function AcksPage() {
                 <td className="px-4 py-3 text-slate-700">{a.docTitle}</td>
                 <td className="px-4 py-3 font-mono text-xs text-slate-700">{a.docReference}</td>
                 <td className="px-4 py-3">
-                  <span className={"rounded-full px-2 py-0.5 text-[11px] font-semibold " + (a.action === "view" ? "bg-blue-100 text-blue-700" : "bg-green-100 text-green-700")}>
+                  <span className={"rounded-full px-2 py-0.5 text-[11px] font-semibold " + (a.action === "view" ? "bg-blue-100 text-blue-700" : a.action === "sign" ? "bg-purple-100 text-purple-700" : "bg-green-100 text-green-700")}>
                     {ackActionLabel(a.action)}
                   </span>
                 </td>
