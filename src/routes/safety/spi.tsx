@@ -120,32 +120,32 @@ function SpiDashboard() {
   };
 
   return (
-    <div className="p-4 md:p-6 lg:p-8">
-      <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-        <h2 className="flex items-center gap-2 text-lg font-semibold text-slate-900">
-          <Shield className="h-5 w-5 text-red-500" />
-          Indicateurs de Performance Securite (SPI) — {year}
+    <div className="p-3 md:p-4 lg:p-5">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+        <h2 className="flex items-center gap-2 text-base font-semibold text-slate-900">
+          <Shield className="h-4 w-4 text-red-500" />
+          Indicateurs de Performance Sécurité (SPI) — {year}
         </h2>
         <div className="flex items-center gap-2">
           <select
             value={year}
             onChange={(e) => setYear(Number(e.target.value))}
-            className="h-9 cursor-pointer rounded-md border border-slate-200 bg-white px-3 text-sm font-semibold"
+            className="h-8 cursor-pointer rounded-md border border-slate-200 bg-white px-2 text-xs font-semibold"
           >
             {years.map((y) => (
               <option key={y} value={y}>{y}{y !== CURRENT_YEAR ? " (archive)" : ""}</option>
             ))}
           </select>
           {isAdmin && (
-            <Button variant="outline" onClick={() => setNewYearOpen(true)} className="h-9 cursor-pointer gap-1.5">
-              <Archive className="h-4 w-4" /> Nouvelle année
+            <Button variant="outline" onClick={() => setNewYearOpen(true)} className="h-8 cursor-pointer gap-1.5 text-xs">
+              <Archive className="h-3.5 w-3.5" /> Nouvelle année
             </Button>
           )}
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
-        <Panel title="Taux Ground Damages — Tunisie" icon={<Shield className="h-4 w-4" />}>
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <Panel title="Taux Ground Damages — Tunisie" icon={<Shield className="h-3.5 w-3.5" />} tone="from-blue-600 to-blue-700">
           <QuarterTable
             data={data.impactSolTunisie}
             keys={["vols", "damages"]}
@@ -158,9 +158,10 @@ function SpiDashboard() {
               aKey: "vols", bKey: "damages",
             })}
             showTaux
+            accent="blue"
           />
         </Panel>
-        <Panel title="Taux Ground Damages — Etranger" icon={<Shield className="h-4 w-4" />}>
+        <Panel title="Taux Ground Damages — Étranger" icon={<Shield className="h-3.5 w-3.5" />} tone="from-emerald-600 to-emerald-700">
           <QuarterTable
             data={data.impactSolEtranger}
             keys={["vols", "damages"]}
@@ -173,9 +174,10 @@ function SpiDashboard() {
               aKey: "vols", bKey: "damages",
             })}
             showTaux
+            accent="emerald"
           />
         </Panel>
-        <Panel title="Indicateur SAFA D03" icon={<BarChart3 className="h-4 w-4" />} className="lg:col-span-2">
+        <Panel title="Indicateur SAFA D03" icon={<BarChart3 className="h-3.5 w-3.5" />} tone="from-amber-600 to-orange-600" className="lg:col-span-2">
           <QuarterTable
             data={data.safaD03}
             keys={["inspections", "ecarts"]}
@@ -188,30 +190,31 @@ function SpiDashboard() {
               aKey: "inspections", bKey: "ecarts",
             })}
             showTaux
+            accent="amber"
           />
         </Panel>
       </div>
 
-      <Panel title={`TAUX DES EVENEMENTS OPS SOL / MOIS — ${year}`} icon={<BarChart3 className="h-4 w-4" />} className="mt-5">
+      <Panel title={`TAUX DES ÉVÉNEMENTS OPS SOL / MOIS — ${year}`} icon={<BarChart3 className="h-3.5 w-3.5" />} tone="from-indigo-600 to-purple-600" className="mt-4">
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[900px] text-sm">
+          <table className="w-full min-w-[820px] text-xs">
             <thead>
-              <tr className="border-b border-slate-200 text-xs uppercase text-slate-500">
-                <th className="py-3 pl-2 pr-4 text-left font-semibold">Indicateur</th>
-                {MONTHS.map((m) => (<th key={m} className="px-2 py-3 text-center font-semibold">{m}</th>))}
-                {isAdmin && <th className="px-2 py-3 text-center font-semibold">Edit</th>}
+              <tr className="border-b border-slate-200 bg-indigo-50 text-[10px] uppercase text-indigo-700">
+                <th className="py-2 pl-2 pr-3 text-left font-semibold">Indicateur</th>
+                {MONTHS.map((m) => (<th key={m} className="px-1.5 py-2 text-center font-semibold">{m}</th>))}
+                {isAdmin && <th className="px-1.5 py-2 text-center font-semibold">Edit</th>}
               </tr>
             </thead>
             <tbody>
               <tr className="border-b border-slate-100">
-                <td className="py-3 pl-2 pr-4 text-slate-700">Nbr Anomalies <span className="text-[10px] text-slate-400">(auto registre)</span></td>
+                <td className="py-2 pl-2 pr-3 text-slate-700">Nbr Anomalies <span className="text-[9px] text-slate-400">(auto)</span></td>
                 {MONTHS.map((m) => {
                   const manual = data.opsSolMensuel[m].anomalies;
                   const auto = autoAnomalies[m] ?? 0;
                   const isAuto = manual === null;
                   const val = isAuto ? auto : manual;
                   return (
-                    <td key={m} className={"px-2 py-3 text-center tabular-nums " + (isAuto ? "italic text-blue-600" : "text-slate-700")} title={isAuto ? "Valeur auto depuis le registre des événements" : "Valeur saisie par l'admin"}>
+                    <td key={m} className={"px-1.5 py-2 text-center tabular-nums " + (isAuto ? "italic text-blue-600" : "text-slate-700")} title={isAuto ? "Auto depuis le registre" : "Saisie admin"}>
                       {val ?? "—"}
                     </td>
                   );
@@ -219,16 +222,16 @@ function SpiDashboard() {
                 {isAdmin && <td />}
               </tr>
               <tr className="border-b border-slate-100">
-                <td className="py-3 pl-2 pr-4 text-slate-700">Nbr Vols/Mois</td>
-                {MONTHS.map((m) => (<td key={m} className="px-2 py-3 text-center tabular-nums text-slate-700">{data.opsSolMensuel[m].vols ?? "—"}</td>))}
+                <td className="py-2 pl-2 pr-3 text-slate-700">Nbr Vols/Mois</td>
+                {MONTHS.map((m) => (<td key={m} className="px-1.5 py-2 text-center tabular-nums text-slate-700">{data.opsSolMensuel[m].vols ?? "—"}</td>))}
                 {isAdmin && <td />}
               </tr>
-              <tr>
-                <td className="py-3 pl-2 pr-4 font-semibold text-slate-900">Taux (/vol)</td>
+              <tr className="bg-indigo-50/50">
+                <td className="py-2 pl-2 pr-3 font-semibold text-indigo-900">Taux (/vol)</td>
                 {MONTHS.map((m) => {
                   const manual = data.opsSolMensuel[m].anomalies;
                   const eff = manual === null ? (autoAnomalies[m] ?? null) : manual;
-                  return (<td key={m} className="px-2 py-3 text-center font-semibold tabular-nums text-blue-600">{pct(eff, data.opsSolMensuel[m].vols)}</td>);
+                  return (<td key={m} className="px-1.5 py-2 text-center font-semibold tabular-nums text-indigo-700">{pct(eff, data.opsSolMensuel[m].vols)}</td>);
                 })}
                 {isAdmin && <td />}
               </tr>
@@ -237,7 +240,7 @@ function SpiDashboard() {
                 <tr>
                   <td />
                   {MONTHS.map((m) => (
-                    <td key={m} className="px-1 py-2 text-center">
+                    <td key={m} className="px-1 py-1.5 text-center">
                       <button
                         onClick={() => setEditing({
                           table: "opsSolMensuel", key: m,
@@ -245,10 +248,10 @@ function SpiDashboard() {
                           values: { a: data.opsSolMensuel[m].anomalies, b: data.opsSolMensuel[m].vols },
                           aKey: "anomalies", bKey: "vols",
                         })}
-                        className="cursor-pointer rounded p-1 text-slate-500 hover:bg-blue-50 hover:text-blue-700"
+                        className="cursor-pointer rounded p-0.5 text-slate-500 hover:bg-indigo-50 hover:text-indigo-700"
                         title={`Modifier ${m}`}
                       >
-                        <Pencil className="h-3.5 w-3.5" />
+                        <Pencil className="h-3 w-3" />
                       </button>
                     </td>
                   ))}
