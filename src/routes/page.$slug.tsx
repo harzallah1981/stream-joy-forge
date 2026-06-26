@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Navigate } from "@tanstack/react-router";
 import { Upload, FileText, Plus, Search, Download, Trash2, Eye, ShieldCheck, UserPlus, Pencil, FileSpreadsheet } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import * as XLSX from "xlsx";
@@ -49,8 +49,19 @@ export const Route = createFileRoute("/page/$slug")({
   }),
 });
 
+const EXTERNAL_ALLOWED_SLUGS = new Set<string>([
+  "dgac", "iata", "ac-affretees", "safa-d03",
+]);
+
 function StubPage() {
   const { slug } = Route.useParams();
+  const { user } = useAuth();
+  const isExternal = user?.role === "external" || user?.userType === "external";
+
+  // Externals: block any slug outside the docs_externes branch.
+  if (isExternal && !EXTERNAL_ALLOWED_SLUGS.has(slug)) {
+    return <Navigate to="/read-sign" replace />;
+  }
 
   // Special-case admin pages
   if (slug === "gestion-utilisateurs") return <UserManagementPage />;
