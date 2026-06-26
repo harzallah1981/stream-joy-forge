@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Navigate } from "@tanstack/react-router";
 import { Shield, BookOpen, AlertTriangle, BarChart3, Plane } from "lucide-react";
 import { useMemo } from "react";
 import { usePageTitle } from "@/lib/page-title";
