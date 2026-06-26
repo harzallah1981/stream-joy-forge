@@ -33,6 +33,27 @@ export function canSeeGroup(groupKey: string, u: AuthUser | null | undefined): b
   return false;
 }
 
+type MenuLike = { key: string; to?: string; children?: MenuLike[] };
+
+const EXTERNAL_DOC_KEYS = new Set(["docs_externes", "dgac", "iata", "affretees", "safa_d03"]);
+const EXTERNAL_FORM_KEYS = new Set(["forms", "ios_428_01_checklist"]);
+
+export function canSeeMenuNode(node: MenuLike, u: AuthUser | null | undefined): boolean {
+  if (!u) return false;
+  const t = userType(u);
+  if (t === "admin" || t === "internal_manager") return true;
+  if (t === "external") {
+    if (node.key === "read_sign") return true;
+    if (EXTERNAL_DOC_KEYS.has(node.key) || EXTERNAL_FORM_KEYS.has(node.key)) return true;
+    return !!node.children?.some((child) => canSeeMenuNode(child, u));
+  }
+  const mods = userModules(u);
+  if (node.key === "read_sign") return mods.includes("documentation");
+  if (node.key === "forms") return mods.includes("forms") || mods.includes("documentation");
+  if (node.children?.length) return node.children.some((child) => canSeeMenuNode(child, u));
+  return mods.includes("documentation") || mods.includes("forms") || mods.includes("safety") || mods.includes("admin");
+}
+
 // Can the user download from a given area?
 export function canDownload(area: "documentation" | "safety_table" | "safety_attachment", u: AuthUser | null | undefined): boolean {
   if (!u) return false;
