@@ -241,6 +241,7 @@ function SpiDashboard() {
             showTaux
             accent="emerald"
             row2Tooltip={(q) => tipFor(damagesEtranger[q] ?? [])}
+            onRow2Click={(q) => openEventsDetails(`Dommages au sol — Étranger · ${q} ${year}`, damagesEtranger[q] ?? [])}
           />
         </Panel>
         <Panel title="Indicateur SAFA D03" icon={<BarChart3 className="h-3.5 w-3.5" />} tone="from-amber-600 to-orange-600" className="lg:col-span-2">
@@ -258,6 +259,7 @@ function SpiDashboard() {
             showTaux
             accent="amber"
             row2Tooltip={(q) => tipFor(safaQ[q] ?? [])}
+            onRow2Click={(q) => openSafaDetails(`SAFA Findings · ${q} ${year}`, safaQ[q] ?? [])}
           />
         </Panel>
       </div>
