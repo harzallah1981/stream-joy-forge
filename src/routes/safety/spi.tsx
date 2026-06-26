@@ -412,7 +412,7 @@ const ACCENTS: Record<string, { head: string; head_text: string; taux: string; r
 };
 
 function QuarterTable({
-  data, keys, labels, showTaux, isAdmin, onEdit, accent = "blue", row2Tooltip,
+  data, keys, labels, showTaux, isAdmin, onEdit, accent = "blue", row2Tooltip, onRow2Click,
 }: {
   data: Record<string, Record<string, number | null>>;
   keys: [string, string];
@@ -422,6 +422,7 @@ function QuarterTable({
   onEdit: (q: string) => void;
   accent?: string;
   row2Tooltip?: (q: string) => string;
+  onRow2Click?: (q: string) => void;
 }) {
   const a = ACCENTS[accent] ?? ACCENTS.blue;
   return (
@@ -441,13 +442,22 @@ function QuarterTable({
           <td className="py-1.5 pl-2 pr-3 text-slate-700">{labels[1]}</td>
           {QUARTERS.map((q) => {
             const tip = row2Tooltip ? row2Tooltip(q) : undefined;
+            const val = data[q][keys[1]];
+            const clickable = !!onRow2Click && (val ?? 0) > 0;
             return (
-              <td
-                key={q}
-                title={tip}
-                className={"px-2 py-1.5 text-center tabular-nums text-slate-700 " + (tip ? "cursor-help underline decoration-dotted decoration-slate-300" : "")}
-              >
-                {data[q][keys[1]] ?? "—"}
+              <td key={q} className="px-2 py-1.5 text-center tabular-nums text-slate-700">
+                {clickable ? (
+                  <button
+                    type="button"
+                    title={tip}
+                    onClick={() => onRow2Click!(q)}
+                    className="cursor-pointer rounded px-1.5 py-0.5 font-semibold text-blue-700 underline decoration-dotted underline-offset-2 hover:bg-blue-50"
+                  >
+                    {val}
+                  </button>
+                ) : (
+                  <span title={tip} className={tip ? "cursor-help underline decoration-dotted decoration-slate-300" : ""}>{val ?? "—"}</span>
+                )}
               </td>
             );
           })}
