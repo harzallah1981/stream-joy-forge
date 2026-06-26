@@ -265,10 +265,10 @@ function EventsRegister() {
                     <th className="px-3 py-3 text-center font-semibold">Prob.</th>
                     <th className="px-3 py-3 text-center font-semibold">Grav.</th>
                     <th className="px-3 py-3 text-center font-semibold">Sev.</th>
+                    <th className="px-3 py-3 text-center font-semibold">PJ</th>
                     <th className="px-3 py-3 text-left font-semibold">Reponse / Action</th>
                     <th className="px-3 py-3 text-center font-semibold">Statut</th>
                     <th className="px-3 py-3 text-center font-semibold">Categorie</th>
-                    <th className="px-3 py-3 text-center font-semibold">PJ</th>
                     {isAdmin && <th className="px-3 py-3 text-center font-semibold">Actions</th>}
                   </tr>
                 </thead>
