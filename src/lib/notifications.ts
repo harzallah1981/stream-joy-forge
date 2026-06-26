@@ -7,7 +7,7 @@
 // added or revised relative to that baseline are notified. The
 // indicator clears for a given doc only when the user performs a
 // real access (view / download), which calls `markRead`.
-import { getAllDocs, SAMPLE_DOCS, type DocItem } from "@/lib/documents";
+import { getAllDocs, type DocItem } from "@/lib/documents";
 
 const READ_KEY = "tunisair_doc_reads_v1";
 const BASELINE_KEY = "tunisair_doc_baseline_v1";
