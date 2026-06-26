@@ -12,7 +12,7 @@ import { iataDgrEdition } from "@/lib/iata";
 
 export const Route = createFileRoute("/forms/dg-incident")({
   head: () => ({ meta: [{ title: "DG Incident / Accident Report — IATA DGR" }] }),
-  component: Form,
+  component: () => <InternalOnly><Form /></InternalOnly>,
 });
 
 // 32 numbered fields, taken directly from the DG report template.
