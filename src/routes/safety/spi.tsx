@@ -286,9 +286,18 @@ function SpiDashboard() {
                   const tip = list.length > 0
                     ? list.map((e) => `• [${e.date} · ${e.escale}] ${e.description}`).join("\n")
                     : (isAuto ? "Auto depuis le registre" : "Saisie admin");
+                  const clickable = list.length > 0;
                   return (
-                    <td key={m} className={"px-1.5 py-2 text-center tabular-nums " + (isAuto ? "italic text-blue-600" : "text-slate-700") + (list.length ? " cursor-help underline decoration-dotted decoration-slate-300" : "")} title={tip}>
-                      {val ?? "—"}
+                    <td key={m} className={"px-1.5 py-2 text-center tabular-nums " + (isAuto ? "italic text-blue-600" : "text-slate-700")} title={tip}>
+                      {clickable ? (
+                        <button
+                          type="button"
+                          onClick={() => openEventsDetails(`Anomalies OPS SOL · ${m} ${year}`, list)}
+                          className="cursor-pointer rounded px-1.5 py-0.5 font-semibold text-indigo-700 underline decoration-dotted underline-offset-2 hover:bg-indigo-50"
+                        >
+                          {val}
+                        </button>
+                      ) : (val ?? "—")}
                     </td>
                   );
                 })}
