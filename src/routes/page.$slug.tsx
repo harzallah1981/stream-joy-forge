@@ -1148,18 +1148,17 @@ function AcksPage() {
 
 /* ---- Reading / Signature recap: who read vs who didn't (admin) ---- */
 function ReadingRecap({ acks }: { acks: ReturnType<typeof loadAcks> }) {
-  const users = useMemo(() => loadUsers(), []);
+  const users = useMemo(() => loadKnownUsers(), []);
   const allDocs = useMemo(
     () => getAllDocs().filter((d) =>
-      ACK_REQUIRED_PREFIXES.some((p) => d.category.startsWith(p)),
+      d.requireAck !== false && (requiresAckForCategory(d.category) || d.category === "read-sign"),
     ),
     [],
   );
   const [docId, setDocId] = useState<string>(allDocs[0]?.id ?? "");
   const selectedDoc = allDocs.find((d) => d.id === docId);
 
-  // Audience = all non-admin users (internal + external + managers).
-  const audience = users.filter((u) => u.role !== "admin");
+  const audience = selectedDoc ? usersForDocAudience(users, selectedDoc) : [];
 
   const ackByEmail = useMemo(() => {
     const m = new Map<string, (typeof acks)[number]>();
