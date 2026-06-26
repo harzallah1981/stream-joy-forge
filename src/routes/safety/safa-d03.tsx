@@ -239,6 +239,44 @@ function EditDialog({ rec, onCancel, onSave }: { rec: SafaRecord; onCancel: () =
               <option value="CLÔTURÉ">CLÔTURÉ</option>
             </select>
           </div>
+          <div className="col-span-2">
+            <Label className="flex items-center gap-1"><Paperclip className="h-3.5 w-3.5" /> Pièces jointes (une ou plusieurs)</Label>
+            <input
+              type="file"
+              multiple
+              onChange={async (e) => {
+                const files = Array.from(e.target.files ?? []);
+                if (files.length === 0) return;
+                const toDataUrl = (f: File) => new Promise<SafaAttachment>((resolve, reject) => {
+                  const fr = new FileReader();
+                  fr.onload = () => resolve({ name: f.name, dataUrl: String(fr.result) });
+                  fr.onerror = reject;
+                  fr.readAsDataURL(f);
+                });
+                const news = await Promise.all(files.map(toDataUrl));
+                setR({ ...r, attachments: [...(r.attachments ?? []), ...news] });
+                e.target.value = "";
+              }}
+              className="block w-full cursor-pointer rounded-md border border-slate-200 bg-slate-50 px-2 py-1.5 text-xs file:mr-2 file:cursor-pointer file:rounded file:border-0 file:bg-blue-600 file:px-2 file:py-1 file:text-xs file:text-white"
+            />
+            {(r.attachments?.length ?? 0) > 0 && (
+              <ul className="mt-2 space-y-1">
+                {r.attachments!.map((a, i) => (
+                  <li key={i} className="flex items-center gap-2 rounded-md border border-slate-200 bg-white px-2 py-1 text-xs">
+                    <Paperclip className="h-3 w-3 text-slate-500" />
+                    <span className="flex-1 truncate">{a.name}</span>
+                    <button
+                      onClick={() => setR({ ...r, attachments: r.attachments!.filter((_, j) => j !== i) })}
+                      className="cursor-pointer rounded p-0.5 text-slate-400 hover:bg-red-50 hover:text-red-600"
+                      title="Retirer"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={onCancel}>Annuler</Button>
