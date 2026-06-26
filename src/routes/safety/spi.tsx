@@ -140,6 +140,15 @@ function SpiDashboard() {
   useEffect(() => { setData(loadSpi(year)); }, [year]);
 
   const autoAnomalies = useMemo(() => autoAnomaliesByMonth(year), [year]);
+  const damagesTunisie = useMemo(() => damagesByQuarter(year, "tunisie"), [year]);
+  const damagesEtranger = useMemo(() => damagesByQuarter(year, "etranger"), [year]);
+  const safaQ = useMemo(() => safaByQuarter(year), [year]);
+  const eventsM = useMemo(() => eventsByMonth(year), [year]);
+
+  const tipFor = <T extends { date: string; description: string; escale?: string; id?: string }>(items: T[]): string => {
+    if (!items || items.length === 0) return "Aucun élément";
+    return items.map((it) => `• [${it.date}${it.escale ? " · " + it.escale : ""}] ${it.description}`).join("\n");
+  };
 
 
   const persist = (next: SpiSnapshot) => {
