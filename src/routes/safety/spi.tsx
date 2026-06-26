@@ -397,6 +397,42 @@ function SpiDashboard() {
           onConfirm={archiveAndNewYear}
         />
       )}
+
+      {details && (
+        <Dialog open onOpenChange={(v) => !v && setDetails(null)}>
+          <DialogContent className="max-w-4xl">
+            <DialogHeader>
+              <DialogTitle>{details.title}</DialogTitle>
+            </DialogHeader>
+            <p className="text-[11px] text-slate-500">📋 Affichage uniquement — lecture seule, non modifiable et non téléchargeable.</p>
+            <div className="max-h-[60vh] overflow-auto rounded-md border border-slate-200">
+              <table className="w-full text-xs">
+                <thead className="sticky top-0 bg-slate-900 text-white">
+                  <tr>
+                    {details.columns.map((c) => (
+                      <th key={c} className="px-2 py-2 text-left font-semibold">{c}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {details.rows.length === 0 ? (
+                    <tr><td colSpan={details.columns.length} className="py-6 text-center text-slate-500">Aucun élément.</td></tr>
+                  ) : details.rows.map((row, i) => (
+                    <tr key={i} className="border-b border-slate-100 last:border-0">
+                      {row.map((c, j) => (
+                        <td key={j} className="px-2 py-1.5 align-top text-slate-700">{c}</td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setDetails(null)}>Fermer</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }
