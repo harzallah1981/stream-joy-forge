@@ -9,7 +9,7 @@ export type Ack = {
   docTitle: string;
   docReference: string;
   category: string;
-  action: "view" | "download";
+  action: "view" | "download" | "sign";
   date: string; // ISO
 };
 
@@ -30,7 +30,7 @@ function saveLocal(items: Ack[]) {
 
 export function addAck(a: Omit<Ack, "id" | "date">) {
   const items = loadAcks();
-  if (!items.some((x) => x.userEmail.toLowerCase() === a.userEmail.toLowerCase() && x.docId === a.docId)) {
+  if (!items.some((x) => x.userEmail.toLowerCase() === a.userEmail.toLowerCase() && x.docId === a.docId && x.action === a.action)) {
     items.push({ ...a, id: `a-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, date: new Date().toISOString() });
     saveLocal(items);
   }
@@ -47,7 +47,7 @@ export function addAck(a: Omit<Ack, "id" | "date">) {
         category: a.category,
         action: a.action,
       },
-      { onConflict: "user_email,doc_id", ignoreDuplicates: true },
+      { onConflict: "user_email,doc_id,action", ignoreDuplicates: true },
     )
     .then(({ error }) => { if (error) console.warn("ack remote sync failed", error); });
 }
@@ -76,7 +76,7 @@ export async function loadAcksRemote(): Promise<Ack[]> {
     docTitle: r.doc_title,
     docReference: r.doc_reference ?? "",
     category: r.category ?? "",
-    action: (r.action as "view" | "download"),
+    action: (r.action as "view" | "download" | "sign"),
     date: r.created_at,
   }));
 }
