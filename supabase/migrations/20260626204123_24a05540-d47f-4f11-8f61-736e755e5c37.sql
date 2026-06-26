@@ -1,0 +1,2 @@
+ALTER TABLE public.acknowledgements DROP CONSTRAINT IF EXISTS acknowledgements_user_email_doc_id_key;
+ALTER TABLE public.acknowledgements ADD CONSTRAINT acknowledgements_user_email_doc_id_action_key UNIQUE (user_email, doc_id, action);
