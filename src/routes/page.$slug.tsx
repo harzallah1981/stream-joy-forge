@@ -1085,6 +1085,176 @@ function AcksPage() {
 
       <Table rows={internes} title="Utilisateurs Internes" tone="text-blue-600" />
       <Table rows={externes} title="Utilisateurs Externes" tone="text-amber-600" />
+
+      <ReadingRecap acks={acks} />
+    </div>
+  );
+}
+
+/* ---- Reading / Signature recap: who read vs who didn't (admin) ---- */
+function ReadingRecap({ acks }: { acks: ReturnType<typeof loadAcks> }) {
+  const users = useMemo(() => loadUsers(), []);
+  const allDocs = useMemo(
+    () => getAllDocs().filter((d) =>
+      ACK_REQUIRED_PREFIXES.some((p) => d.category.startsWith(p)),
+    ),
+    [],
+  );
+  const [docId, setDocId] = useState<string>(allDocs[0]?.id ?? "");
+  const selectedDoc = allDocs.find((d) => d.id === docId);
+
+  // Audience = all non-admin users (internal + external + managers).
+  const audience = users.filter((u) => u.role !== "admin");
+
+  const ackByEmail = useMemo(() => {
+    const m = new Map<string, (typeof acks)[number]>();
+    if (!selectedDoc) return m;
+    for (const a of acks) {
+      if (a.docId !== selectedDoc.id) continue;
+      const key = a.userEmail.toLowerCase();
+      if (!m.has(key)) m.set(key, a);
+    }
+    return m;
+  }, [acks, selectedDoc]);
+
+  const lus = audience.filter((u) => ackByEmail.has(u.email.toLowerCase()));
+  const nonLus = audience.filter((u) => !ackByEmail.has(u.email.toLowerCase()));
+
+  const downloadRecapPdf = async () => {
+    if (!selectedDoc) { toast.error("Sélectionnez un document"); return; }
+    const { jsPDF } = await import("jspdf");
+    const autoTable = (await import("jspdf-autotable")).default;
+    const pdf = new jsPDF({ orientation: "portrait", unit: "pt", format: "a4" });
+    pdf.setFontSize(14);
+    pdf.setTextColor(15, 23, 42);
+    pdf.text("Récapitulatif Lecture / Signature", 40, 40);
+    pdf.setFontSize(10);
+    pdf.setTextColor(80);
+    pdf.text(`Document : ${selectedDoc.title}`, 40, 58);
+    pdf.text(`Référence : ${selectedDoc.reference} · Version : ${selectedDoc.version}`, 40, 72);
+    pdf.text(`Généré le ${new Date().toLocaleString()}`, 40, 86);
+
+    autoTable(pdf, {
+      startY: 110,
+      head: [[`✅ Ont lu / signé (${lus.length})`]],
+      body: [[" "]],
+      styles: { fillColor: [220, 252, 231], textColor: [22, 101, 52], fontStyle: "bold", fontSize: 10 },
+      headStyles: { fillColor: [22, 163, 74], textColor: 255 },
+    });
+    autoTable(pdf, {
+      head: [["Utilisateur", "Email", "Type", "Lieu", "Date accusé"]],
+      body: lus.map((u) => {
+        const a = ackByEmail.get(u.email.toLowerCase())!;
+        return [u.username, u.email, u.userType, u.workplace || "—", new Date(a.date).toLocaleString()];
+      }),
+      styles: { fontSize: 8, cellPadding: 4 },
+      headStyles: { fillColor: [15, 23, 42], textColor: 255 },
+    });
+
+    autoTable(pdf, {
+      head: [[`❌ N'ont pas lu / signé (${nonLus.length})`]],
+      body: [[" "]],
+      styles: { fillColor: [254, 226, 226], textColor: [153, 27, 27], fontStyle: "bold", fontSize: 10 },
+      headStyles: { fillColor: [220, 38, 38], textColor: 255 },
+    });
+    autoTable(pdf, {
+      head: [["Utilisateur", "Email", "Type", "Lieu"]],
+      body: nonLus.map((u) => [u.username, u.email, u.userType, u.workplace || "—"]),
+      styles: { fontSize: 8, cellPadding: 4 },
+      headStyles: { fillColor: [15, 23, 42], textColor: 255 },
+    });
+
+    pdf.save(`recap-lecture-${selectedDoc.reference.replace(/[^a-z0-9]+/gi, "-")}-${Date.now()}.pdf`);
+  };
+
+  return (
+    <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+      <div className="flex flex-wrap items-center gap-3 border-b border-slate-200 px-5 py-3">
+        <ShieldCheck className="h-4 w-4 text-emerald-600" />
+        <h3 className="text-sm font-semibold text-slate-900">Récap Lecture / Signature par document</h3>
+        <select
+          value={docId}
+          onChange={(e) => setDocId(e.target.value)}
+          className="h-8 cursor-pointer rounded-md border border-slate-200 bg-white px-2 text-xs"
+        >
+          {allDocs.length === 0 && <option value="">— aucun document à accuser —</option>}
+          {allDocs.map((d) => (
+            <option key={d.id} value={d.id}>{d.category} · {d.reference} — {d.title}</option>
+          ))}
+        </select>
+        <Button
+          size="sm"
+          onClick={downloadRecapPdf}
+          disabled={!selectedDoc}
+          className="ml-auto h-8 gap-1.5 bg-emerald-600 hover:bg-emerald-700"
+        >
+          <Download className="h-3.5 w-3.5" /> Télécharger récap PDF
+        </Button>
+      </div>
+
+      {selectedDoc && (
+        <div className="grid grid-cols-1 gap-0 md:grid-cols-2">
+          <div className="border-r border-slate-100">
+            <div className="bg-green-50 px-4 py-2 text-xs font-semibold text-green-800">
+              ✅ Ont lu / signé — {lus.length}
+            </div>
+            <div className="max-h-80 overflow-auto">
+              <table className="w-full text-xs">
+                <thead className="bg-slate-50 text-[10px] uppercase text-slate-500">
+                  <tr>
+                    <th className="px-3 py-2 text-left">Utilisateur</th>
+                    <th className="px-3 py-2 text-left">Type</th>
+                    <th className="px-3 py-2 text-left">Lieu</th>
+                    <th className="px-3 py-2 text-left">Date</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {lus.length === 0 ? (
+                    <tr><td colSpan={4} className="py-6 text-center text-slate-400">Personne n'a encore signé.</td></tr>
+                  ) : lus.map((u) => {
+                    const a = ackByEmail.get(u.email.toLowerCase())!;
+                    return (
+                      <tr key={u.id} className="border-b border-slate-100 last:border-0">
+                        <td className="px-3 py-2 text-slate-800">{u.username}<div className="text-[10px] text-slate-500">{u.email}</div></td>
+                        <td className="px-3 py-2 text-slate-600">{u.userType}</td>
+                        <td className="px-3 py-2 text-slate-600">{u.workplace || "—"}</td>
+                        <td className="px-3 py-2 text-slate-600">{new Date(a.date).toLocaleString()}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <div>
+            <div className="bg-red-50 px-4 py-2 text-xs font-semibold text-red-800">
+              ❌ N'ont pas lu / signé — {nonLus.length}
+            </div>
+            <div className="max-h-80 overflow-auto">
+              <table className="w-full text-xs">
+                <thead className="bg-slate-50 text-[10px] uppercase text-slate-500">
+                  <tr>
+                    <th className="px-3 py-2 text-left">Utilisateur</th>
+                    <th className="px-3 py-2 text-left">Type</th>
+                    <th className="px-3 py-2 text-left">Lieu</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {nonLus.length === 0 ? (
+                    <tr><td colSpan={3} className="py-6 text-center text-slate-400">Tout le monde a signé. 🎉</td></tr>
+                  ) : nonLus.map((u) => (
+                    <tr key={u.id} className="border-b border-slate-100 last:border-0">
+                      <td className="px-3 py-2 text-slate-800">{u.username}<div className="text-[10px] text-slate-500">{u.email}</div></td>
+                      <td className="px-3 py-2 text-slate-600">{u.userType}</td>
+                      <td className="px-3 py-2 text-slate-600">{u.workplace || "—"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
