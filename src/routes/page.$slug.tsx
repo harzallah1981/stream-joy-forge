@@ -413,7 +413,17 @@ function UploadDialog({
   const hasValidity = slug === "cdn" || slug === "ceirb" || slug === "aoc";
   const [files, setFiles] = useState<File[]>([]);
   const [requireAck, setRequireAck] = useState(true);
+  const [readSignUserTypes, setReadSignUserTypes] = useState<Array<"internal_standard" | "internal_manager" | "external">>([
+    "internal_standard",
+    "internal_manager",
+    "external",
+  ]);
   const inputRef = useRef<HTMLInputElement>(null);
+  const toggleReadSignAudience = (type: "internal_standard" | "internal_manager" | "external") => {
+    setReadSignUserTypes((items) =>
+      items.includes(type) ? items.filter((item) => item !== type) : [...items, type],
+    );
+  };
 
   const submit = async () => {
     if (files.length === 0 || !reference || !docTitle) {
@@ -438,11 +448,13 @@ function UploadDialog({
         url,
         uploadedBy: user?.email,
         requireAck,
+        readSignUserTypes,
       });
     }
     saveUserDocs(docs);
     toast.success(`${files.length} document${files.length > 1 ? "s" : ""} ajouté${files.length > 1 ? "s" : ""}`);
     setReference(""); setDocTitle(""); setVersion("Rev 1"); setFiles([]); setRequireAck(true);
+    setReadSignUserTypes(["internal_standard", "internal_manager", "external"]);
     setValidFrom(""); setValidTo("");
     setOpen(false);
     onDone();
@@ -524,6 +536,26 @@ function UploadDialog({
               </span>
             </span>
           </label>
+          <div className="rounded-md border border-slate-200 bg-white p-3">
+            <Label className="text-xs">Read & Sign — visible pour</Label>
+            <div className="mt-2 grid gap-2 sm:grid-cols-3">
+              {([
+                ["internal_standard", "Internes standard"],
+                ["internal_manager", "Gestionnaires"],
+                ["external", "Externes"],
+              ] as const).map(([type, label]) => (
+                <label key={type} className="flex cursor-pointer items-center gap-2 rounded-md border border-slate-200 bg-slate-50 px-2 py-1.5 text-xs">
+                  <input
+                    type="checkbox"
+                    checked={readSignUserTypes.includes(type)}
+                    onChange={() => toggleReadSignAudience(type)}
+                    className="h-3.5 w-3.5 cursor-pointer accent-blue-600"
+                  />
+                  {label}
+                </label>
+              ))}
+            </div>
+          </div>
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => setOpen(false)} className="cursor-pointer">Annuler</Button>
