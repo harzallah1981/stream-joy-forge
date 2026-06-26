@@ -10,11 +10,11 @@ import {
 } from "@/components/ui/dialog";
 import { useI18n } from "@/lib/i18n";
 import { usePageTitle } from "@/lib/page-title";
-import { useAuth } from "@/lib/auth";
+import { TEST_CREDENTIALS, useAuth, type AuthUser } from "@/lib/auth";
 import {
-  getDocsForCategory, getAllDocs, loadUserDocs, saveUserDocs, hideSeedDoc, fileToDataUrl, type DocItem,
+  ACK_REQUIRED_PREFIXES, canUserSeeReadSignDoc, getDocsForCategory, getAllDocs, loadUserDocs, saveUserDocs, hideSeedDoc, fileToDataUrl, requiresAckForCategory, type DocItem,
 } from "@/lib/documents";
-import { addAck, hasAcked, loadAcks, loadAcksRemote } from "@/lib/acknowledgements";
+import { addAck, hasAcked, loadAcks, loadAcksRemote, type Ack } from "@/lib/acknowledgements";
 import { markRead as markDocRead } from "@/lib/notifications";
 import {
   loadUsers, addUser, updateUser, removeUser,
@@ -23,21 +23,6 @@ import {
 } from "@/lib/users-store";
 import { isPrincipalAdmin as isPrincipalAdminFn } from "@/lib/permissions";
 import { toast } from "sonner";
-
-// Categories that REQUIRE an acknowledgement before view/download
-// (GOM, DAM, DOI-DOW, AHM, POS, IOS, Load & Trim Sheet,
-//  Loading Instructions Reports, Safety Notes & Flashes).
-const ACK_REQUIRED_PREFIXES: string[] = [
-  "gom",
-  "dam",
-  "dow-doi",
-  "ahm",
-  "pos-",
-  "ios-",
-  "load-trim",
-  "loading-instructions",
-  "notes-flash",
-];
 
 const SLUG_TO_KEY: Record<string, string> = {
   gom: "gom", dam: "dam",
@@ -140,7 +125,7 @@ function DocumentsPage({ slug }: { slug: string }) {
     // Ack is required ONLY for these document categories:
     // GOM / DAM / DOI-DOW / AHM / POS / IOS / LOAD AND TRIM SHEET /
     // LOADING INSTRUCTIONS REPORTS / SAFETY NOTES AND FLASHES
-    if (!ACK_REQUIRED_PREFIXES.some((p) => doc.category.startsWith(p))) {
+    if (!requiresAckForCategory(doc.category)) {
       performAction(doc, action);
       return;
     }
