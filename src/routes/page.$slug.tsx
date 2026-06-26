@@ -793,6 +793,44 @@ function UserManagementPage() {
 
 type UserDialogPayload = { email: string; emails: string[]; username: string; userType: UserType; modules: string[]; org: string; workplace: string; adminScope?: "principal" | "specific" };
 
+type TrackableUser = StoredUser;
+
+function seededUserType(u: AuthUser): UserType {
+  return u.userType ?? (u.role === "admin" ? "admin" : u.role === "external" ? "external" : "internal_standard");
+}
+
+function loadKnownUsers(): TrackableUser[] {
+  const byEmail = new Map<string, TrackableUser>();
+  for (const u of TEST_CREDENTIALS) {
+    const userType = seededUserType(u);
+    byEmail.set(u.email.toLowerCase(), {
+      id: `seed-${u.email}`,
+      email: u.email,
+      emails: u.emails ?? [u.email],
+      username: u.username,
+      role: u.role,
+      userType,
+      modules: u.modules ?? defaultModulesFor(userType),
+      org: u.org,
+      workplace: u.workplace ?? u.org ?? "—",
+      adminScope: u.adminScope,
+      createdAt: "2026-01-01T00:00:00.000Z",
+    });
+  }
+  for (const u of loadUsers()) byEmail.set(u.email.toLowerCase(), u);
+  return Array.from(byEmail.values());
+}
+
+function usersForDocAudience(users: TrackableUser[], doc: DocItem): TrackableUser[] {
+  return users.filter((u) => u.userType !== "admin" && canUserSeeReadSignDoc(doc, u.userType));
+}
+
+function ackActionLabel(action: Ack["action"]): string {
+  if (action === "download") return "Téléchargement";
+  if (action === "sign") return "Signature Read & Sign";
+  return "Consultation";
+}
+
 function UserDialog({
   mode, initial, onCancel, onSave,
 }: {
