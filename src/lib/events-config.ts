@@ -1,14 +1,21 @@
-// Dynamic categories & statuses for the Events register (admin-editable)
+// Dynamic categories, statuses, probabilities, gravities & severity bands
+// (admin-editable via the "Configurer" dialog)
 import { CATEGORIES, categoryColor } from "./safety-data";
 
-const KEY = "tunisair_events_config_v1";
+const KEY = "tunisair_events_config_v2";
+const LEGACY_KEY = "tunisair_events_config_v1";
 
-export type CatDef = { name: string; color: string }; // color = tailwind classes
+export type CatDef = { name: string; color: string };
 export type StatusDef = { name: string; color: string };
+export type ScaleDef = { value: number; label: string };
+export type SeverityBand = { name: string; min: number; max: number; color: string };
 
 export type EventsConfig = {
   categories: CatDef[];
   statuses: StatusDef[];
+  probabilities: ScaleDef[];
+  gravities: ScaleDef[];
+  severities: SeverityBand[];
 };
 
 const DEFAULT_CATEGORIES: CatDef[] = CATEGORIES.map((c) => ({
@@ -19,6 +26,28 @@ const DEFAULT_CATEGORIES: CatDef[] = CATEGORIES.map((c) => ({
 const DEFAULT_STATUSES: StatusDef[] = [
   { name: "EN COURS", color: "bg-orange-100 text-orange-700" },
   { name: "CLÔTURÉ", color: "bg-green-100 text-green-700" },
+];
+
+const DEFAULT_PROBABILITIES: ScaleDef[] = [
+  { value: 1, label: "Très improbable" },
+  { value: 2, label: "Improbable" },
+  { value: 3, label: "Occasionnel" },
+  { value: 4, label: "Probable" },
+  { value: 5, label: "Fréquent" },
+];
+
+const DEFAULT_GRAVITIES: ScaleDef[] = [
+  { value: 1, label: "Négligeable" },
+  { value: 2, label: "Mineur" },
+  { value: 3, label: "Majeur" },
+  { value: 4, label: "Dangereux" },
+  { value: 5, label: "Catastrophique" },
+];
+
+const DEFAULT_SEVERITIES: SeverityBand[] = [
+  { name: "Acceptable",     min: 1,  max: 8,  color: "bg-green-100 text-green-700" },
+  { name: "Moyen",          min: 9,  max: 19, color: "bg-orange-100 text-orange-700" },
+  { name: "Non acceptable", min: 20, max: 25, color: "bg-red-100 text-red-700" },
 ];
 
 export const COLOR_PRESETS: { label: string; cat: string; status: string }[] = [
@@ -34,21 +63,23 @@ export const COLOR_PRESETS: { label: string; cat: string; status: string }[] = [
   { label: "Ardoise", cat: "bg-slate-100 text-slate-800 border-slate-200", status: "bg-slate-100 text-slate-700" },
 ];
 
+function withDefaults(partial: Partial<EventsConfig>): EventsConfig {
+  return {
+    categories:    partial.categories?.length    ? partial.categories    : DEFAULT_CATEGORIES,
+    statuses:      partial.statuses?.length      ? partial.statuses      : DEFAULT_STATUSES,
+    probabilities: partial.probabilities?.length ? partial.probabilities : DEFAULT_PROBABILITIES,
+    gravities:     partial.gravities?.length     ? partial.gravities     : DEFAULT_GRAVITIES,
+    severities:    partial.severities?.length    ? partial.severities    : DEFAULT_SEVERITIES,
+  };
+}
+
 export function loadEventsConfig(): EventsConfig {
-  if (typeof window === "undefined") {
-    return { categories: DEFAULT_CATEGORIES, statuses: DEFAULT_STATUSES };
-  }
+  if (typeof window === "undefined") return withDefaults({});
   try {
-    const raw = localStorage.getItem(KEY);
-    if (raw) {
-      const parsed = JSON.parse(raw) as Partial<EventsConfig>;
-      return {
-        categories: parsed.categories?.length ? parsed.categories : DEFAULT_CATEGORIES,
-        statuses: parsed.statuses?.length ? parsed.statuses : DEFAULT_STATUSES,
-      };
-    }
+    const raw = localStorage.getItem(KEY) ?? localStorage.getItem(LEGACY_KEY);
+    if (raw) return withDefaults(JSON.parse(raw) as Partial<EventsConfig>);
   } catch {}
-  return { categories: DEFAULT_CATEGORIES, statuses: DEFAULT_STATUSES };
+  return withDefaults({});
 }
 
 export function saveEventsConfig(cfg: EventsConfig) {
@@ -62,4 +93,8 @@ export function categoryClass(cfg: EventsConfig, name: string): string {
 export function statusClass(cfg: EventsConfig, name: string): string {
   return cfg.statuses.find((s) => s.name === name)?.color
     ?? "bg-slate-100 text-slate-700";
+}
+export function severityFor(cfg: EventsConfig, score: number): SeverityBand {
+  return cfg.severities.find((b) => score >= b.min && score <= b.max)
+    ?? { name: "—", min: 0, max: 0, color: "bg-slate-100 text-slate-700" };
 }
