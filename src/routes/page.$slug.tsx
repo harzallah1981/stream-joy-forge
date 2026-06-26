@@ -12,7 +12,7 @@ import { useI18n } from "@/lib/i18n";
 import { usePageTitle } from "@/lib/page-title";
 import { TEST_CREDENTIALS, useAuth, type AuthUser } from "@/lib/auth";
 import {
-  ACK_REQUIRED_PREFIXES, canUserSeeReadSignDoc, getDocsForCategory, getAllDocs, loadUserDocs, saveUserDocs, hideSeedDoc, fileToDataUrl, requiresAckForCategory, type DocItem,
+  canUserSeeReadSignDoc, getDocsForCategory, getAllDocs, loadUserDocs, saveUserDocs, hideSeedDoc, fileToDataUrl, requiresAckForCategory, type DocItem,
 } from "@/lib/documents";
 import { addAck, hasAcked, loadAcks, loadAcksRemote, type Ack } from "@/lib/acknowledgements";
 import { markRead as markDocRead } from "@/lib/notifications";
