@@ -65,7 +65,7 @@ function EventsRegister() {
   const [list, setList] = useState<SafetyEvent[]>([]);
   const [search, setSearch] = useState("");
   const [fEscale, setFEscale] = useState("");
-  const [fSeverite, setFSeverite] = useState<"" | "acceptable" | "moyen" | "non">("");
+  const [fSeverite, setFSeverite] = useState<string>("");
   const [fStatut, setFStatut] = useState("");
   const [fCategorie, setFCategorie] = useState("");
   const [fMois, setFMois] = useState<string>(""); // "01".."12"
