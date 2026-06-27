@@ -478,6 +478,14 @@ function SpiDashboard() {
           </DialogContent>
         </Dialog>
       )}
+
+      {cfgOpen && (
+        <SpiConfigDialog
+          initial={cfg}
+          onCancel={() => setCfgOpen(false)}
+          onSave={(c) => { saveSpiConfig(c); setCfg(c); setCfgOpen(false); toast.success("Configuration SPI enregistrée"); }}
+        />
+      )}
     </div>
   );
 }
