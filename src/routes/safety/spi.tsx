@@ -238,9 +238,14 @@ function SpiDashboard() {
             ))}
           </select>
           {isAdmin && (
-            <Button variant="outline" onClick={() => setNewYearOpen(true)} className="h-8 cursor-pointer gap-1.5 text-xs">
-              <Archive className="h-3.5 w-3.5" /> Nouvelle année
-            </Button>
+            <>
+              <Button variant="outline" onClick={() => setCfgOpen(true)} className="h-8 cursor-pointer gap-1.5 text-xs">
+                <Settings2 className="h-3.5 w-3.5" /> Configurer
+              </Button>
+              <Button variant="outline" onClick={() => setNewYearOpen(true)} className="h-8 cursor-pointer gap-1.5 text-xs">
+                <Archive className="h-3.5 w-3.5" /> Nouvelle année
+              </Button>
+            </>
           )}
         </div>
       </div>
