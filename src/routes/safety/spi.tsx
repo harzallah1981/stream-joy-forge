@@ -322,7 +322,7 @@ function SpiDashboard() {
             </thead>
             <tbody>
               <tr className="border-b border-slate-100">
-                <td className="py-2 pl-2 pr-3 text-slate-700">Nbr Anomalies <span className="text-[9px] text-slate-400">(auto)</span></td>
+                <td className="py-2 pl-2 pr-3 text-slate-700">{cfg.opsSolMensuel.labelA} <span className="text-[9px] text-slate-400">(auto)</span></td>
                 {MONTHS.map((m) => {
                   const manual = data.opsSolMensuel[m].anomalies;
                   const auto = autoAnomalies[m] ?? 0;
