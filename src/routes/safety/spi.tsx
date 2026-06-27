@@ -15,7 +15,6 @@ import {
   impactSolEtranger,
   safaD03,
   opsSolMensuel,
-  pct,
   type SafetyEvent,
 } from "@/lib/safety-data";
 import { loadSafa, SAFA_CURRENT_YEAR, type SafaRecord } from "@/lib/safa-store";
