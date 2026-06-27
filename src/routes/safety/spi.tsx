@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { Shield, BarChart3, Pencil, Archive } from "lucide-react";
+import { Shield, BarChart3, Pencil, Archive, Settings2 } from "lucide-react";
 import { usePageTitle } from "@/lib/page-title";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,7 +15,6 @@ import {
   impactSolEtranger,
   safaD03,
   opsSolMensuel,
-  pct,
   type SafetyEvent,
 } from "@/lib/safety-data";
 import { loadSafa, SAFA_CURRENT_YEAR, type SafaRecord } from "@/lib/safa-store";
@@ -125,6 +124,42 @@ function listYears(): number[] {
   return Array.from(set).sort((a, b) => b - a);
 }
 
+// ---- SPI configuration (admin-editable) ----
+export type SpiFormula = "b_over_a_pct" | "a_over_b_pct" | "b_minus_a" | "sum";
+export type SpiPanelKey = "impactSolTunisie" | "impactSolEtranger" | "safaD03" | "opsSolMensuel";
+export type SpiConfig = Record<SpiPanelKey, { title: string; labelA: string; labelB: string; formula: SpiFormula }>;
+
+const DEFAULT_SPI_CONFIG: SpiConfig = {
+  impactSolTunisie: { title: "Taux Ground Damages — Tunisie", labelA: "Nbr vols", labelB: "Dommages au sol", formula: "b_over_a_pct" },
+  impactSolEtranger: { title: "Taux Ground Damages — Étranger", labelA: "Nbr vols", labelB: "Dommages au sol", formula: "b_over_a_pct" },
+  safaD03: { title: "Indicateur SAFA D03", labelA: "Nbr inspections SAFA", labelB: "SAFA Findings", formula: "b_over_a_pct" },
+  opsSolMensuel: { title: "TAUX DES ÉVÉNEMENTS OPS SOL / MOIS", labelA: "Nbr Anomalies", labelB: "Nbr Vols/Mois", formula: "b_over_a_pct" },
+};
+const SPI_CFG_KEY = "tunisair_spi_config_v1";
+function loadSpiConfig(): SpiConfig {
+  try {
+    const raw = typeof localStorage !== "undefined" ? localStorage.getItem(SPI_CFG_KEY) : null;
+    if (raw) return { ...DEFAULT_SPI_CONFIG, ...JSON.parse(raw) };
+  } catch {}
+  return DEFAULT_SPI_CONFIG;
+}
+function saveSpiConfig(c: SpiConfig) { localStorage.setItem(SPI_CFG_KEY, JSON.stringify(c)); }
+function applyFormula(f: SpiFormula, a: number | null, b: number | null): string {
+  if (a === null || b === null) return "—";
+  switch (f) {
+    case "b_over_a_pct": return a === 0 ? "—" : ((b / a) * 100).toFixed(2) + "%";
+    case "a_over_b_pct": return b === 0 ? "—" : ((a / b) * 100).toFixed(2) + "%";
+    case "b_minus_a": return String(b - a);
+    case "sum": return String(a + b);
+  }
+}
+const FORMULA_LABEL: Record<SpiFormula, string> = {
+  b_over_a_pct: "Taux = (Ligne 2 ÷ Ligne 1) × 100%",
+  a_over_b_pct: "Taux = (Ligne 1 ÷ Ligne 2) × 100%",
+  b_minus_a: "Écart = Ligne 2 − Ligne 1",
+  sum: "Somme = Ligne 1 + Ligne 2",
+};
+
 function SpiDashboard() {
   usePageTitle("Indicateurs SPI", "KPIs securite — Ground Damage, SAFA, Taux ops · Multi-annee");
   const { user } = useAuth();
@@ -136,6 +171,8 @@ function SpiDashboard() {
   const [editing, setEditing] = useState<null | { table: keyof SpiSnapshot; key: string; labels: [string, string]; values: { a: number | null; b: number | null }; aKey: string; bKey: string }>(null);
   const [newYearOpen, setNewYearOpen] = useState(false);
   const [details, setDetails] = useState<null | { title: string; columns: string[]; rows: (string | number)[][] }>(null);
+  const [cfg, setCfg] = useState<SpiConfig>(() => loadSpiConfig());
+  const [cfgOpen, setCfgOpen] = useState(false);
 
   useEffect(() => { setYears(listYears()); }, []);
   useEffect(() => { setData(loadSpi(year)); }, [year]);
@@ -200,71 +237,79 @@ function SpiDashboard() {
             ))}
           </select>
           {isAdmin && (
-            <Button variant="outline" onClick={() => setNewYearOpen(true)} className="h-8 cursor-pointer gap-1.5 text-xs">
-              <Archive className="h-3.5 w-3.5" /> Nouvelle année
-            </Button>
+            <>
+              <Button variant="outline" onClick={() => setCfgOpen(true)} className="h-8 cursor-pointer gap-1.5 text-xs">
+                <Settings2 className="h-3.5 w-3.5" /> Configurer
+              </Button>
+              <Button variant="outline" onClick={() => setNewYearOpen(true)} className="h-8 cursor-pointer gap-1.5 text-xs">
+                <Archive className="h-3.5 w-3.5" /> Nouvelle année
+              </Button>
+            </>
           )}
         </div>
       </div>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <Panel title="Taux Ground Damages — Tunisie" icon={<Shield className="h-3.5 w-3.5" />} tone="from-blue-600 to-blue-700">
+        <Panel title={cfg.impactSolTunisie.title} icon={<Shield className="h-3.5 w-3.5" />} tone="from-blue-600 to-blue-700">
           <QuarterTable
             data={data.impactSolTunisie}
             keys={["vols", "damages"]}
-            labels={["Nbr vols", "Dommages au sol"]}
+            labels={[cfg.impactSolTunisie.labelA, cfg.impactSolTunisie.labelB]}
             isAdmin={isAdmin}
             onEdit={(q) => setEditing({
               table: "impactSolTunisie", key: q,
-              labels: ["Nbr vols", "Dommages au sol"],
+              labels: [cfg.impactSolTunisie.labelA, cfg.impactSolTunisie.labelB],
               values: { a: data.impactSolTunisie[q as keyof typeof impactSolTunisie].vols, b: data.impactSolTunisie[q as keyof typeof impactSolTunisie].damages },
               aKey: "vols", bKey: "damages",
             })}
             showTaux
+            formula={cfg.impactSolTunisie.formula}
             accent="blue"
             row2Tooltip={(q) => tipFor(damagesTunisie[q] ?? [])}
-            onRow2Click={(q) => openEventsDetails(`Dommages au sol — Tunisie · ${q} ${year}`, damagesTunisie[q] ?? [])}
+            onRow2Click={(q) => openEventsDetails(`${cfg.impactSolTunisie.labelB} — Tunisie · ${q} ${year}`, damagesTunisie[q] ?? [])}
           />
         </Panel>
-        <Panel title="Taux Ground Damages — Étranger" icon={<Shield className="h-3.5 w-3.5" />} tone="from-emerald-600 to-emerald-700">
+        <Panel title={cfg.impactSolEtranger.title} icon={<Shield className="h-3.5 w-3.5" />} tone="from-emerald-600 to-emerald-700">
           <QuarterTable
             data={data.impactSolEtranger}
             keys={["vols", "damages"]}
-            labels={["Nbr vols", "Dommages au sol"]}
+            labels={[cfg.impactSolEtranger.labelA, cfg.impactSolEtranger.labelB]}
             isAdmin={isAdmin}
             onEdit={(q) => setEditing({
               table: "impactSolEtranger", key: q,
-              labels: ["Nbr vols", "Dommages au sol"],
+              labels: [cfg.impactSolEtranger.labelA, cfg.impactSolEtranger.labelB],
               values: { a: data.impactSolEtranger[q as keyof typeof impactSolEtranger].vols, b: data.impactSolEtranger[q as keyof typeof impactSolEtranger].damages },
               aKey: "vols", bKey: "damages",
             })}
             showTaux
+            formula={cfg.impactSolEtranger.formula}
             accent="emerald"
             row2Tooltip={(q) => tipFor(damagesEtranger[q] ?? [])}
-            onRow2Click={(q) => openEventsDetails(`Dommages au sol — Étranger · ${q} ${year}`, damagesEtranger[q] ?? [])}
+            onRow2Click={(q) => openEventsDetails(`${cfg.impactSolEtranger.labelB} — Étranger · ${q} ${year}`, damagesEtranger[q] ?? [])}
           />
         </Panel>
-        <Panel title="Indicateur SAFA D03" icon={<BarChart3 className="h-3.5 w-3.5" />} tone="from-amber-600 to-orange-600" className="lg:col-span-2">
+        <Panel title={cfg.safaD03.title} icon={<BarChart3 className="h-3.5 w-3.5" />} tone="from-amber-600 to-orange-600" className="lg:col-span-2">
           <QuarterTable
             data={data.safaD03}
             keys={["inspections", "ecarts"]}
-            labels={["Nbr inspections SAFA", "SAFA Findings"]}
+            labels={[cfg.safaD03.labelA, cfg.safaD03.labelB]}
             isAdmin={isAdmin}
             onEdit={(q) => setEditing({
               table: "safaD03", key: q,
-              labels: ["Nbr inspections SAFA", "SAFA Findings"],
+              labels: [cfg.safaD03.labelA, cfg.safaD03.labelB],
               values: { a: data.safaD03[q as keyof typeof safaD03].inspections, b: data.safaD03[q as keyof typeof safaD03].ecarts },
               aKey: "inspections", bKey: "ecarts",
             })}
             showTaux
+            formula={cfg.safaD03.formula}
             accent="amber"
             row2Tooltip={(q) => tipFor(safaQ[q] ?? [])}
-            onRow2Click={(q) => openSafaDetails(`SAFA Findings · ${q} ${year}`, safaQ[q] ?? [])}
+            onRow2Click={(q) => openSafaDetails(`${cfg.safaD03.labelB} · ${q} ${year}`, safaQ[q] ?? [])}
           />
         </Panel>
       </div>
 
-      <Panel title={`TAUX DES ÉVÉNEMENTS OPS SOL / MOIS — ${year}`} icon={<BarChart3 className="h-3.5 w-3.5" />} tone="from-indigo-600 to-purple-600" className="mt-4">
+      <Panel title={`${cfg.opsSolMensuel.title} — ${year}`} icon={<BarChart3 className="h-3.5 w-3.5" />} tone="from-indigo-600 to-purple-600" className="mt-4">
         <div className="overflow-x-auto">
           <table className="w-full min-w-[820px] text-xs">
             <thead>
@@ -276,7 +321,7 @@ function SpiDashboard() {
             </thead>
             <tbody>
               <tr className="border-b border-slate-100">
-                <td className="py-2 pl-2 pr-3 text-slate-700">Nbr Anomalies <span className="text-[9px] text-slate-400">(auto)</span></td>
+                <td className="py-2 pl-2 pr-3 text-slate-700">{cfg.opsSolMensuel.labelA} <span className="text-[9px] text-slate-400">(auto)</span></td>
                 {MONTHS.map((m) => {
                   const manual = data.opsSolMensuel[m].anomalies;
                   const auto = autoAnomalies[m] ?? 0;
@@ -304,16 +349,16 @@ function SpiDashboard() {
                 {isAdmin && <td />}
               </tr>
               <tr className="border-b border-slate-100">
-                <td className="py-2 pl-2 pr-3 text-slate-700">Nbr Vols/Mois</td>
+                <td className="py-2 pl-2 pr-3 text-slate-700">{cfg.opsSolMensuel.labelB}</td>
                 {MONTHS.map((m) => (<td key={m} className="px-1.5 py-2 text-center tabular-nums text-slate-700">{data.opsSolMensuel[m].vols ?? "—"}</td>))}
                 {isAdmin && <td />}
               </tr>
               <tr className="bg-indigo-50/50">
-                <td className="py-2 pl-2 pr-3 font-semibold text-indigo-900">Taux (/vol)</td>
+                <td className="py-2 pl-2 pr-3 font-semibold text-indigo-900">{FORMULA_LABEL[cfg.opsSolMensuel.formula].split(" =")[0]}</td>
                 {MONTHS.map((m) => {
                   const manual = data.opsSolMensuel[m].anomalies;
                   const eff = manual === null ? (autoAnomalies[m] ?? null) : manual;
-                  return (<td key={m} className="px-1.5 py-2 text-center font-semibold tabular-nums text-indigo-700">{pct(eff, data.opsSolMensuel[m].vols)}</td>);
+                  return (<td key={m} className="px-1.5 py-2 text-center font-semibold tabular-nums text-indigo-700">{applyFormula(cfg.opsSolMensuel.formula, eff, data.opsSolMensuel[m].vols)}</td>);
                 })}
                 {isAdmin && <td />}
               </tr>
@@ -433,6 +478,14 @@ function SpiDashboard() {
           </DialogContent>
         </Dialog>
       )}
+
+      {cfgOpen && (
+        <SpiConfigDialog
+          initial={cfg}
+          onCancel={() => setCfgOpen(false)}
+          onSave={(c) => { saveSpiConfig(c); setCfg(c); setCfgOpen(false); toast.success("Configuration SPI enregistrée"); }}
+        />
+      )}
     </div>
   );
 }
@@ -457,7 +510,7 @@ const ACCENTS: Record<string, { head: string; head_text: string; taux: string; r
 };
 
 function QuarterTable({
-  data, keys, labels, showTaux, isAdmin, onEdit, accent = "blue", row2Tooltip, onRow2Click,
+  data, keys, labels, showTaux, isAdmin, onEdit, accent = "blue", row2Tooltip, onRow2Click, formula = "b_over_a_pct",
 }: {
   data: Record<string, Record<string, number | null>>;
   keys: [string, string];
@@ -468,6 +521,7 @@ function QuarterTable({
   accent?: string;
   row2Tooltip?: (q: string) => string;
   onRow2Click?: (q: string) => void;
+  formula?: SpiFormula;
 }) {
   const a = ACCENTS[accent] ?? ACCENTS.blue;
   return (
@@ -509,8 +563,8 @@ function QuarterTable({
         </tr>
         {showTaux && (
           <tr className={(isAdmin ? "border-b border-slate-100 " : "") + a.row}>
-            <td className="py-1.5 pl-2 pr-3 font-semibold text-slate-900">Taux</td>
-            {QUARTERS.map((q) => (<td key={q} className={"px-2 py-1.5 text-center font-semibold tabular-nums " + a.taux}>{pct(data[q][keys[1]] ?? null, data[q][keys[0]] ?? null)}</td>))}
+            <td className="py-1.5 pl-2 pr-3 font-semibold text-slate-900" title={FORMULA_LABEL[formula]}>{FORMULA_LABEL[formula].split(" =")[0]}</td>
+            {QUARTERS.map((q) => (<td key={q} className={"px-2 py-1.5 text-center font-semibold tabular-nums " + a.taux}>{applyFormula(formula, data[q][keys[0]] ?? null, data[q][keys[1]] ?? null)}</td>))}
           </tr>
         )}
         {isAdmin && (
@@ -550,6 +604,67 @@ function NewYearDialog({ existingYears, onCancel, onConfirm }: { existingYears: 
         <DialogFooter>
           <Button variant="outline" onClick={onCancel}>Annuler</Button>
           <Button onClick={() => onConfirm(y)} className="bg-blue-600 hover:bg-blue-700">Créer</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function SpiConfigDialog({ initial, onCancel, onSave }: { initial: SpiConfig; onCancel: () => void; onSave: (c: SpiConfig) => void; }) {
+  const [c, setC] = useState<SpiConfig>(initial);
+  const panels: { key: SpiPanelKey; help: string }[] = [
+    { key: "impactSolTunisie", help: "Panneau Ground Damages — Tunisie" },
+    { key: "impactSolEtranger", help: "Panneau Ground Damages — Étranger" },
+    { key: "safaD03", help: "Panneau SAFA D03" },
+    { key: "opsSolMensuel", help: "Tableau mensuel OPS Sol" },
+  ];
+  const update = (k: SpiPanelKey, field: "title" | "labelA" | "labelB" | "formula", v: string) => {
+    setC({ ...c, [k]: { ...c[k], [field]: v } });
+  };
+  return (
+    <Dialog open onOpenChange={(v) => !v && onCancel()}>
+      <DialogContent className="max-w-3xl">
+        <DialogHeader><DialogTitle>Configurer les indicateurs SPI</DialogTitle></DialogHeader>
+        <p className="text-xs text-slate-500">
+          Personnalisez le nom de chaque indicateur, le libellé des deux lignes (ex. « Nbr vols », « Ground damages », « Nbr inspections SAFA », « SAFA Findings »…) et la méthode de calcul utilisée pour la ligne « Taux ».
+        </p>
+        <div className="max-h-[60vh] space-y-4 overflow-auto pr-1">
+          {panels.map(({ key, help }) => (
+            <div key={key} className="rounded-md border border-slate-200 p-3">
+              <div className="mb-2 text-[11px] font-semibold uppercase text-slate-500">{help}</div>
+              <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
+                <div className="md:col-span-2">
+                  <Label className="text-xs">Nom de l'indicateur</Label>
+                  <Input value={c[key].title} onChange={(e) => update(key, "title", e.target.value)} />
+                </div>
+                <div>
+                  <Label className="text-xs">Libellé ligne 1</Label>
+                  <Input value={c[key].labelA} onChange={(e) => update(key, "labelA", e.target.value)} />
+                </div>
+                <div>
+                  <Label className="text-xs">Libellé ligne 2</Label>
+                  <Input value={c[key].labelB} onChange={(e) => update(key, "labelB", e.target.value)} />
+                </div>
+                <div className="md:col-span-2">
+                  <Label className="text-xs">Méthode de calcul</Label>
+                  <select
+                    value={c[key].formula}
+                    onChange={(e) => update(key, "formula", e.target.value)}
+                    className="h-9 w-full cursor-pointer rounded-md border border-slate-200 bg-white px-2 text-sm"
+                  >
+                    {(Object.keys(FORMULA_LABEL) as SpiFormula[]).map((f) => (
+                      <option key={f} value={f}>{FORMULA_LABEL[f]}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setC(DEFAULT_SPI_CONFIG)}>Réinitialiser</Button>
+          <Button variant="outline" onClick={onCancel}>Annuler</Button>
+          <Button className="bg-blue-600 hover:bg-blue-700" onClick={() => onSave(c)}>Enregistrer</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

@@ -277,9 +277,11 @@ function DocumentsPage({ slug }: { slug: string }) {
                           >
                             <Download className="h-4 w-4" />
                           </button>
-                          {isAdmin && (d.id.startsWith("u-") || d.category === "notes-flash") && (
+                          {isAdmin && (
                             <button
-                              onClick={() => handleDelete(d.id)}
+                              onClick={() => {
+                                if (window.confirm(`Supprimer définitivement « ${d.title} » ?`)) handleDelete(d.id);
+                              }}
                               className="cursor-pointer rounded p-1.5 text-slate-500 hover:bg-red-50 hover:text-red-700"
                               title="Supprimer"
                             >
@@ -593,7 +595,27 @@ function UserManagementPage() {
   usePageTitle("Gestion Utilisateurs", "Comptes internes et externes");
 
   const [refresh, setRefresh] = useState(0);
-  const users = useMemo(() => loadUsers(), [refresh]);
+  const users = useMemo(() => {
+    const byEmail = new Map<string, StoredUser>();
+    for (const u of TEST_CREDENTIALS) {
+      const ut: UserType = u.userType ?? (u.role === "admin" ? "admin" : u.role === "external" ? "external" : "internal_standard");
+      byEmail.set(u.email.toLowerCase(), {
+        id: `seed-${u.email}`,
+        email: u.email,
+        emails: u.emails ?? [u.email],
+        username: u.username,
+        role: u.role,
+        userType: ut,
+        modules: u.modules ?? defaultModulesFor(ut),
+        org: u.org,
+        workplace: u.workplace ?? u.org ?? "—",
+        adminScope: u.adminScope,
+        createdAt: "2026-01-01T00:00:00.000Z",
+      });
+    }
+    for (const u of loadUsers()) byEmail.set(u.email.toLowerCase(), u);
+    return Array.from(byEmail.values());
+  }, [refresh]);
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<StoredUser | null>(null);
   const [tab, setTab] = useState<TabKey>("all");
@@ -749,20 +771,26 @@ function UserManagementPage() {
                     <td className="px-4 py-3 text-slate-700">{u.org}</td>
                     <td className="px-4 py-3 text-xs text-slate-500">{new Date(u.createdAt).toLocaleDateString()}</td>
                     <td className="px-4 py-3 text-right">
-                      <button
-                        onClick={() => setEditing(u)}
-                        className="cursor-pointer rounded p-1.5 text-slate-500 hover:bg-blue-50 hover:text-blue-700"
-                        title="Modifier"
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </button>
-                      <button
-                        onClick={() => { removeUser(u.id); setRefresh((r) => r + 1); toast.success("Utilisateur supprimé"); }}
-                        className="cursor-pointer rounded p-1.5 text-slate-500 hover:bg-red-50 hover:text-red-700"
-                        title="Supprimer"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
+                      {u.id.startsWith("seed-") ? (
+                        <span className="text-[10px] italic text-slate-400">Compte de démo</span>
+                      ) : (
+                        <>
+                          <button
+                            onClick={() => setEditing(u)}
+                            className="cursor-pointer rounded p-1.5 text-slate-500 hover:bg-blue-50 hover:text-blue-700"
+                            title="Modifier"
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </button>
+                          <button
+                            onClick={() => { removeUser(u.id); setRefresh((r) => r + 1); toast.success("Utilisateur supprimé"); }}
+                            className="cursor-pointer rounded p-1.5 text-slate-500 hover:bg-red-50 hover:text-red-700"
+                            title="Supprimer"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </>
+                      )}
                     </td>
                   </tr>
                 ))}
