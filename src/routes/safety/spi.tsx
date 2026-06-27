@@ -251,58 +251,61 @@ function SpiDashboard() {
       </div>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <Panel title="Taux Ground Damages — Tunisie" icon={<Shield className="h-3.5 w-3.5" />} tone="from-blue-600 to-blue-700">
+        <Panel title={cfg.impactSolTunisie.title} icon={<Shield className="h-3.5 w-3.5" />} tone="from-blue-600 to-blue-700">
           <QuarterTable
             data={data.impactSolTunisie}
             keys={["vols", "damages"]}
-            labels={["Nbr vols", "Dommages au sol"]}
+            labels={[cfg.impactSolTunisie.labelA, cfg.impactSolTunisie.labelB]}
             isAdmin={isAdmin}
             onEdit={(q) => setEditing({
               table: "impactSolTunisie", key: q,
-              labels: ["Nbr vols", "Dommages au sol"],
+              labels: [cfg.impactSolTunisie.labelA, cfg.impactSolTunisie.labelB],
               values: { a: data.impactSolTunisie[q as keyof typeof impactSolTunisie].vols, b: data.impactSolTunisie[q as keyof typeof impactSolTunisie].damages },
               aKey: "vols", bKey: "damages",
             })}
             showTaux
+            formula={cfg.impactSolTunisie.formula}
             accent="blue"
             row2Tooltip={(q) => tipFor(damagesTunisie[q] ?? [])}
-            onRow2Click={(q) => openEventsDetails(`Dommages au sol — Tunisie · ${q} ${year}`, damagesTunisie[q] ?? [])}
+            onRow2Click={(q) => openEventsDetails(`${cfg.impactSolTunisie.labelB} — Tunisie · ${q} ${year}`, damagesTunisie[q] ?? [])}
           />
         </Panel>
-        <Panel title="Taux Ground Damages — Étranger" icon={<Shield className="h-3.5 w-3.5" />} tone="from-emerald-600 to-emerald-700">
+        <Panel title={cfg.impactSolEtranger.title} icon={<Shield className="h-3.5 w-3.5" />} tone="from-emerald-600 to-emerald-700">
           <QuarterTable
             data={data.impactSolEtranger}
             keys={["vols", "damages"]}
-            labels={["Nbr vols", "Dommages au sol"]}
+            labels={[cfg.impactSolEtranger.labelA, cfg.impactSolEtranger.labelB]}
             isAdmin={isAdmin}
             onEdit={(q) => setEditing({
               table: "impactSolEtranger", key: q,
-              labels: ["Nbr vols", "Dommages au sol"],
+              labels: [cfg.impactSolEtranger.labelA, cfg.impactSolEtranger.labelB],
               values: { a: data.impactSolEtranger[q as keyof typeof impactSolEtranger].vols, b: data.impactSolEtranger[q as keyof typeof impactSolEtranger].damages },
               aKey: "vols", bKey: "damages",
             })}
             showTaux
+            formula={cfg.impactSolEtranger.formula}
             accent="emerald"
             row2Tooltip={(q) => tipFor(damagesEtranger[q] ?? [])}
-            onRow2Click={(q) => openEventsDetails(`Dommages au sol — Étranger · ${q} ${year}`, damagesEtranger[q] ?? [])}
+            onRow2Click={(q) => openEventsDetails(`${cfg.impactSolEtranger.labelB} — Étranger · ${q} ${year}`, damagesEtranger[q] ?? [])}
           />
         </Panel>
-        <Panel title="Indicateur SAFA D03" icon={<BarChart3 className="h-3.5 w-3.5" />} tone="from-amber-600 to-orange-600" className="lg:col-span-2">
+        <Panel title={cfg.safaD03.title} icon={<BarChart3 className="h-3.5 w-3.5" />} tone="from-amber-600 to-orange-600" className="lg:col-span-2">
           <QuarterTable
             data={data.safaD03}
             keys={["inspections", "ecarts"]}
-            labels={["Nbr inspections SAFA", "SAFA Findings"]}
+            labels={[cfg.safaD03.labelA, cfg.safaD03.labelB]}
             isAdmin={isAdmin}
             onEdit={(q) => setEditing({
               table: "safaD03", key: q,
-              labels: ["Nbr inspections SAFA", "SAFA Findings"],
+              labels: [cfg.safaD03.labelA, cfg.safaD03.labelB],
               values: { a: data.safaD03[q as keyof typeof safaD03].inspections, b: data.safaD03[q as keyof typeof safaD03].ecarts },
               aKey: "inspections", bKey: "ecarts",
             })}
             showTaux
+            formula={cfg.safaD03.formula}
             accent="amber"
             row2Tooltip={(q) => tipFor(safaQ[q] ?? [])}
-            onRow2Click={(q) => openSafaDetails(`SAFA Findings · ${q} ${year}`, safaQ[q] ?? [])}
+            onRow2Click={(q) => openSafaDetails(`${cfg.safaD03.labelB} · ${q} ${year}`, safaQ[q] ?? [])}
           />
         </Panel>
       </div>
