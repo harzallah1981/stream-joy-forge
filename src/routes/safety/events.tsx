@@ -319,13 +319,27 @@ function EventsRegister() {
                         </td>
                         {isAdmin && (
                           <td className="px-3 py-3 text-center">
-                            <button
-                              onClick={() => setEditing(e)}
-                              className="inline-flex cursor-pointer items-center gap-1 rounded-md border border-slate-200 px-2 py-1 text-xs text-slate-700 hover:bg-blue-50 hover:text-blue-700"
-                              title="Modifier"
-                            >
-                              <Pencil className="h-3.5 w-3.5" /> Modifier
-                            </button>
+                            <div className="flex items-center justify-center gap-1">
+                              <button
+                                onClick={() => setEditing(e)}
+                                className="inline-flex cursor-pointer items-center gap-1 rounded-md border border-slate-200 px-2 py-1 text-xs text-slate-700 hover:bg-blue-50 hover:text-blue-700"
+                                title="Modifier"
+                              >
+                                <Pencil className="h-3.5 w-3.5" /> Modifier
+                              </button>
+                              <button
+                                onClick={() => {
+                                  if (window.confirm(`Supprimer définitivement l'événement ${e.id} ?`)) {
+                                    persist(list.filter((x) => x.id !== e.id));
+                                    toast.success("Événement supprimé");
+                                  }
+                                }}
+                                className="inline-flex cursor-pointer items-center gap-1 rounded-md border border-slate-200 px-2 py-1 text-xs text-slate-700 hover:bg-red-50 hover:text-red-700"
+                                title="Supprimer"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" /> Supprimer
+                              </button>
+                            </div>
                           </td>
                         )}
                       </tr>
