@@ -503,7 +503,7 @@ const ACCENTS: Record<string, { head: string; head_text: string; taux: string; r
 };
 
 function QuarterTable({
-  data, keys, labels, showTaux, isAdmin, onEdit, accent = "blue", row2Tooltip, onRow2Click,
+  data, keys, labels, showTaux, isAdmin, onEdit, accent = "blue", row2Tooltip, onRow2Click, formula = "b_over_a_pct",
 }: {
   data: Record<string, Record<string, number | null>>;
   keys: [string, string];
@@ -514,6 +514,7 @@ function QuarterTable({
   accent?: string;
   row2Tooltip?: (q: string) => string;
   onRow2Click?: (q: string) => void;
+  formula?: SpiFormula;
 }) {
   const a = ACCENTS[accent] ?? ACCENTS.blue;
   return (
