@@ -277,9 +277,11 @@ function DocumentsPage({ slug }: { slug: string }) {
                           >
                             <Download className="h-4 w-4" />
                           </button>
-                          {isAdmin && (d.id.startsWith("u-") || d.category === "notes-flash") && (
+                          {isAdmin && (
                             <button
-                              onClick={() => handleDelete(d.id)}
+                              onClick={() => {
+                                if (window.confirm(`Supprimer définitivement « ${d.title} » ?`)) handleDelete(d.id);
+                              }}
                               className="cursor-pointer rounded p-1.5 text-slate-500 hover:bg-red-50 hover:text-red-700"
                               title="Supprimer"
                             >
