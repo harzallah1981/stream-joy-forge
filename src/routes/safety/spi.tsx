@@ -350,16 +350,16 @@ function SpiDashboard() {
                 {isAdmin && <td />}
               </tr>
               <tr className="border-b border-slate-100">
-                <td className="py-2 pl-2 pr-3 text-slate-700">Nbr Vols/Mois</td>
+                <td className="py-2 pl-2 pr-3 text-slate-700">{cfg.opsSolMensuel.labelB}</td>
                 {MONTHS.map((m) => (<td key={m} className="px-1.5 py-2 text-center tabular-nums text-slate-700">{data.opsSolMensuel[m].vols ?? "—"}</td>))}
                 {isAdmin && <td />}
               </tr>
               <tr className="bg-indigo-50/50">
-                <td className="py-2 pl-2 pr-3 font-semibold text-indigo-900">Taux (/vol)</td>
+                <td className="py-2 pl-2 pr-3 font-semibold text-indigo-900">{FORMULA_LABEL[cfg.opsSolMensuel.formula].split(" =")[0]}</td>
                 {MONTHS.map((m) => {
                   const manual = data.opsSolMensuel[m].anomalies;
                   const eff = manual === null ? (autoAnomalies[m] ?? null) : manual;
-                  return (<td key={m} className="px-1.5 py-2 text-center font-semibold tabular-nums text-indigo-700">{pct(eff, data.opsSolMensuel[m].vols)}</td>);
+                  return (<td key={m} className="px-1.5 py-2 text-center font-semibold tabular-nums text-indigo-700">{applyFormula(cfg.opsSolMensuel.formula, eff, data.opsSolMensuel[m].vols)}</td>);
                 })}
                 {isAdmin && <td />}
               </tr>
