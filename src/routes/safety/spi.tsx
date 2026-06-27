@@ -310,7 +310,7 @@ function SpiDashboard() {
         </Panel>
       </div>
 
-      <Panel title={`TAUX DES ÉVÉNEMENTS OPS SOL / MOIS — ${year}`} icon={<BarChart3 className="h-3.5 w-3.5" />} tone="from-indigo-600 to-purple-600" className="mt-4">
+      <Panel title={`${cfg.opsSolMensuel.title} — ${year}`} icon={<BarChart3 className="h-3.5 w-3.5" />} tone="from-indigo-600 to-purple-600" className="mt-4">
         <div className="overflow-x-auto">
           <table className="w-full min-w-[820px] text-xs">
             <thead>
