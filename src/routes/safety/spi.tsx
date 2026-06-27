@@ -609,3 +609,64 @@ function NewYearDialog({ existingYears, onCancel, onConfirm }: { existingYears: 
     </Dialog>
   );
 }
+
+function SpiConfigDialog({ initial, onCancel, onSave }: { initial: SpiConfig; onCancel: () => void; onSave: (c: SpiConfig) => void; }) {
+  const [c, setC] = useState<SpiConfig>(initial);
+  const panels: { key: SpiPanelKey; help: string }[] = [
+    { key: "impactSolTunisie", help: "Panneau Ground Damages — Tunisie" },
+    { key: "impactSolEtranger", help: "Panneau Ground Damages — Étranger" },
+    { key: "safaD03", help: "Panneau SAFA D03" },
+    { key: "opsSolMensuel", help: "Tableau mensuel OPS Sol" },
+  ];
+  const update = (k: SpiPanelKey, field: "title" | "labelA" | "labelB" | "formula", v: string) => {
+    setC({ ...c, [k]: { ...c[k], [field]: v } });
+  };
+  return (
+    <Dialog open onOpenChange={(v) => !v && onCancel()}>
+      <DialogContent className="max-w-3xl">
+        <DialogHeader><DialogTitle>Configurer les indicateurs SPI</DialogTitle></DialogHeader>
+        <p className="text-xs text-slate-500">
+          Personnalisez le nom de chaque indicateur, le libellé des deux lignes (ex. « Nbr vols », « Ground damages », « Nbr inspections SAFA », « SAFA Findings »…) et la méthode de calcul utilisée pour la ligne « Taux ».
+        </p>
+        <div className="max-h-[60vh] space-y-4 overflow-auto pr-1">
+          {panels.map(({ key, help }) => (
+            <div key={key} className="rounded-md border border-slate-200 p-3">
+              <div className="mb-2 text-[11px] font-semibold uppercase text-slate-500">{help}</div>
+              <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
+                <div className="md:col-span-2">
+                  <Label className="text-xs">Nom de l'indicateur</Label>
+                  <Input value={c[key].title} onChange={(e) => update(key, "title", e.target.value)} />
+                </div>
+                <div>
+                  <Label className="text-xs">Libellé ligne 1</Label>
+                  <Input value={c[key].labelA} onChange={(e) => update(key, "labelA", e.target.value)} />
+                </div>
+                <div>
+                  <Label className="text-xs">Libellé ligne 2</Label>
+                  <Input value={c[key].labelB} onChange={(e) => update(key, "labelB", e.target.value)} />
+                </div>
+                <div className="md:col-span-2">
+                  <Label className="text-xs">Méthode de calcul</Label>
+                  <select
+                    value={c[key].formula}
+                    onChange={(e) => update(key, "formula", e.target.value)}
+                    className="h-9 w-full cursor-pointer rounded-md border border-slate-200 bg-white px-2 text-sm"
+                  >
+                    {(Object.keys(FORMULA_LABEL) as SpiFormula[]).map((f) => (
+                      <option key={f} value={f}>{FORMULA_LABEL[f]}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setC(DEFAULT_SPI_CONFIG)}>Réinitialiser</Button>
+          <Button variant="outline" onClick={onCancel}>Annuler</Button>
+          <Button className="bg-blue-600 hover:bg-blue-700" onClick={() => onSave(c)}>Enregistrer</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
