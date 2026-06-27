@@ -172,6 +172,8 @@ function SpiDashboard() {
   const [editing, setEditing] = useState<null | { table: keyof SpiSnapshot; key: string; labels: [string, string]; values: { a: number | null; b: number | null }; aKey: string; bKey: string }>(null);
   const [newYearOpen, setNewYearOpen] = useState(false);
   const [details, setDetails] = useState<null | { title: string; columns: string[]; rows: (string | number)[][] }>(null);
+  const [cfg, setCfg] = useState<SpiConfig>(() => loadSpiConfig());
+  const [cfgOpen, setCfgOpen] = useState(false);
 
   useEffect(() => { setYears(listYears()); }, []);
   useEffect(() => { setData(loadSpi(year)); }, [year]);
