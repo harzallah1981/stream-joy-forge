@@ -556,8 +556,8 @@ function QuarterTable({
         </tr>
         {showTaux && (
           <tr className={(isAdmin ? "border-b border-slate-100 " : "") + a.row}>
-            <td className="py-1.5 pl-2 pr-3 font-semibold text-slate-900">Taux</td>
-            {QUARTERS.map((q) => (<td key={q} className={"px-2 py-1.5 text-center font-semibold tabular-nums " + a.taux}>{pct(data[q][keys[1]] ?? null, data[q][keys[0]] ?? null)}</td>))}
+            <td className="py-1.5 pl-2 pr-3 font-semibold text-slate-900" title={FORMULA_LABEL[formula]}>{FORMULA_LABEL[formula].split(" =")[0]}</td>
+            {QUARTERS.map((q) => (<td key={q} className={"px-2 py-1.5 text-center font-semibold tabular-nums " + a.taux}>{applyFormula(formula, data[q][keys[0]] ?? null, data[q][keys[1]] ?? null)}</td>))}
           </tr>
         )}
         {isAdmin && (
