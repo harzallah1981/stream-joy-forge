@@ -771,20 +771,26 @@ function UserManagementPage() {
                     <td className="px-4 py-3 text-slate-700">{u.org}</td>
                     <td className="px-4 py-3 text-xs text-slate-500">{new Date(u.createdAt).toLocaleDateString()}</td>
                     <td className="px-4 py-3 text-right">
-                      <button
-                        onClick={() => setEditing(u)}
-                        className="cursor-pointer rounded p-1.5 text-slate-500 hover:bg-blue-50 hover:text-blue-700"
-                        title="Modifier"
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </button>
-                      <button
-                        onClick={() => { removeUser(u.id); setRefresh((r) => r + 1); toast.success("Utilisateur supprimé"); }}
-                        className="cursor-pointer rounded p-1.5 text-slate-500 hover:bg-red-50 hover:text-red-700"
-                        title="Supprimer"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
+                      {u.id.startsWith("seed-") ? (
+                        <span className="text-[10px] italic text-slate-400">Compte de démo</span>
+                      ) : (
+                        <>
+                          <button
+                            onClick={() => setEditing(u)}
+                            className="cursor-pointer rounded p-1.5 text-slate-500 hover:bg-blue-50 hover:text-blue-700"
+                            title="Modifier"
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </button>
+                          <button
+                            onClick={() => { removeUser(u.id); setRefresh((r) => r + 1); toast.success("Utilisateur supprimé"); }}
+                            className="cursor-pointer rounded p-1.5 text-slate-500 hover:bg-red-50 hover:text-red-700"
+                            title="Supprimer"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </>
+                      )}
                     </td>
                   </tr>
                 ))}
