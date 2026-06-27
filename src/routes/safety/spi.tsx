@@ -125,6 +125,42 @@ function listYears(): number[] {
   return Array.from(set).sort((a, b) => b - a);
 }
 
+// ---- SPI configuration (admin-editable) ----
+export type SpiFormula = "b_over_a_pct" | "a_over_b_pct" | "b_minus_a" | "sum";
+export type SpiPanelKey = "impactSolTunisie" | "impactSolEtranger" | "safaD03" | "opsSolMensuel";
+export type SpiConfig = Record<SpiPanelKey, { title: string; labelA: string; labelB: string; formula: SpiFormula }>;
+
+const DEFAULT_SPI_CONFIG: SpiConfig = {
+  impactSolTunisie: { title: "Taux Ground Damages — Tunisie", labelA: "Nbr vols", labelB: "Dommages au sol", formula: "b_over_a_pct" },
+  impactSolEtranger: { title: "Taux Ground Damages — Étranger", labelA: "Nbr vols", labelB: "Dommages au sol", formula: "b_over_a_pct" },
+  safaD03: { title: "Indicateur SAFA D03", labelA: "Nbr inspections SAFA", labelB: "SAFA Findings", formula: "b_over_a_pct" },
+  opsSolMensuel: { title: "TAUX DES ÉVÉNEMENTS OPS SOL / MOIS", labelA: "Nbr Anomalies", labelB: "Nbr Vols/Mois", formula: "b_over_a_pct" },
+};
+const SPI_CFG_KEY = "tunisair_spi_config_v1";
+function loadSpiConfig(): SpiConfig {
+  try {
+    const raw = typeof localStorage !== "undefined" ? localStorage.getItem(SPI_CFG_KEY) : null;
+    if (raw) return { ...DEFAULT_SPI_CONFIG, ...JSON.parse(raw) };
+  } catch {}
+  return DEFAULT_SPI_CONFIG;
+}
+function saveSpiConfig(c: SpiConfig) { localStorage.setItem(SPI_CFG_KEY, JSON.stringify(c)); }
+function applyFormula(f: SpiFormula, a: number | null, b: number | null): string {
+  if (a === null || b === null) return "—";
+  switch (f) {
+    case "b_over_a_pct": return a === 0 ? "—" : ((b / a) * 100).toFixed(2) + "%";
+    case "a_over_b_pct": return b === 0 ? "—" : ((a / b) * 100).toFixed(2) + "%";
+    case "b_minus_a": return String(b - a);
+    case "sum": return String(a + b);
+  }
+}
+const FORMULA_LABEL: Record<SpiFormula, string> = {
+  b_over_a_pct: "Taux = (Ligne 2 ÷ Ligne 1) × 100%",
+  a_over_b_pct: "Taux = (Ligne 1 ÷ Ligne 2) × 100%",
+  b_minus_a: "Écart = Ligne 2 − Ligne 1",
+  sum: "Somme = Ligne 1 + Ligne 2",
+};
+
 function SpiDashboard() {
   usePageTitle("Indicateurs SPI", "KPIs securite — Ground Damage, SAFA, Taux ops · Multi-annee");
   const { user } = useAuth();
