@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { BookOpen, CheckCircle2, AlertCircle, X, ArrowRight, ShieldAlert, Plane } from "lucide-react";
+import { BookOpen, CheckCircle2, AlertCircle, X, ArrowRight, ShieldAlert, Plane, Bell } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Button } from "@/components/ui/button";
 import { openSafaForEscale, type SafaRecord } from "@/lib/safa-store";
 import type { SafetyEvent } from "@/lib/safety-data";
+import { getReminders, clearReminder } from "@/lib/user-reminders";
 
 function loadOpenEventsForEscale(escale?: string): SafetyEvent[] {
   if (typeof window === "undefined") return [];
@@ -122,6 +123,8 @@ export function UserDashboard() {
         </HoverCard>
       </div>
 
+      <RemindersBanner onOpen={(d) => startReading([d])} />
+
       <SafetyEscaleBlock />
 
 
@@ -214,7 +217,7 @@ function SafetyEscaleBlock() {
             <ul className="space-y-1.5">
               {openEvents.slice(0, 5).map((e) => (
                 <li key={e.id} className="text-xs">
-                  <Link to="/safety/events" className="block rounded p-1 hover:bg-red-50">
+                  <Link to="/safety/events" search={{ focus: e.id }} className="block rounded p-1 hover:bg-red-50">
                     <span className="font-mono font-semibold text-slate-800">{e.id}</span>
                     <span className="ml-2 text-slate-500">{e.date} · {e.escale}</span>
                     <div className="truncate text-slate-700">{e.description}</div>
@@ -237,7 +240,7 @@ function SafetyEscaleBlock() {
             <ul className="space-y-1.5">
               {openSafa.slice(0, 5).map((r) => (
                 <li key={r.id} className="text-xs">
-                  <Link to="/safety/safa-d03" className="block rounded p-1 hover:bg-red-50">
+                  <Link to="/safety/safa-d03" search={{ focus: r.id }} className="block rounded p-1 hover:bg-red-50">
                     <span className="font-mono font-semibold text-slate-800">{r.id}</span>
                     <span className="ml-2 text-slate-500">{r.date} · {r.escale} · {r.vol}</span>
                     <div className="truncate text-slate-700">{r.description}</div>
@@ -251,6 +254,46 @@ function SafetyEscaleBlock() {
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+function RemindersBanner({ onOpen }: { onOpen: (d: DocItem) => void }) {
+  const { user } = useAuth();
+  const [tick, setTick] = useState(0);
+  if (!user) return null;
+  const rems = getReminders(user.email);
+  if (rems.length === 0) return null;
+  return (
+    <div className="mt-6 overflow-hidden rounded-xl border-2 border-amber-400 bg-amber-50 shadow-sm">
+      <div className="flex items-center gap-2 border-b border-amber-200 bg-amber-100 px-4 py-2.5">
+        <Bell className="h-4 w-4 text-amber-700" />
+        <h3 className="text-sm font-bold uppercase tracking-wide text-amber-800">
+          Rappels de lecture envoyés par l'administration
+        </h3>
+        <span className="ml-auto rounded-full bg-amber-600 px-2 py-0.5 text-[11px] font-bold text-white">{rems.length}</span>
+      </div>
+      <ul className="divide-y divide-amber-100">
+        {rems.map((r) => {
+          const doc = getAllDocs().find((d) => d.id === r.docId);
+          return (
+            <li key={r.id} className="flex items-center gap-2 px-4 py-2 text-xs">
+              <span className="font-mono font-semibold text-slate-800">{r.docReference}</span>
+              <span className="truncate text-slate-700">{r.docTitle}</span>
+              <span className="ml-auto text-[10px] text-slate-500">{new Date(r.at).toLocaleString()}</span>
+              {doc && (
+                <Button size="sm" variant="outline" className="h-7 cursor-pointer text-xs" onClick={() => { onOpen(doc); clearReminder(user.email, r.docId); setTick((t) => t + 1); }}>
+                  Lire
+                </Button>
+              )}
+              <button onClick={() => { clearReminder(user.email, r.docId); setTick((t) => t + 1); }} className="cursor-pointer rounded p-1 text-slate-400 hover:bg-slate-100">
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+      <span className="hidden">{tick}</span>
     </div>
   );
 }

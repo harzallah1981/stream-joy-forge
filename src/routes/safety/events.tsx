@@ -28,6 +28,7 @@ import { useAuth } from "@/lib/auth";
 export const Route = createFileRoute("/safety/events")({
   head: () => ({ meta: [{ title: "Registre Evenements — Tunisair Ground Safety" }] }),
   component: EventsRegister,
+  validateSearch: (s: Record<string, unknown>) => ({ focus: typeof s.focus === "string" ? s.focus : undefined }),
 });
 
 const CURRENT_YEAR = 2026;
@@ -60,6 +61,8 @@ function EventsRegister() {
   usePageTitle("Registre Evenements", "Suivi des evenements securite au sol — Multi-annee");
   const { user } = useAuth();
   const isAdmin = user?.role === "admin";
+  const { focus } = Route.useSearch();
+  const nav = Route.useNavigate();
   const [year, setYear] = useState(CURRENT_YEAR);
   const [years, setYears] = useState<number[]>([CURRENT_YEAR]);
   const [list, setList] = useState<SafetyEvent[]>([]);
@@ -91,7 +94,10 @@ function EventsRegister() {
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase().trim();
+    const userEscale = (user?.workplace ?? "").trim().toUpperCase();
     return list.filter((e) => {
+      // Non-admins only see events for their own escale.
+      if (!isAdmin && userEscale && e.escale.toUpperCase() !== userEscale) return false;
       if (q && !(
         e.id.toLowerCase().includes(q) ||
         e.escale.toLowerCase().includes(q) ||
@@ -117,7 +123,10 @@ function EventsRegister() {
       }
       return true;
     });
-  }, [list, search, fEscale, fStatut, fCategorie, fSeverite, fMois, fTrim]);
+  }, [list, search, fEscale, fStatut, fCategorie, fSeverite, fMois, fTrim, isAdmin, user, cfg]);
+
+  // When ?focus=<id> is set and the user is not admin, hide the full table and show only that event.
+  const focused = focus ? list.find((e) => e.id === focus) : null;
 
   const resetFilters = () => {
     setSearch(""); setFEscale(""); setFSeverite(""); setFStatut("");
@@ -145,8 +154,44 @@ function EventsRegister() {
     toast.success(`Année ${newYear} créée. Données ${year} archivées.`);
   };
 
+  // Non-admin arriving from a dashboard alert: render only the focused event detail.
+  if (!isAdmin && focused) {
+    const sev = focused.prob * focused.grav;
+    const band = severityFor(cfg, sev);
+    return (
+      <div className="p-4 md:p-6 lg:p-8">
+        <div className="mb-3">
+          <Button variant="outline" size="sm" onClick={() => nav({ search: { focus: undefined } })} className="cursor-pointer">
+            ← Retour
+          </Button>
+        </div>
+        <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+          <div className="flex items-center gap-2 border-b border-slate-200 bg-slate-50 px-5 py-3">
+            <Shield className="h-4 w-4 text-red-500" />
+            <h2 className="text-sm font-semibold text-slate-900">Événement {focused.id}</h2>
+            <span className={"ml-auto inline-flex rounded-full px-2.5 py-0.5 text-[11px] font-semibold " + statusClass(cfg, focused.statut)}>
+              {focused.statut}
+            </span>
+          </div>
+          <dl className="grid grid-cols-1 gap-4 p-5 text-sm sm:grid-cols-2">
+            <div><dt className="text-xs uppercase text-slate-500">Date</dt><dd className="font-medium">{focused.date}</dd></div>
+            <div><dt className="text-xs uppercase text-slate-500">Escale</dt><dd className="font-mono font-semibold">{focused.escale}</dd></div>
+            <div><dt className="text-xs uppercase text-slate-500">Source</dt><dd>{focused.source}</dd></div>
+            <div><dt className="text-xs uppercase text-slate-500">Catégorie</dt><dd className={"inline-flex rounded-md border px-2 py-0.5 text-[10px] font-bold " + categoryClass(cfg, focused.categorie as Category)}>{focused.categorie}</dd></div>
+            <div><dt className="text-xs uppercase text-slate-500">Probabilité</dt><dd>{focused.prob}</dd></div>
+            <div><dt className="text-xs uppercase text-slate-500">Gravité</dt><dd>{focused.grav}</dd></div>
+            <div><dt className="text-xs uppercase text-slate-500">Sévérité</dt><dd><span className={"inline-flex rounded px-2 py-0.5 text-xs font-bold " + band.color}>{sev} · {band.name}</span></dd></div>
+            <div className="sm:col-span-2"><dt className="text-xs uppercase text-slate-500">Description</dt><dd className="whitespace-pre-wrap text-slate-700">{focused.description}</dd></div>
+            <div className="sm:col-span-2"><dt className="text-xs uppercase text-slate-500">Action / Réponse</dt><dd className="whitespace-pre-wrap text-slate-700">{focused.action || "—"}</dd></div>
+          </dl>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="p-4 md:p-6 lg:p-8">
+
       <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
         <div className="flex flex-wrap items-center gap-3 border-b border-slate-200 bg-white px-5 py-4">
           <h2 className="flex items-center gap-2 text-sm font-semibold text-slate-900">

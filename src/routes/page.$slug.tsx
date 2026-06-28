@@ -15,6 +15,11 @@ import {
   canUserSeeReadSignDoc, getDocsForCategory, getAllDocs, loadUserDocs, saveUserDocs, hideSeedDoc, fileToDataUrl, requiresAckForCategory, type DocItem,
 } from "@/lib/documents";
 import { addAck, hasAcked, loadAcks, loadAcksRemote, type Ack } from "@/lib/acknowledgements";
+import { DocViewerDialog } from "@/components/doc-viewer-dialog";
+import { pushReminder } from "@/lib/user-reminders";
+import {
+  BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, CartesianGrid,
+} from "recharts";
 import { markRead as markDocRead } from "@/lib/notifications";
 import {
   loadUsers, addUser, updateUser, removeUser,
@@ -72,6 +77,7 @@ function DocumentsPage({ slug }: { slug: string }) {
   const [q, setQ] = useState("");
   const [status, setStatus] = useState("all");
   const [ackTarget, setAckTarget] = useState<null | { doc: DocItem; action: "view" | "download" }>(null);
+  const [viewing, setViewing] = useState<DocItem | null>(null);
   const [aocYear, setAocYear] = useState<string>("all");
 
   const docs = useMemo(() => getDocsForCategory(slug), [slug, refresh]);
@@ -142,7 +148,8 @@ function DocumentsPage({ slug }: { slug: string }) {
     // Real document access — clears the bell indicator for this doc.
     if (user) markDocRead(user.email, doc.id);
     if (action === "view") {
-      window.open(doc.url, "_blank", "noopener,noreferrer");
+      // Open the document inside the app (no new tab / popup blocker).
+      setViewing(doc);
     } else {
       const a = document.createElement("a");
       a.href = doc.url;
@@ -327,6 +334,8 @@ function DocumentsPage({ slug }: { slug: string }) {
           }}
         />
       )}
+
+      <DocViewerDialog doc={viewing} onClose={() => setViewing(null)} />
     </div>
   );
 }
@@ -1169,7 +1178,172 @@ function AcksPage() {
       <Table rows={internes} title="Utilisateurs Internes" tone="text-blue-600" />
       <Table rows={externes} title="Utilisateurs Externes" tone="text-amber-600" />
 
+      <AcksSummaryChart rows={filtered} />
+
       <ReadingRecap acks={acks} />
+
+      <EventsPivot />
+    </div>
+  );
+}
+
+/* ---- Compact recharts summary of the filtered acknowledgements ---- */
+function AcksSummaryChart({ rows }: { rows: { docTitle: string; action: string; userType: string }[] }) {
+  const byDoc = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const r of rows) m.set(r.docTitle, (m.get(r.docTitle) ?? 0) + 1);
+    return Array.from(m.entries()).map(([name, value]) => ({ name: name.length > 28 ? name.slice(0, 26) + "…" : name, value })).slice(0, 10);
+  }, [rows]);
+  const byType = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const r of rows) m.set(r.userType, (m.get(r.userType) ?? 0) + 1);
+    return Array.from(m.entries()).map(([name, value]) => ({ name, value }));
+  }, [rows]);
+  const COLORS = ["#2563eb", "#f59e0b", "#10b981", "#ef4444", "#8b5cf6"];
+  if (rows.length === 0) return null;
+  return (
+    <div className="overflow-hidden rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+      <h3 className="mb-3 text-sm font-semibold text-slate-900">📊 Synthèse graphique (résultat filtré)</h3>
+      <div className="grid gap-4 md:grid-cols-2">
+        <div className="h-64">
+          <div className="mb-1 text-xs font-semibold text-slate-600">Top documents lus / signés</div>
+          <ResponsiveContainer width="100%" height="90%">
+            <BarChart data={byDoc} margin={{ left: 0, right: 8, top: 5, bottom: 40 }}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="name" tick={{ fontSize: 10 }} angle={-25} textAnchor="end" interval={0} />
+              <YAxis tick={{ fontSize: 10 }} allowDecimals={false} />
+              <Tooltip />
+              <Bar dataKey="value" fill="#2563eb" radius={[4, 4, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+        <div className="h-64">
+          <div className="mb-1 text-xs font-semibold text-slate-600">Répartition par type d'utilisateur</div>
+          <ResponsiveContainer width="100%" height="90%">
+            <PieChart>
+              <Pie data={byType} dataKey="value" nameKey="name" outerRadius={80} label>
+                {byType.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+              </Pie>
+              <Tooltip />
+              <Legend />
+            </PieChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ---- Pivot charts for safety events (interactive) ---- */
+function EventsPivot() {
+  const [tick, setTick] = useState(0);
+  useEffect(() => {
+    const onStorage = () => setTick((x) => x + 1);
+    window.addEventListener("storage", onStorage);
+    const id = window.setInterval(onStorage, 10000);
+    return () => { window.removeEventListener("storage", onStorage); window.clearInterval(id); };
+  }, []);
+  const events = useMemo(() => {
+    try {
+      const raw = localStorage.getItem("tunisair_events_2026");
+      return raw ? (JSON.parse(raw) as Array<{ escale: string; categorie: string; prob: number; grav: number; statut: string; date: string }>) : [];
+    } catch { return []; }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tick]);
+
+  const [fCat, setFCat] = useState("");
+  const [fEsc, setFEsc] = useState("");
+  const [fSev, setFSev] = useState("");
+
+  const sevBand = (n: number) => n <= 4 ? "Mineur" : n <= 9 ? "Modéré" : n <= 15 ? "Majeur" : "Critique";
+
+  const filtered = events.filter((e) => {
+    if (fCat && e.categorie !== fCat) return false;
+    if (fEsc && e.escale !== fEsc) return false;
+    if (fSev && sevBand(e.prob * e.grav) !== fSev) return false;
+    return true;
+  });
+
+  const cats = Array.from(new Set(events.map((e) => e.categorie))).sort();
+  const escs = Array.from(new Set(events.map((e) => e.escale))).sort();
+  const sevs = ["Mineur", "Modéré", "Majeur", "Critique"];
+
+  const byEscale = (() => {
+    const m = new Map<string, number>();
+    for (const e of filtered) m.set(e.escale, (m.get(e.escale) ?? 0) + 1);
+    return Array.from(m.entries()).map(([name, value]) => ({ name, value }));
+  })();
+  const byCat = (() => {
+    const m = new Map<string, number>();
+    for (const e of filtered) m.set(e.categorie, (m.get(e.categorie) ?? 0) + 1);
+    return Array.from(m.entries()).map(([name, value]) => ({ name, value }));
+  })();
+  const bySev = (() => {
+    const m = new Map<string, number>();
+    for (const e of filtered) m.set(sevBand(e.prob * e.grav), (m.get(sevBand(e.prob * e.grav)) ?? 0) + 1);
+    return Array.from(m.entries()).map(([name, value]) => ({ name, value }));
+  })();
+
+  const COLORS = ["#2563eb", "#f59e0b", "#10b981", "#ef4444", "#8b5cf6", "#0ea5e9", "#d946ef"];
+
+  return (
+    <div className="overflow-hidden rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+      <h3 className="mb-3 text-sm font-semibold text-slate-900">📈 Graphiques croisés — Événements de sécurité</h3>
+      <div className="mb-3 flex flex-wrap gap-2 text-xs">
+        <select value={fCat} onChange={(e) => setFCat(e.target.value)} className="h-8 cursor-pointer rounded-md border border-slate-200 bg-white px-2">
+          <option value="">Catégorie (toutes)</option>
+          {cats.map((c) => <option key={c} value={c}>{c}</option>)}
+        </select>
+        <select value={fEsc} onChange={(e) => setFEsc(e.target.value)} className="h-8 cursor-pointer rounded-md border border-slate-200 bg-white px-2">
+          <option value="">Escale (toutes)</option>
+          {escs.map((e) => <option key={e} value={e}>{e}</option>)}
+        </select>
+        <select value={fSev} onChange={(e) => setFSev(e.target.value)} className="h-8 cursor-pointer rounded-md border border-slate-200 bg-white px-2">
+          <option value="">Sévérité (toutes)</option>
+          {sevs.map((s) => <option key={s} value={s}>{s}</option>)}
+        </select>
+        {(fCat || fEsc || fSev) && (
+          <button onClick={() => { setFCat(""); setFEsc(""); setFSev(""); }} className="cursor-pointer rounded-md border border-slate-200 bg-white px-2 text-xs text-slate-600 hover:bg-slate-100">Réinitialiser</button>
+        )}
+        <span className="ml-auto text-slate-500">{filtered.length} / {events.length} événement(s)</span>
+      </div>
+      <div className="grid gap-4 md:grid-cols-3">
+        <div className="h-64">
+          <div className="mb-1 text-xs font-semibold text-slate-600">Par escale</div>
+          <ResponsiveContainer width="100%" height="90%">
+            <BarChart data={byEscale} margin={{ left: 0, right: 8, top: 5, bottom: 20 }}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="name" tick={{ fontSize: 10 }} />
+              <YAxis tick={{ fontSize: 10 }} allowDecimals={false} />
+              <Tooltip />
+              <Bar dataKey="value" fill="#2563eb" radius={[4, 4, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+        <div className="h-64">
+          <div className="mb-1 text-xs font-semibold text-slate-600">Par catégorie</div>
+          <ResponsiveContainer width="100%" height="90%">
+            <PieChart>
+              <Pie data={byCat} dataKey="value" nameKey="name" outerRadius={80} label>
+                {byCat.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+              </Pie>
+              <Tooltip /><Legend />
+            </PieChart>
+          </ResponsiveContainer>
+        </div>
+        <div className="h-64">
+          <div className="mb-1 text-xs font-semibold text-slate-600">Par sévérité</div>
+          <ResponsiveContainer width="100%" height="90%">
+            <BarChart data={bySev} margin={{ left: 0, right: 8, top: 5, bottom: 20 }}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="name" tick={{ fontSize: 10 }} />
+              <YAxis tick={{ fontSize: 10 }} allowDecimals={false} />
+              <Tooltip />
+              <Bar dataKey="value" fill="#ef4444" radius={[4, 4, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
     </div>
   );
 }
@@ -1312,8 +1486,24 @@ function ReadingRecap({ acks }: { acks: ReturnType<typeof loadAcks> }) {
             </div>
           </div>
           <div>
-            <div className="bg-red-50 px-4 py-2 text-xs font-semibold text-red-800">
-              ❌ N'ont pas lu / signé — {nonLus.length}
+            <div className="flex items-center gap-2 bg-red-50 px-4 py-2 text-xs font-semibold text-red-800">
+              <span>❌ N'ont pas lu / signé — {nonLus.length}</span>
+              {selectedDoc && nonLus.length > 0 && (
+                <button
+                  onClick={() => {
+                    nonLus.forEach((u) => pushReminder(u.email, {
+                      docId: selectedDoc.id,
+                      docTitle: selectedDoc.title,
+                      docReference: selectedDoc.reference,
+                      category: selectedDoc.category,
+                    }));
+                    toast.success(`Rappel envoyé à ${nonLus.length} utilisateur(s)`);
+                  }}
+                  className="ml-auto cursor-pointer rounded-md bg-red-600 px-2 py-1 text-[11px] font-bold text-white hover:bg-red-700"
+                >
+                  🔔 Remind all
+                </button>
+              )}
             </div>
             <div className="max-h-80 overflow-auto">
               <table className="w-full text-xs">

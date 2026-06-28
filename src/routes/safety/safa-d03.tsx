@@ -16,12 +16,15 @@ import {
 export const Route = createFileRoute("/safety/safa-d03")({
   head: () => ({ meta: [{ title: "Suivi SAFA D03 — Tunisair Ground Safety" }] }),
   component: SafaD03Page,
+  validateSearch: (s: Record<string, unknown>) => ({ focus: typeof s.focus === "string" ? s.focus : undefined }),
 });
 
 function SafaD03Page() {
   usePageTitle("Suivi SAFA D03", "Déficiences SAFA — catégorie D03 · Ground Handling");
   const { user } = useAuth();
   const isAdmin = user?.role === "admin";
+  const { focus } = Route.useSearch();
+  const nav = Route.useNavigate();
 
   const [year, setYear] = useState(SAFA_CURRENT_YEAR);
   const [years, setYears] = useState<number[]>([SAFA_CURRENT_YEAR]);
@@ -78,8 +81,39 @@ function SafaD03Page() {
     toast.success(`Année ${ny} créée. Données ${year} archivées.`);
   };
 
+  const focused = focus ? list.find((r) => r.id === focus) : null;
+  if (!isAdmin && focused) {
+    return (
+      <div className="p-4 md:p-6 lg:p-8">
+        <div className="mb-3">
+          <Button variant="outline" size="sm" onClick={() => nav({ search: { focus: undefined } })} className="cursor-pointer">
+            ← Retour
+          </Button>
+        </div>
+        <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+          <div className="flex items-center gap-2 border-b border-slate-200 bg-slate-50 px-5 py-3">
+            <Plane className="h-4 w-4 text-blue-600" />
+            <h2 className="text-sm font-semibold text-slate-900">Écart SAFA {focused.id}</h2>
+            <span className={"ml-auto inline-flex rounded-full px-2.5 py-0.5 text-[11px] font-semibold " + (focused.statut === "CLÔTURÉ" ? "bg-green-100 text-green-700" : "bg-orange-100 text-orange-700")}>
+              {focused.statut}
+            </span>
+          </div>
+          <dl className="grid grid-cols-1 gap-4 p-5 text-sm sm:grid-cols-2">
+            <div><dt className="text-xs uppercase text-slate-500">Date</dt><dd className="font-medium">{focused.date}</dd></div>
+            <div><dt className="text-xs uppercase text-slate-500">Catégorie</dt><dd>{focused.category}</dd></div>
+            <div><dt className="text-xs uppercase text-slate-500">Escale</dt><dd className="font-mono font-semibold">{focused.escale}</dd></div>
+            <div><dt className="text-xs uppercase text-slate-500">N° Vol</dt><dd className="font-mono">{focused.vol}</dd></div>
+            <div className="sm:col-span-2"><dt className="text-xs uppercase text-slate-500">Description</dt><dd className="whitespace-pre-wrap text-slate-700">{focused.description}</dd></div>
+            <div className="sm:col-span-2"><dt className="text-xs uppercase text-slate-500">Envoi / Notification</dt><dd className="whitespace-pre-wrap text-slate-700">{focused.notification || "—"}</dd></div>
+          </dl>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="p-4 md:p-6 lg:p-8">
+
       <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
         <div className="flex flex-wrap items-center gap-3 border-b border-slate-200 bg-white px-5 py-4">
           <h2 className="flex items-center gap-2 text-sm font-semibold text-slate-900">
