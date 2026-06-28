@@ -1486,8 +1486,24 @@ function ReadingRecap({ acks }: { acks: ReturnType<typeof loadAcks> }) {
             </div>
           </div>
           <div>
-            <div className="bg-red-50 px-4 py-2 text-xs font-semibold text-red-800">
-              ❌ N'ont pas lu / signé — {nonLus.length}
+            <div className="flex items-center gap-2 bg-red-50 px-4 py-2 text-xs font-semibold text-red-800">
+              <span>❌ N'ont pas lu / signé — {nonLus.length}</span>
+              {selectedDoc && nonLus.length > 0 && (
+                <button
+                  onClick={() => {
+                    nonLus.forEach((u) => pushReminder(u.email, {
+                      docId: selectedDoc.id,
+                      docTitle: selectedDoc.title,
+                      docReference: selectedDoc.reference,
+                      category: selectedDoc.category,
+                    }));
+                    toast.success(`Rappel envoyé à ${nonLus.length} utilisateur(s)`);
+                  }}
+                  className="ml-auto cursor-pointer rounded-md bg-red-600 px-2 py-1 text-[11px] font-bold text-white hover:bg-red-700"
+                >
+                  🔔 Remind all
+                </button>
+              )}
             </div>
             <div className="max-h-80 overflow-auto">
               <table className="w-full text-xs">
