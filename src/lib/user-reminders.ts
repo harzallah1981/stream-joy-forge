@@ -18,7 +18,7 @@ function load(): Store {
 }
 function save(s: Store) { localStorage.setItem(KEY, JSON.stringify(s)); }
 
-export function pushReminder(email: string, r: Omit<UserReminder, "id" | "at">, fromAdmin = "admin") {
+export function pushReminder(email: string, r: { docId: string; docTitle: string; docReference: string; category: string }, fromAdmin = "admin") {
   const s = load();
   const list = s[email.toLowerCase()] ?? [];
   if (list.some((x) => x.docId === r.docId)) return;
