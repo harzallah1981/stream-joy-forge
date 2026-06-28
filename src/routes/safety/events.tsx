@@ -94,7 +94,10 @@ function EventsRegister() {
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase().trim();
+    const userEscale = (user?.workplace ?? "").trim().toUpperCase();
     return list.filter((e) => {
+      // Non-admins only see events for their own escale.
+      if (!isAdmin && userEscale && e.escale.toUpperCase() !== userEscale) return false;
       if (q && !(
         e.id.toLowerCase().includes(q) ||
         e.escale.toLowerCase().includes(q) ||
@@ -120,7 +123,10 @@ function EventsRegister() {
       }
       return true;
     });
-  }, [list, search, fEscale, fStatut, fCategorie, fSeverite, fMois, fTrim]);
+  }, [list, search, fEscale, fStatut, fCategorie, fSeverite, fMois, fTrim, isAdmin, user, cfg]);
+
+  // When ?focus=<id> is set and the user is not admin, hide the full table and show only that event.
+  const focused = focus ? list.find((e) => e.id === focus) : null;
 
   const resetFilters = () => {
     setSearch(""); setFEscale(""); setFSeverite(""); setFStatut("");
