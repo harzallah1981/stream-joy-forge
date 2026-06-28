@@ -28,6 +28,7 @@ import { useAuth } from "@/lib/auth";
 export const Route = createFileRoute("/safety/events")({
   head: () => ({ meta: [{ title: "Registre Evenements — Tunisair Ground Safety" }] }),
   component: EventsRegister,
+  validateSearch: (s: Record<string, unknown>) => ({ focus: typeof s.focus === "string" ? s.focus : undefined }),
 });
 
 const CURRENT_YEAR = 2026;
@@ -60,6 +61,8 @@ function EventsRegister() {
   usePageTitle("Registre Evenements", "Suivi des evenements securite au sol — Multi-annee");
   const { user } = useAuth();
   const isAdmin = user?.role === "admin";
+  const { focus } = Route.useSearch();
+  const nav = Route.useNavigate();
   const [year, setYear] = useState(CURRENT_YEAR);
   const [years, setYears] = useState<number[]>([CURRENT_YEAR]);
   const [list, setList] = useState<SafetyEvent[]>([]);
