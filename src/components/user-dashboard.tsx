@@ -214,7 +214,7 @@ function SafetyEscaleBlock() {
             <ul className="space-y-1.5">
               {openEvents.slice(0, 5).map((e) => (
                 <li key={e.id} className="text-xs">
-                  <Link to="/safety/events" className="block rounded p-1 hover:bg-red-50">
+                  <Link to="/safety/events" search={{ focus: e.id }} className="block rounded p-1 hover:bg-red-50">
                     <span className="font-mono font-semibold text-slate-800">{e.id}</span>
                     <span className="ml-2 text-slate-500">{e.date} · {e.escale}</span>
                     <div className="truncate text-slate-700">{e.description}</div>
@@ -237,7 +237,7 @@ function SafetyEscaleBlock() {
             <ul className="space-y-1.5">
               {openSafa.slice(0, 5).map((r) => (
                 <li key={r.id} className="text-xs">
-                  <Link to="/safety/safa-d03" className="block rounded p-1 hover:bg-red-50">
+                  <Link to="/safety/safa-d03" search={{ focus: r.id }} className="block rounded p-1 hover:bg-red-50">
                     <span className="font-mono font-semibold text-slate-800">{r.id}</span>
                     <span className="ml-2 text-slate-500">{r.date} · {r.escale} · {r.vol}</span>
                     <div className="truncate text-slate-700">{r.description}</div>
