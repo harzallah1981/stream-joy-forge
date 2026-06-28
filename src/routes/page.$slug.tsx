@@ -15,6 +15,11 @@ import {
   canUserSeeReadSignDoc, getDocsForCategory, getAllDocs, loadUserDocs, saveUserDocs, hideSeedDoc, fileToDataUrl, requiresAckForCategory, type DocItem,
 } from "@/lib/documents";
 import { addAck, hasAcked, loadAcks, loadAcksRemote, type Ack } from "@/lib/acknowledgements";
+import { DocViewerDialog } from "@/components/doc-viewer-dialog";
+import { pushReminder } from "@/lib/user-reminders";
+import {
+  BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, CartesianGrid,
+} from "recharts";
 import { markRead as markDocRead } from "@/lib/notifications";
 import {
   loadUsers, addUser, updateUser, removeUser,
@@ -72,6 +77,7 @@ function DocumentsPage({ slug }: { slug: string }) {
   const [q, setQ] = useState("");
   const [status, setStatus] = useState("all");
   const [ackTarget, setAckTarget] = useState<null | { doc: DocItem; action: "view" | "download" }>(null);
+  const [viewing, setViewing] = useState<DocItem | null>(null);
   const [aocYear, setAocYear] = useState<string>("all");
 
   const docs = useMemo(() => getDocsForCategory(slug), [slug, refresh]);
@@ -142,7 +148,8 @@ function DocumentsPage({ slug }: { slug: string }) {
     // Real document access — clears the bell indicator for this doc.
     if (user) markDocRead(user.email, doc.id);
     if (action === "view") {
-      window.open(doc.url, "_blank", "noopener,noreferrer");
+      // Open the document inside the app (no new tab / popup blocker).
+      setViewing(doc);
     } else {
       const a = document.createElement("a");
       a.href = doc.url;
