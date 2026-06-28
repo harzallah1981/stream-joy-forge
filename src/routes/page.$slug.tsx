@@ -334,6 +334,8 @@ function DocumentsPage({ slug }: { slug: string }) {
           }}
         />
       )}
+
+      <DocViewerDialog doc={viewing} onClose={() => setViewing(null)} />
     </div>
   );
 }
