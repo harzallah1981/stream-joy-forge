@@ -192,3 +192,30 @@ export async function fileToDataUrl(file: File): Promise<string> {
     r.readAsDataURL(file);
   });
 }
+
+/**
+ * Persist an uploaded file. Files larger than ~2 MB are stored in
+ * IndexedDB to keep us well under the localStorage cap (~5 MB total),
+ * which lets the app handle documents of 40 MB and beyond.
+ */
+const INLINE_LIMIT = 2 * 1024 * 1024;
+export async function persistUploadedFile(
+  docId: string,
+  file: File,
+): Promise<{ url: string; blobKey?: string; mime: string }> {
+  if (file.size <= INLINE_LIMIT) {
+    return { url: await fileToDataUrl(file), mime: file.type || "application/octet-stream" };
+  }
+  await putBlob(docId, file);
+  return { url: "", blobKey: docId, mime: file.type || "application/octet-stream" };
+}
+
+/** Resolve a runtime URL the browser can load (handles IndexedDB blobs). */
+export async function resolveDocUrl(doc: DocItem): Promise<string> {
+  if (doc.blobKey) {
+    const u = await resolveBlobUrl(doc.blobKey);
+    if (u) return u;
+  }
+  return doc.url;
+}
+
