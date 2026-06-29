@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { BookOpen, CheckCircle2, AlertCircle, X, ArrowRight, ShieldAlert, Plane, Bell } from "lucide-react";
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
+
 import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
 import { getAllDocs, type DocItem } from "@/lib/documents";
