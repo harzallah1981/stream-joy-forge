@@ -110,7 +110,7 @@ export function UserDashboard() {
                   <button
                     key={d.id}
                     type="button"
-                    onClick={() => startReading([d])}
+                    onClick={() => nav({ to: "/page/$slug", params: { slug: d.category }, search: { ack: d.id } })}
                     className="flex w-full items-center justify-between gap-2 border-b px-4 py-2 text-left text-sm hover:bg-slate-50"
                   >
                     <div className="min-w-0">
@@ -121,11 +121,10 @@ export function UserDashboard() {
                   </button>
                 ))}
               </div>
-              <div className="border-t p-2">
-                <Button size="sm" className="w-full" onClick={() => startReading(stats.unread)}>
-                  {t("read_now")} ({stats.unread.length})
-                </Button>
+              <div className="border-t p-2 text-[11px] text-slate-500">
+                Cliquez sur un document pour le consulter dans sa rubrique (accusé de réception requis).
               </div>
+
             </HoverCardContent>
           )}
         </HoverCard>
