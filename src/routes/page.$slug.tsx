@@ -168,6 +168,19 @@ function DocumentsPage({ slug }: { slug: string }) {
     }
   };
 
+  // Trigger ack flow when arriving via notification ?ack=<docId>
+  useEffect(() => {
+    if (!search.ack) return;
+    const target = docs.find((d) => d.id === search.ack);
+    if (target) {
+      requestAction(target, "view");
+      nav({ to: "/page/$slug", params: { slug }, search: {}, replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [search.ack, docs]);
+
+
+
   return (
     <div className="p-4 md:p-6 lg:p-8">
       <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
