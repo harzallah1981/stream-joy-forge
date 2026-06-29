@@ -49,10 +49,12 @@ const SLUG_TO_KEY: Record<string, string> = {
 
 export const Route = createFileRoute("/page/$slug")({
   component: StubPage,
+  validateSearch: (s: Record<string, unknown>) => ({ ack: typeof s.ack === "string" ? s.ack : undefined }),
   head: ({ params }) => ({
     meta: [{ title: `${params.slug} — Ground Ops EDMS` }],
   }),
 });
+
 
 function StubPage() {
   const { slug } = Route.useParams();
