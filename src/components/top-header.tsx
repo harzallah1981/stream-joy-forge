@@ -174,7 +174,7 @@ export function TopHeader() {
           </div>
         )}
       </div>
-      <DocViewerDialog doc={viewDoc} onClose={() => setViewDoc(null)} />
     </header>
+
   );
 }
