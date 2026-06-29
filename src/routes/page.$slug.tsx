@@ -153,21 +153,22 @@ function DocumentsPage({ slug }: { slug: string }) {
   };
 
 
-  const performAction = (doc: DocItem, action: "view" | "download") => {
+  const performAction = async (doc: DocItem, action: "view" | "download") => {
     // Real document access — clears the bell indicator for this doc.
     if (user) markDocRead(user.email, doc.id);
     if (action === "view") {
-      // Open the document inside the app (no new tab / popup blocker).
       setViewing(doc);
     } else {
+      const href = await resolveDocUrl(doc);
       const a = document.createElement("a");
-      a.href = doc.url;
+      a.href = href;
       a.download = doc.fileName;
       document.body.appendChild(a);
       a.click();
       a.remove();
     }
   };
+
 
   // Trigger ack flow when arriving via notification ?ack=<docId>
   useEffect(() => {
