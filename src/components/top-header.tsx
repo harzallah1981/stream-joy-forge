@@ -131,9 +131,7 @@ export function TopHeader() {
                   key={n.id}
                   type="button"
                   onClick={() => {
-                    if (user) markRead(user.email, n.doc.id);
-                    setViewDoc(n.doc);
-                    refresh();
+                    nav({ to: "/page/$slug", params: { slug: n.doc.category }, search: { ack: n.doc.id } });
                   }}
                   className="flex w-full items-start gap-2 border-b px-4 py-2 text-left text-sm hover:bg-slate-50"
                 >
@@ -149,6 +147,7 @@ export function TopHeader() {
                   </div>
                 </button>
               ))}
+
             </div>
           </PopoverContent>
         </Popover>
