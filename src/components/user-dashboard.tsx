@@ -29,8 +29,15 @@ function loadOpenEventsForEscale(escale?: string): SafetyEvent[] {
 export function UserDashboard() {
   const { t } = useI18n();
   const { user } = useAuth();
+  const nav = useNavigate();
   const [tick, setTick] = useState(0);
   const refresh = () => setTick((x) => x + 1);
+  useEffect(() => {
+    // keep KPIs in sync with cross-tab acks / reads
+    const id = setInterval(refresh, 5000);
+    return () => clearInterval(id);
+  }, []);
+
 
   const stats = useMemo(() => {
     if (!user) return { total: 0, read: 0, unread: [] as DocItem[] };
