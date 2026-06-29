@@ -118,14 +118,19 @@ function DocumentsPage({ slug }: { slug: string }) {
 
   const handleDelete = (id: string) => {
     if (id.startsWith("u-")) {
-      const u = loadUserDocs().filter((d) => d.id !== id);
-      saveUserDocs(u);
+      const current = loadUserDocs();
+      const target = current.find((d) => d.id === id);
+      if (target?.blobKey) {
+        import("@/lib/doc-blobs").then((m) => m.deleteBlob(target.blobKey!).catch(() => {}));
+      }
+      saveUserDocs(current.filter((d) => d.id !== id));
     } else {
       hideSeedDoc(id);
     }
     setRefresh((r) => r + 1);
     toast.success("Document supprimé");
   };
+
 
   const requestAction = (doc: DocItem, action: "view" | "download") => {
     if (isAdmin || user?.userType === "internal_manager") {
