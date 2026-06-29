@@ -462,12 +462,20 @@ function UploadDialog({
       toast.error("Référence, titre et fichier(s) sont requis");
       return;
     }
+    // Cap: 100 MB per file (well above the 40 MB requirement).
+    const MAX = 100 * 1024 * 1024;
+    const tooBig = files.find((f) => f.size > MAX);
+    if (tooBig) {
+      toast.error(`Fichier trop volumineux (max 100 Mo) : ${tooBig.name}`);
+      return;
+    }
     const docs = loadUserDocs();
     for (let i = 0; i < files.length; i++) {
       const f = files[i];
-      const url = await fileToDataUrl(f);
+      const id = `u-${Date.now()}-${i}-${Math.random().toString(36).slice(2, 8)}`;
+      const { url, blobKey, mime } = await persistUploadedFile(id, f);
       docs.push({
-        id: `u-${Date.now()}-${i}-${Math.random().toString(36).slice(2, 8)}`,
+        id,
         category: slug,
         reference: files.length > 1 ? `${reference}-${i + 1}` : reference,
         title: files.length > 1 ? `${docTitle} (${f.name})` : docTitle,
@@ -478,6 +486,8 @@ function UploadDialog({
         status: "En diffusion",
         fileName: f.name,
         url,
+        blobKey,
+        mime,
         uploadedBy: user?.email,
         requireAck,
         readSignUserTypes,
@@ -485,6 +495,7 @@ function UploadDialog({
     }
     saveUserDocs(docs);
     toast.success(`${files.length} document${files.length > 1 ? "s" : ""} ajouté${files.length > 1 ? "s" : ""}`);
+
     setReference(""); setDocTitle(""); setVersion("Rev 1"); setFiles([]); setRequireAck(true);
     setReadSignUserTypes(["internal_standard", "internal_manager", "external"]);
     setValidFrom(""); setValidTo("");
