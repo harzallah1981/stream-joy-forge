@@ -161,10 +161,11 @@ function EventsRegister() {
     return (
       <div className="p-4 md:p-6 lg:p-8">
         <div className="mb-3">
-          <Button variant="outline" size="sm" onClick={() => nav({ search: { focus: undefined } })} className="cursor-pointer">
-            ← Retour
+          <Button variant="outline" size="sm" onClick={() => nav({ to: "/" })} className="cursor-pointer">
+            ← Retour au tableau de bord
           </Button>
         </div>
+
         <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
           <div className="flex items-center gap-2 border-b border-slate-200 bg-slate-50 px-5 py-3">
             <Shield className="h-4 w-4 text-red-500" />

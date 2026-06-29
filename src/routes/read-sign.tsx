@@ -1,12 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { FileText, CheckCircle2, PenLine, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/lib/auth";
 import { usePageTitle } from "@/lib/page-title";
-import { canUserSeeReadSignDoc, getAllDocs, type DocItem } from "@/lib/documents";
+import { canUserSeeReadSignDoc, getAllDocs, resolveDocUrl, type DocItem } from "@/lib/documents";
 import { addSignature, hasSigned, loadSignatures } from "@/lib/signatures";
 import { markRead } from "@/lib/notifications";
 import { toast } from "sonner";
@@ -141,7 +141,14 @@ function ReadSignViewer({
   const [scrolledEnd, setScrolledEnd] = useState(alreadySigned);
   const [sig, setSig] = useState(user?.username ?? "");
   const [agree, setAgree] = useState(false);
+  const [docUrl, setDocUrl] = useState<string>("");
+  useEffect(() => {
+    let alive = true;
+    resolveDocUrl(doc).then((u) => { if (alive) setDocUrl(u); });
+    return () => { alive = false; };
+  }, [doc]);
   const scrollRef = useRef<HTMLDivElement>(null);
+
 
   const onScroll = () => {
     const el = scrollRef.current;
@@ -200,7 +207,7 @@ function ReadSignViewer({
             </p>
             <iframe
               title={doc.title}
-              src={doc.url}
+              src={docUrl}
               className="mb-4 h-[55vh] w-full rounded border border-slate-200"
             />
             {Array.from({ length: 12 }).map((_, i) => (

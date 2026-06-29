@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { BookOpen, CheckCircle2, AlertCircle, X, ArrowRight, ShieldAlert, Plane, Bell } from "lucide-react";
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
+
 import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
 import { getAllDocs, type DocItem } from "@/lib/documents";
@@ -28,8 +29,15 @@ function loadOpenEventsForEscale(escale?: string): SafetyEvent[] {
 export function UserDashboard() {
   const { t } = useI18n();
   const { user } = useAuth();
+  const nav = useNavigate();
   const [tick, setTick] = useState(0);
   const refresh = () => setTick((x) => x + 1);
+  useEffect(() => {
+    // keep KPIs in sync with cross-tab acks / reads
+    const id = setInterval(refresh, 5000);
+    return () => clearInterval(id);
+  }, []);
+
 
   const stats = useMemo(() => {
     if (!user) return { total: 0, read: 0, unread: [] as DocItem[] };
@@ -102,7 +110,7 @@ export function UserDashboard() {
                   <button
                     key={d.id}
                     type="button"
-                    onClick={() => startReading([d])}
+                    onClick={() => nav({ to: "/page/$slug", params: { slug: d.category }, search: { ack: d.id } })}
                     className="flex w-full items-center justify-between gap-2 border-b px-4 py-2 text-left text-sm hover:bg-slate-50"
                   >
                     <div className="min-w-0">
@@ -113,17 +121,16 @@ export function UserDashboard() {
                   </button>
                 ))}
               </div>
-              <div className="border-t p-2">
-                <Button size="sm" className="w-full" onClick={() => startReading(stats.unread)}>
-                  {t("read_now")} ({stats.unread.length})
-                </Button>
+              <div className="border-t p-2 text-[11px] text-slate-500">
+                Cliquez sur un document pour le consulter dans sa rubrique (accusé de réception requis).
               </div>
+
             </HoverCardContent>
           )}
         </HoverCard>
       </div>
 
-      <RemindersBanner onOpen={(d) => startReading([d])} />
+      <RemindersBanner onOpen={(d) => nav({ to: "/page/$slug", params: { slug: d.category }, search: { ack: d.id } })} />
 
       <SafetyEscaleBlock />
 

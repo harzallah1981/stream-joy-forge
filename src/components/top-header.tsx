@@ -5,10 +5,9 @@ import { SidebarTrigger } from "@/components/ui/sidebar";
 import { useAuth } from "@/lib/auth";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { buildNotifications, markRead, type Notif } from "@/lib/notifications";
+import { buildNotifications, type Notif } from "@/lib/notifications";
 import { useI18n } from "@/lib/i18n";
-import { DocViewerDialog } from "@/components/doc-viewer-dialog";
-import type { DocItem } from "@/lib/documents";
+
 
 function pad(n: number) {
   return n.toString().padStart(2, "0");
@@ -47,9 +46,22 @@ export function TopHeader() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
 
   const [notifs, setNotifs] = useState<Notif[]>([]);
-  const [viewDoc, setViewDoc] = useState<DocItem | null>(null);
-  const refresh = () => { if (user) setNotifs(buildNotifications(user.email)); };
+  const isExternal = user?.userType === "external" || user?.role === "external";
+  const EXT_HIDE = new Set(["dgac", "iata", "ac-affretees", "safa-d03"]);
+  const refresh = () => {
+    if (!user) return;
+    const all = buildNotifications(user.email);
+    setNotifs(isExternal ? all.filter((n) => !EXT_HIDE.has(n.doc.category)) : all);
+  };
   useEffect(() => { refresh(); }, [user, pathname]);
+  // Keep the bell in sync with reads happening elsewhere in the app
+  useEffect(() => {
+    const id = setInterval(refresh, 4000);
+    return () => clearInterval(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
+
+
 
   const count = useMemo(() => notifs.length, [notifs]);
 
@@ -131,9 +143,7 @@ export function TopHeader() {
                   key={n.id}
                   type="button"
                   onClick={() => {
-                    if (user) markRead(user.email, n.doc.id);
-                    setViewDoc(n.doc);
-                    refresh();
+                    nav({ to: "/page/$slug", params: { slug: n.doc.category }, search: { ack: n.doc.id } });
                   }}
                   className="flex w-full items-start gap-2 border-b px-4 py-2 text-left text-sm hover:bg-slate-50"
                 >
@@ -149,6 +159,7 @@ export function TopHeader() {
                   </div>
                 </button>
               ))}
+
             </div>
           </PopoverContent>
         </Popover>
@@ -175,7 +186,7 @@ export function TopHeader() {
           </div>
         )}
       </div>
-      <DocViewerDialog doc={viewDoc} onClose={() => setViewDoc(null)} />
     </header>
+
   );
 }

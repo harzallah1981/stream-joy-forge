@@ -12,8 +12,9 @@ import { useI18n } from "@/lib/i18n";
 import { usePageTitle } from "@/lib/page-title";
 import { TEST_CREDENTIALS, useAuth, type AuthUser } from "@/lib/auth";
 import {
-  canUserSeeReadSignDoc, getDocsForCategory, getAllDocs, loadUserDocs, saveUserDocs, hideSeedDoc, fileToDataUrl, requiresAckForCategory, type DocItem,
+  canUserSeeReadSignDoc, getDocsForCategory, getAllDocs, loadUserDocs, saveUserDocs, hideSeedDoc, fileToDataUrl, persistUploadedFile, resolveDocUrl, requiresAckForCategory, type DocItem,
 } from "@/lib/documents";
+
 import { addAck, hasAcked, loadAcks, loadAcksRemote, type Ack } from "@/lib/acknowledgements";
 import { DocViewerDialog } from "@/components/doc-viewer-dialog";
 import { pushReminder } from "@/lib/user-reminders";
@@ -49,10 +50,12 @@ const SLUG_TO_KEY: Record<string, string> = {
 
 export const Route = createFileRoute("/page/$slug")({
   component: StubPage,
+  validateSearch: (s: Record<string, unknown>) => ({ ack: typeof s.ack === "string" ? s.ack : undefined }),
   head: ({ params }) => ({
     meta: [{ title: `${params.slug} — Ground Ops EDMS` }],
   }),
 });
+
 
 function StubPage() {
   const { slug } = Route.useParams();
@@ -82,6 +85,12 @@ function DocumentsPage({ slug }: { slug: string }) {
 
   const docs = useMemo(() => getDocsForCategory(slug), [slug, refresh]);
 
+  // Notification deep-link: ?ack=<docId>
+  const search = Route.useSearch();
+  const nav = Route.useNavigate();
+
+
+
   // T — AOC: organize by year (derived from doc.date)
   const aocYears = useMemo(() => {
     if (slug !== "aoc") return [];
@@ -109,14 +118,19 @@ function DocumentsPage({ slug }: { slug: string }) {
 
   const handleDelete = (id: string) => {
     if (id.startsWith("u-")) {
-      const u = loadUserDocs().filter((d) => d.id !== id);
-      saveUserDocs(u);
+      const current = loadUserDocs();
+      const target = current.find((d) => d.id === id);
+      if (target?.blobKey) {
+        import("@/lib/doc-blobs").then((m) => m.deleteBlob(target.blobKey!).catch(() => {}));
+      }
+      saveUserDocs(current.filter((d) => d.id !== id));
     } else {
       hideSeedDoc(id);
     }
     setRefresh((r) => r + 1);
     toast.success("Document supprimé");
   };
+
 
   const requestAction = (doc: DocItem, action: "view" | "download") => {
     if (isAdmin || user?.userType === "internal_manager") {
@@ -144,21 +158,35 @@ function DocumentsPage({ slug }: { slug: string }) {
   };
 
 
-  const performAction = (doc: DocItem, action: "view" | "download") => {
+  const performAction = async (doc: DocItem, action: "view" | "download") => {
     // Real document access — clears the bell indicator for this doc.
     if (user) markDocRead(user.email, doc.id);
     if (action === "view") {
-      // Open the document inside the app (no new tab / popup blocker).
       setViewing(doc);
     } else {
+      const href = await resolveDocUrl(doc);
       const a = document.createElement("a");
-      a.href = doc.url;
+      a.href = href;
       a.download = doc.fileName;
       document.body.appendChild(a);
       a.click();
       a.remove();
     }
   };
+
+
+  // Trigger ack flow when arriving via notification ?ack=<docId>
+  useEffect(() => {
+    if (!search.ack) return;
+    const target = docs.find((d) => d.id === search.ack);
+    if (target) {
+      requestAction(target, "view");
+      nav({ to: "/page/$slug", params: { slug }, search: {}, replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [search.ack, docs]);
+
+
 
   return (
     <div className="p-4 md:p-6 lg:p-8">
@@ -441,12 +469,20 @@ function UploadDialog({
       toast.error("Référence, titre et fichier(s) sont requis");
       return;
     }
+    // Cap: 100 MB per file (well above the 40 MB requirement).
+    const MAX = 100 * 1024 * 1024;
+    const tooBig = files.find((f) => f.size > MAX);
+    if (tooBig) {
+      toast.error(`Fichier trop volumineux (max 100 Mo) : ${tooBig.name}`);
+      return;
+    }
     const docs = loadUserDocs();
     for (let i = 0; i < files.length; i++) {
       const f = files[i];
-      const url = await fileToDataUrl(f);
+      const id = `u-${Date.now()}-${i}-${Math.random().toString(36).slice(2, 8)}`;
+      const { url, blobKey, mime } = await persistUploadedFile(id, f);
       docs.push({
-        id: `u-${Date.now()}-${i}-${Math.random().toString(36).slice(2, 8)}`,
+        id,
         category: slug,
         reference: files.length > 1 ? `${reference}-${i + 1}` : reference,
         title: files.length > 1 ? `${docTitle} (${f.name})` : docTitle,
@@ -457,6 +493,8 @@ function UploadDialog({
         status: "En diffusion",
         fileName: f.name,
         url,
+        blobKey,
+        mime,
         uploadedBy: user?.email,
         requireAck,
         readSignUserTypes,
@@ -464,6 +502,7 @@ function UploadDialog({
     }
     saveUserDocs(docs);
     toast.success(`${files.length} document${files.length > 1 ? "s" : ""} ajouté${files.length > 1 ? "s" : ""}`);
+
     setReference(""); setDocTitle(""); setVersion("Rev 1"); setFiles([]); setRequireAck(true);
     setReadSignUserTypes(["internal_standard", "internal_manager", "external"]);
     setValidFrom(""); setValidTo("");

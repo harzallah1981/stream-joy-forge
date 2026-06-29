@@ -34,9 +34,12 @@ export function canSeeGroup(groupKey: string, u: AuthUser | null | undefined): b
 
 type MenuLike = { key: string; to?: string; children?: MenuLike[] };
 
-// Nodes explicitly hidden from external users (everything else under "documentation" is visible).
+// Nodes explicitly hidden from external users.
 const EXTERNAL_DENY = new Set<string>([
   "ios_428_01_checklist", // CKL IOS-428 form
+  "docs_externes", // DGAC / IATA / AC affrétés / SAFA D03 doc category
+  "dgac", "iata", "affretees", "safa_d03",
+
 ]);
 
 export function canSeeMenuNode(node: MenuLike, u: AuthUser | null | undefined): boolean {

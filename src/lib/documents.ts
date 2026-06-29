@@ -1,5 +1,8 @@
 // Sample documents per category + localStorage-backed user uploads.
 // "Sample" PDFs are tiny one-page generated PDFs (data URLs) so download works.
+// Large user uploads (>2 MB) are stored in IndexedDB via doc-blobs.ts.
+
+import { putBlob, resolveBlobUrl } from "@/lib/doc-blobs";
 
 export type DocItem = {
   id: string;
@@ -13,15 +16,19 @@ export type DocItem = {
   validTo?: string;
   status: "En diffusion" | "Périmé" | "En revue";
   fileName: string;
-  /** data URL or http URL */
+  /** data URL or http URL; empty when stored in IndexedDB (use blobKey) */
   url: string;
+  /** When set, the underlying file lives in IndexedDB under this key */
+  blobKey?: string;
+  /** Mime type (helps the in-app viewer) */
+  mime?: string;
   uploadedBy?: string;
-  /** When false, document can be viewed/downloaded without an ack.
-   *  When true or undefined, the legacy ack flow applies (per user type). */
+  /** When false, document can be viewed/downloaded without an ack. */
   requireAck?: boolean;
-  /** Read & Sign audience chosen by admin for uploaded documents. Undefined = all non-admin users. */
+  /** Read & Sign audience chosen by admin for uploaded documents. */
   readSignUserTypes?: Array<"internal_standard" | "internal_manager" | "external">;
 };
+
 
 export const ACK_REQUIRED_PREFIXES: string[] = [
   "gom",
@@ -185,3 +192,30 @@ export async function fileToDataUrl(file: File): Promise<string> {
     r.readAsDataURL(file);
   });
 }
+
+/**
+ * Persist an uploaded file. Files larger than ~2 MB are stored in
+ * IndexedDB to keep us well under the localStorage cap (~5 MB total),
+ * which lets the app handle documents of 40 MB and beyond.
+ */
+const INLINE_LIMIT = 2 * 1024 * 1024;
+export async function persistUploadedFile(
+  docId: string,
+  file: File,
+): Promise<{ url: string; blobKey?: string; mime: string }> {
+  if (file.size <= INLINE_LIMIT) {
+    return { url: await fileToDataUrl(file), mime: file.type || "application/octet-stream" };
+  }
+  await putBlob(docId, file);
+  return { url: "", blobKey: docId, mime: file.type || "application/octet-stream" };
+}
+
+/** Resolve a runtime URL the browser can load (handles IndexedDB blobs). */
+export async function resolveDocUrl(doc: DocItem): Promise<string> {
+  if (doc.blobKey) {
+    const u = await resolveBlobUrl(doc.blobKey);
+    if (u) return u;
+  }
+  return doc.url;
+}
+

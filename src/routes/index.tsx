@@ -1,6 +1,6 @@
 import { createFileRoute, Navigate } from "@tanstack/react-router";
 import { Shield, BookOpen, AlertTriangle, BarChart3, Plane } from "lucide-react";
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { usePageTitle } from "@/lib/page-title";
 import { events as DEFAULT_EVENTS, type SafetyEvent } from "@/lib/safety-data";
 import { TEST_CREDENTIALS, useAuth } from "@/lib/auth";
@@ -91,8 +91,18 @@ function computeOverdueAlerts(users: StoredUser[]) {
 }
 
 function AdminDashboard() {
-  const events = useMemo(() => loadCurrentYearEvents(), []);
-  const safa = useMemo(() => loadSafa(SAFA_CURRENT_YEAR), []);
+  // Auto-refresh so the dashboard reflects new events, SAFA records and reads in real time.
+  const [tick, setTick] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => setTick((t) => t + 1), 5000);
+    const onFocus = () => setTick((t) => t + 1);
+    window.addEventListener("focus", onFocus);
+    window.addEventListener("storage", onFocus);
+    return () => { clearInterval(id); window.removeEventListener("focus", onFocus); window.removeEventListener("storage", onFocus); };
+  }, []);
+  const events = useMemo(() => loadCurrentYearEvents(), [tick]);
+  const safa = useMemo(() => loadSafa(SAFA_CURRENT_YEAR), [tick]);
+
   const open = events.filter((e) => e.statut === "EN COURS").length;
   const closed = events.filter((e) => e.statut === "CLÔTURÉ").length;
   const high = events.filter((e) => e.prob * e.grav >= 20).length;
@@ -115,7 +125,8 @@ function AdminDashboard() {
     }
     const readingRate = totalAssignments > 0 ? Math.round((totalRead / totalAssignments) * 100) : 0;
     return { acks, users, alerts, readingRate, totalRead, totalAssignments, docsCount: docs.length };
-  }, []);
+  }, [tick]);
+
 
   // Build bar groups
   const securityBars = [
