@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/lib/auth";
 import { usePageTitle } from "@/lib/page-title";
-import { canUserSeeReadSignDoc, getAllDocs, type DocItem } from "@/lib/documents";
+import { canUserSeeReadSignDoc, getAllDocs, resolveDocUrl, type DocItem } from "@/lib/documents";
 import { addSignature, hasSigned, loadSignatures } from "@/lib/signatures";
 import { markRead } from "@/lib/notifications";
 import { toast } from "sonner";
