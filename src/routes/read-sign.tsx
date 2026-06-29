@@ -207,7 +207,7 @@ function ReadSignViewer({
             </p>
             <iframe
               title={doc.title}
-              src={doc.url}
+              src={docUrl}
               className="mb-4 h-[55vh] w-full rounded border border-slate-200"
             />
             {Array.from({ length: 12 }).map((_, i) => (
