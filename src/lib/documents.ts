@@ -1,5 +1,8 @@
 // Sample documents per category + localStorage-backed user uploads.
 // "Sample" PDFs are tiny one-page generated PDFs (data URLs) so download works.
+// Large user uploads (>2 MB) are stored in IndexedDB via doc-blobs.ts.
+
+import { putBlob, resolveBlobUrl } from "@/lib/doc-blobs";
 
 export type DocItem = {
   id: string;
@@ -13,15 +16,19 @@ export type DocItem = {
   validTo?: string;
   status: "En diffusion" | "Périmé" | "En revue";
   fileName: string;
-  /** data URL or http URL */
+  /** data URL or http URL; empty when stored in IndexedDB (use blobKey) */
   url: string;
+  /** When set, the underlying file lives in IndexedDB under this key */
+  blobKey?: string;
+  /** Mime type (helps the in-app viewer) */
+  mime?: string;
   uploadedBy?: string;
-  /** When false, document can be viewed/downloaded without an ack.
-   *  When true or undefined, the legacy ack flow applies (per user type). */
+  /** When false, document can be viewed/downloaded without an ack. */
   requireAck?: boolean;
-  /** Read & Sign audience chosen by admin for uploaded documents. Undefined = all non-admin users. */
+  /** Read & Sign audience chosen by admin for uploaded documents. */
   readSignUserTypes?: Array<"internal_standard" | "internal_manager" | "external">;
 };
+
 
 export const ACK_REQUIRED_PREFIXES: string[] = [
   "gom",
