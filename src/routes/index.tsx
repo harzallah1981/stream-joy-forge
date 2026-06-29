@@ -91,8 +91,18 @@ function computeOverdueAlerts(users: StoredUser[]) {
 }
 
 function AdminDashboard() {
-  const events = useMemo(() => loadCurrentYearEvents(), []);
-  const safa = useMemo(() => loadSafa(SAFA_CURRENT_YEAR), []);
+  // Auto-refresh so the dashboard reflects new events, SAFA records and reads in real time.
+  const [tick, setTick] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => setTick((t) => t + 1), 5000);
+    const onFocus = () => setTick((t) => t + 1);
+    window.addEventListener("focus", onFocus);
+    window.addEventListener("storage", onFocus);
+    return () => { clearInterval(id); window.removeEventListener("focus", onFocus); window.removeEventListener("storage", onFocus); };
+  }, []);
+  const events = useMemo(() => loadCurrentYearEvents(), [tick]);
+  const safa = useMemo(() => loadSafa(SAFA_CURRENT_YEAR), [tick]);
+
   const open = events.filter((e) => e.statut === "EN COURS").length;
   const closed = events.filter((e) => e.statut === "CLÔTURÉ").length;
   const high = events.filter((e) => e.prob * e.grav >= 20).length;
