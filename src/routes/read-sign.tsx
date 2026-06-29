@@ -141,7 +141,14 @@ function ReadSignViewer({
   const [scrolledEnd, setScrolledEnd] = useState(alreadySigned);
   const [sig, setSig] = useState(user?.username ?? "");
   const [agree, setAgree] = useState(false);
+  const [docUrl, setDocUrl] = useState<string>("");
+  useEffect(() => {
+    let alive = true;
+    resolveDocUrl(doc).then((u) => { if (alive) setDocUrl(u); });
+    return () => { alive = false; };
+  }, [doc]);
   const scrollRef = useRef<HTMLDivElement>(null);
+
 
   const onScroll = () => {
     const el = scrollRef.current;
