@@ -47,9 +47,9 @@ export function TopHeader() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
 
   const [notifs, setNotifs] = useState<Notif[]>([]);
-  const [viewDoc, setViewDoc] = useState<DocItem | null>(null);
   const refresh = () => { if (user) setNotifs(buildNotifications(user.email)); };
   useEffect(() => { refresh(); }, [user, pathname]);
+
 
   const count = useMemo(() => notifs.length, [notifs]);
 
