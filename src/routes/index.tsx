@@ -125,7 +125,8 @@ function AdminDashboard() {
     }
     const readingRate = totalAssignments > 0 ? Math.round((totalRead / totalAssignments) * 100) : 0;
     return { acks, users, alerts, readingRate, totalRead, totalAssignments, docsCount: docs.length };
-  }, []);
+  }, [tick]);
+
 
   // Build bar groups
   const securityBars = [
