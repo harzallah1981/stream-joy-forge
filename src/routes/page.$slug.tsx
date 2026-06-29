@@ -84,6 +84,21 @@ function DocumentsPage({ slug }: { slug: string }) {
 
   const docs = useMemo(() => getDocsForCategory(slug), [slug, refresh]);
 
+  // Notification deep-link: ?ack=<docId> prompts the ack flow for that doc
+  const search = Route.useSearch();
+  const nav = Route.useNavigate();
+  const ackDocId = search.ack;
+  useEffect(() => {
+    if (!ackDocId) return;
+    const target = docs.find((d) => d.id === ackDocId);
+    if (target) {
+      requestAction(target, "view");
+      nav({ to: "/page/$slug", params: { slug }, search: {}, replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ackDocId, docs]);
+
+
   // T — AOC: organize by year (derived from doc.date)
   const aocYears = useMemo(() => {
     if (slug !== "aoc") return [];
