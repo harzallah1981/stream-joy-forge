@@ -46,8 +46,21 @@ export function TopHeader() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
 
   const [notifs, setNotifs] = useState<Notif[]>([]);
-  const refresh = () => { if (user) setNotifs(buildNotifications(user.email)); };
+  const isExternal = user?.userType === "external" || user?.role === "external";
+  const EXT_HIDE = new Set(["dgac", "iata", "ac-affretees", "safa-d03"]);
+  const refresh = () => {
+    if (!user) return;
+    const all = buildNotifications(user.email);
+    setNotifs(isExternal ? all.filter((n) => !EXT_HIDE.has(n.doc.category)) : all);
+  };
   useEffect(() => { refresh(); }, [user, pathname]);
+  // Keep the bell in sync with reads happening elsewhere in the app
+  useEffect(() => {
+    const id = setInterval(refresh, 4000);
+    return () => clearInterval(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
+
 
 
   const count = useMemo(() => notifs.length, [notifs]);
