@@ -1,6 +1,6 @@
 import { createFileRoute, Navigate } from "@tanstack/react-router";
 import { Shield, BookOpen, AlertTriangle, BarChart3, Plane } from "lucide-react";
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { usePageTitle } from "@/lib/page-title";
 import { events as DEFAULT_EVENTS, type SafetyEvent } from "@/lib/safety-data";
 import { TEST_CREDENTIALS, useAuth } from "@/lib/auth";
