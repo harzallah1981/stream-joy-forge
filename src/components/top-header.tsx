@@ -5,10 +5,9 @@ import { SidebarTrigger } from "@/components/ui/sidebar";
 import { useAuth } from "@/lib/auth";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { buildNotifications, markRead, type Notif } from "@/lib/notifications";
+import { buildNotifications, type Notif } from "@/lib/notifications";
 import { useI18n } from "@/lib/i18n";
-import { DocViewerDialog } from "@/components/doc-viewer-dialog";
-import type { DocItem } from "@/lib/documents";
+
 
 function pad(n: number) {
   return n.toString().padStart(2, "0");
