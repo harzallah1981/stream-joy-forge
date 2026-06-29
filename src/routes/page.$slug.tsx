@@ -12,8 +12,9 @@ import { useI18n } from "@/lib/i18n";
 import { usePageTitle } from "@/lib/page-title";
 import { TEST_CREDENTIALS, useAuth, type AuthUser } from "@/lib/auth";
 import {
-  canUserSeeReadSignDoc, getDocsForCategory, getAllDocs, loadUserDocs, saveUserDocs, hideSeedDoc, fileToDataUrl, requiresAckForCategory, type DocItem,
+  canUserSeeReadSignDoc, getDocsForCategory, getAllDocs, loadUserDocs, saveUserDocs, hideSeedDoc, fileToDataUrl, persistUploadedFile, resolveDocUrl, requiresAckForCategory, type DocItem,
 } from "@/lib/documents";
+
 import { addAck, hasAcked, loadAcks, loadAcksRemote, type Ack } from "@/lib/acknowledgements";
 import { DocViewerDialog } from "@/components/doc-viewer-dialog";
 import { pushReminder } from "@/lib/user-reminders";
