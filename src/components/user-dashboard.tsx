@@ -130,7 +130,7 @@ export function UserDashboard() {
         </HoverCard>
       </div>
 
-      <RemindersBanner onOpen={(d) => startReading([d])} />
+      <RemindersBanner onOpen={(d) => nav({ to: "/page/$slug", params: { slug: d.category }, search: { ack: d.id } })} />
 
       <SafetyEscaleBlock />
 
