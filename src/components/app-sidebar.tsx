@@ -61,7 +61,7 @@ function NavItem({ node, depth, pathname }: { node: MenuNode; depth: number; pat
           )}
           style={{ paddingLeft: 12 + depth * 12 }}
         >
-          <span className="truncate">{t(node.key)}</span>
+          <span className="truncate">{resolveLabel(t, node.key)}</span>
           {open ? (
             <ChevronDown className="h-4 w-4 shrink-0 text-slate-400" />
           ) : (
