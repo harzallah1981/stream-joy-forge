@@ -117,18 +117,30 @@ function DocumentsPage({ slug }: { slug: string }) {
   }, [isChartered]);
 
   const handleDelete = (id: string) => {
+    const all = [...docs];
+    const target = all.find((d) => d.id === id);
+    if (target) {
+      import("@/lib/archives-store").then((m) => m.archive({
+        kind: "document",
+        category: target.category,
+        title: target.title,
+        reference: target.reference,
+        archivedBy: user?.email ?? "admin",
+        payload: target,
+      }));
+    }
     if (id.startsWith("u-")) {
       const current = loadUserDocs();
-      const target = current.find((d) => d.id === id);
-      if (target?.blobKey) {
-        import("@/lib/doc-blobs").then((m) => m.deleteBlob(target.blobKey!).catch(() => {}));
+      const t = current.find((d) => d.id === id);
+      if (t?.blobKey) {
+        import("@/lib/doc-blobs").then((m) => m.deleteBlob(t.blobKey!).catch(() => {}));
       }
       saveUserDocs(current.filter((d) => d.id !== id));
     } else {
       hideSeedDoc(id);
     }
     setRefresh((r) => r + 1);
-    toast.success("Document supprimé");
+    toast.success("Document supprimé et archivé");
   };
 
 
