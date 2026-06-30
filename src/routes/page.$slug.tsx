@@ -117,18 +117,30 @@ function DocumentsPage({ slug }: { slug: string }) {
   }, [isChartered]);
 
   const handleDelete = (id: string) => {
+    const all = [...docs];
+    const target = all.find((d) => d.id === id);
+    if (target) {
+      import("@/lib/archives-store").then((m) => m.archive({
+        kind: "document",
+        category: target.category,
+        title: target.title,
+        reference: target.reference,
+        archivedBy: user?.email ?? "admin",
+        payload: target,
+      }));
+    }
     if (id.startsWith("u-")) {
       const current = loadUserDocs();
-      const target = current.find((d) => d.id === id);
-      if (target?.blobKey) {
-        import("@/lib/doc-blobs").then((m) => m.deleteBlob(target.blobKey!).catch(() => {}));
+      const t = current.find((d) => d.id === id);
+      if (t?.blobKey) {
+        import("@/lib/doc-blobs").then((m) => m.deleteBlob(t.blobKey!).catch(() => {}));
       }
       saveUserDocs(current.filter((d) => d.id !== id));
     } else {
       hideSeedDoc(id);
     }
     setRefresh((r) => r + 1);
-    toast.success("Document supprimé");
+    toast.success("Document supprimé et archivé");
   };
 
 
@@ -719,8 +731,12 @@ function UserManagementPage() {
         const emails = emailsRaw
           ? Array.from(new Set([email, ...emailsRaw.split(/[;,|]/).map((s) => s.trim()).filter(Boolean)])).slice(0, 3)
           : [email];
-        addUser({ email, emails, username, userType, modules, org: String(r.org ?? r.organisation ?? "").trim(), workplace });
-        added++;
+        try {
+          addUser({ email, emails, username, userType, modules, org: String(r.org ?? r.organisation ?? "").trim(), workplace });
+          added++;
+        } catch (err) {
+          toast.error((err as Error).message);
+        }
       }
       toast.success(`${added} utilisateur(s) importé(s) depuis Excel`);
       setRefresh((x) => x + 1);
@@ -852,7 +868,10 @@ function UserManagementPage() {
         <UserDialog
           mode="add"
           onCancel={() => setOpen(false)}
-          onSave={(u) => { addUser(u); setOpen(false); setRefresh((r) => r + 1); toast.success("Utilisateur ajouté"); }}
+          onSave={(u) => {
+            try { addUser(u); setOpen(false); setRefresh((r) => r + 1); toast.success("Utilisateur ajouté"); }
+            catch (e) { toast.error((e as Error).message); }
+          }}
         />
       )}
       {editing && (
@@ -860,7 +879,10 @@ function UserManagementPage() {
           mode="edit"
           initial={editing}
           onCancel={() => setEditing(null)}
-          onSave={(u) => { updateUser(editing.id, u); setEditing(null); setRefresh((r) => r + 1); toast.success("Utilisateur mis à jour"); }}
+          onSave={(u) => {
+            try { updateUser(editing.id, u); setEditing(null); setRefresh((r) => r + 1); toast.success("Utilisateur mis à jour"); }
+            catch (e) { toast.error((e as Error).message); }
+          }}
         />
       )}
     </div>

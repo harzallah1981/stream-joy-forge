@@ -1,56 +1,70 @@
-# Plan d'implémentation — 8 demandes
+Voici le plan détaillé. Confirmez avant que je code (beaucoup de changements indépendants).
 
-Travail organisé par zone pour éviter les régressions. Tout reste en frontend, sauf la soumission email qui utilise déjà le serverFn `submitForm` (table `form_submissions`).
+## 1. User Management — bouton "Modifier" par user
+- `src/routes/page.$slug.tsx` (vue users) : ajouter une icône crayon à gauche de "Supprimer" qui ouvre un dialog d'édition (email, username, type, modules, org, workplace, emails secondaires, adminScope). Persiste via `updateUser()`.
+- Les comptes seed (TEST_CREDENTIALS) restent non-modifiables (déjà non-supprimables).
 
-## 1. Tableau de bord Admin vs User
-- Ajouter "Tableau de Bord" comme premier item du menu latéral (`src/lib/menu.ts` + `app-sidebar.tsx`).
-- Dans `src/routes/index.tsx`, brancher sur `useAuth()` :
-  - **Admin** → vue actuelle inchangée.
-  - **User** → nouveau composant `UserDashboard` avec 3 KPI : total docs, docs lus, docs restants.
-- Témoin rouge clignotant (animate-pulse + ring rouge) sur la carte "restants".
-- Hover → `HoverCard` listant les documents non lus.
-- Click sur un item → modale `ReaderDialog` qui ouvre les documents un par un (navigation "Suivant", marque comme lu via `acknowledgements.ts`).
+## 2. Limites de comptes
+- Dans `addUser` (création) : bloquer si > 3 admins ou > 100 internal_manager. Toast d'erreur. Pas de limite pour les autres.
+- Idem dans `updateUser` si on change le type vers admin/manager.
 
-## 2. Soumission email réellement fonctionnelle
-- `submit.functions.ts` existe déjà et enregistre dans `form_submissions`. Garder l'enregistrement.
-- Ajouter une simulation d'envoi crédible : délai 600 ms, retour `{ id, emailSent: true, deliveredAt }`, et une page `/admin/submissions` (admin only) listant les soumissions (lecture via serverFn) pour vérification.
-- Les 3 formulaires (`ahm-650`, `dg-incident`, `ios-428-01`) appellent déjà `SubmitEmailDialog` → vérifier que chacun passe un payload complet ; sinon corriger.
+## 3. Read & Sign — séparé des documents
+- `src/routes/read-sign.tsx` : ne plus lire les docs depuis `documents.ts`. Nouveau store `src/lib/read-sign-store.ts` (localStorage `tunisair_read_sign_v1`) :
+  - `{ id, title, reference, fileBlobKey|url, requireSign, assignedEmails: string[], createdAt }`.
+- Admin : bouton "Ajouter document Read&Sign" → dialog (titre, ref, fichier, cocher signature requise, multi-select users).
+- Admin : bouton "Supprimer" par ligne → confirme + archive (voir §6).
+- Users : ne voient que les documents où leur email ∈ assignedEmails.
+- Notifications/reminders/acks branchés sur ce store (réutilise `acknowledgements`).
 
-## 3. Cloche de notifications dynamique
-- Dans `top-header.tsx`, remplacer la cloche statique par un `Popover` listant :
-  - nouveaux docs (depuis `documents.ts` filtrés par `createdAt` récent),
-  - docs mis à jour (`updatedAt`),
-  - docs non lus pour l'utilisateur courant.
-- Badge rouge dynamique = nb non lus + nouveautés. Point clignote tant qu'il y a >0.
+## 4. Forms — admin peut éditer/supprimer/refaire
+- Liste persistée `src/lib/forms-store.ts` initialisée avec les 3 forms seed (ckl-ios-428-02, dg-incident, ahm-650). Chaque form : `{ id, slug, title, schema?, hidden?, recipients? }`.
+- Sur la page Forms : si admin, boutons Modifier (titre/recipients), Supprimer (archive), Restaurer.
+- `src/routes/admin/recipients.tsx` : lit la liste depuis ce store au lieu d'une constante, donc le nom suit automatiquement.
+- (Refaire = remettre à zéro le schema/recipient à la valeur par défaut.)
 
-## 4. DG Incident — sous-titre IATA dynamique
-- Helper `iataEdition()` : édition 65 = année 2024 ⇒ `edition = 65 + (year - 2024)`. Donc 2026 → "IATA 67th Ed, Jan2026", 2027 → "68th Ed, Jan2027". Remplacer le sous-titre `PageShell` dans `dg-incident.tsx`.
+## 5. Archives (sous Administration)
+- Nouveau store `src/lib/archives-store.ts` (localStorage + IndexedDB pour blobs). Item : `{ id, kind: "document"|"read-sign"|"form", category, title, ref, payload, archivedAt, archivedBy }`.
+- Toute suppression (docs internes/externes, R&S, forms) appelle `archive(item)` avant `delete`.
+- Nouvelle route `src/routes/admin/archives.tsx` : table filtrable par type & catégorie, design Word-like (déjà utilisé ailleurs : header bleu, tableau).
+- Lien dans la sidebar admin.
 
-## 5. Checklist IOS 428-01
-- Ajouter sous le titre la référence "IOS428-02#a5".
-- En-tête : remplacer le visuel actuel par un vrai logo Tunisair (asset SVG officiel). Je téléverserai un asset via `lovable-assets` (logo Tunisair public).
-- "Synthesis and Findings" : zone calculée — `items.filter(r => r.answer === 'no').map(...)` rendu en liste à puces.
-- Corriger le calcul du taux : actuellement basé sur `yes/(yes+no)` mais reste à 100 % → revoir pour inclure tous les items répondus et exclure les `n/a`.
+## 6. Dashboard — liens cliquables
+- `AdminDashboard` dans `src/routes/index.tsx` :
+  - "Sécurité — Événements" (titre) → navigate `/safety/events`
+  - "Écarts SAFA D03" (titre) → navigate `/safety/safa-d03`
+  - "Indicateurs Documentaires" (titre) → ouvre dialog plein-écran `DocIndicatorsDialog`.
 
-## 6. i18n total
-- Auditer `i18n.tsx` : ajouter toutes les clés manquantes (KPI, dashboard, cloche, toasts, alerts, sous-titres formulaires, boutons admin).
-- Remplacer les chaînes en dur dans `index.tsx`, `top-header.tsx`, dashboards, formulaires, `safety/*`.
-- Toasts (`sonner`) traduits via `t()`.
+## 7. Dialog Indicateurs Documentaires
+- Nouveau composant `src/components/doc-indicators-dialog.tsx`.
+- Source : acks Supabase (`acknowledgements`) + liste des docs.
+- Filtres : Escale (workplace user), Manuel/catégorie, Document, Type (interne/externe), Période.
+- Graphiques recharts : bar (lectures par escale), bar (par manuel/cat), pie (interne vs externe), bar (top docs).
+- Bouton "Télécharger PDF" : via jsPDF (déjà dispo via events-pdf?) — capture chaque chart en image (recharts via `html-to-image`) puis assemble PDF avec header design app.
+- Si `html-to-image` absent : `bun add html-to-image jspdf`.
 
-## 7. Animation header Tunisair
-- Dans `top-header.tsx`, ajouter une bande décorative au-dessus ou derrière le titre : nuages SVG en arrière-plan + avion (icône `Plane` ou SVG) traversant de gauche à droite via animation CSS keyframes (`@keyframes fly`) ajoutée dans `styles.css`. Boucle infinie ~12 s.
+## 8. Compteurs accusés/lectures (format X/Y, pas de %)
+- Dans `UserDashboard` & `AdminDashboard` (KPIs) :
+  - Calcul Y = Σ sur docs diffusés (avec accusé requis) du nombre d'users assignés.
+  - X = nombre d'acks `action='sign'` côté admin / lectures `action='view'`.
+  - Afficher "93 / 250" au lieu de "37%".
+- Mettre à jour les libellés "Accusés enregistrés" et "Lectures effectuées".
 
-## 8. Admin — événements & indicateurs
-- Sur `safety/events.tsx` et `safety/spi.tsx`, si `user.role === 'admin'` :
-  - bouton "Modifier statut" (Select inline EN COURS/CLÔTURÉ/À TRAITER),
-  - bouton "Modifier catégorie" (Select),
-  - bouton "Ajouter une année" qui ajoute une nouvelle archive annuelle dans le store local.
-- Persistance : `users-store.ts` style (localStorage) — un nouveau `safety-store.ts` qui hydrate depuis `safety-data.ts` et mémorise les modifs.
+## 9. Robustesse "supprimer tous les users"
+- Vérifier les endroits qui assument la présence d'un user spécifique (dashboards, notifications). Garde-fous `?? []` et fallback "aucun user". Audit rapide de `loadUsers()`/`TEST_CREDENTIALS` usages.
 
-## Notes techniques
-- Aucun changement de schéma DB (table `form_submissions` suffit).
-- Pas de toucher aux fichiers auto-générés (`routeTree.gen.ts`, `integrations/supabase/*`).
-- Tous les nouveaux textes passent par `dict` dans `i18n.tsx`.
-- Vérification finale : build, navigation Admin vs User, soumission d'un formulaire de test.
+## 10. Bilan final
+- Je renvoie en fin un récap clair: fait / partiellement fait / non fait avec raisons.
 
-Estimation : ~15 fichiers touchés, 2 nouveaux composants, 1 nouvel asset logo.
+---
+
+## Précisions techniques
+- Stockage : tout localStorage (pas de migration Cloud) sauf acks (déjà Supabase). Fichiers binaires : IndexedDB via `doc-blobs.ts` existant.
+- PDF : header Tunisair + couleurs design tokens.
+- Pas de modif des comptes seed.
+
+## Questions avant de partir
+1. **PDF Indicateurs** : OK pour utiliser `html-to-image` + `jspdf` (~50KB combinés) ? 
+2. **Read&Sign existant** : on **vide** la liste actuelle (qui pointe vers docs internes) ou on migre les acks existants vers le nouveau store ?
+3. **Compteur "lectures demandées"** : on compte 1 lecture demandée par (user assigné × document diffusé), correct ?
+
+Répondez à ces 3 points et je lance l'implémentation séquentiellement avec un commit groupé par section.

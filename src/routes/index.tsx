@@ -1,6 +1,7 @@
-import { createFileRoute, Navigate } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { Shield, BookOpen, AlertTriangle, BarChart3, Plane } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "@tanstack/react-router";
 import { usePageTitle } from "@/lib/page-title";
 import { events as DEFAULT_EVENTS, type SafetyEvent } from "@/lib/safety-data";
 import { TEST_CREDENTIALS, useAuth } from "@/lib/auth";
@@ -12,6 +13,8 @@ import { loadAdminAlerts } from "@/lib/reminders";
 import { canUserSeeReadSignDoc, getAllDocs, requiresAckForCategory } from "@/lib/documents";
 import { loadReads } from "@/lib/notifications";
 import { loadSafa, SAFA_CURRENT_YEAR } from "@/lib/safa-store";
+import { DocIndicatorsDialog } from "@/components/doc-indicators-dialog";
+import { loadReadSign } from "@/lib/read-sign-store";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -91,7 +94,8 @@ function computeOverdueAlerts(users: StoredUser[]) {
 }
 
 function AdminDashboard() {
-  // Auto-refresh so the dashboard reflects new events, SAFA records and reads in real time.
+  const nav = useNavigate();
+  const [indicatorsOpen, setIndicatorsOpen] = useState(false);
   const [tick, setTick] = useState(0);
   useEffect(() => {
     const id = setInterval(() => setTick((t) => t + 1), 5000);
@@ -109,7 +113,7 @@ function AdminDashboard() {
   const safaOpen = safa.filter((s) => s.statut !== "CLÔTURÉ").length;
   const safaClosed = safa.filter((s) => s.statut === "CLÔTURÉ").length;
 
-  const { acks, users, alerts, readingRate, totalRead, totalAssignments, docsCount } = useMemo(() => {
+  const { acks, users, alerts, readsRequired, readsDone, acksRequired, acksDone, docsCount } = useMemo(() => {
     const acks = loadAcks();
     const users = loadKnownUsers().filter((u) => u.userType !== "admin");
     const dynamicAlerts = computeOverdueAlerts(users);
@@ -117,18 +121,36 @@ function AdminDashboard() {
     const alertMap = new Map([...storedAlerts, ...dynamicAlerts].map((a) => [`${a.email}|${a.docId}`, a]));
     const alerts = Array.from(alertMap.values()).sort((a, b) => b.daysOverdue - a.daysOverdue);
     const docs = getAllDocs();
-    const totalAssignments = users.length * docs.length;
-    let totalRead = 0;
+
+    // Reading requirements = for each (user, document the user is allowed to see)
+    let readsRequired = 0, readsDone = 0;
+    let acksRequired = 0, acksDone = 0;
     for (const u of users) {
       const reads = loadReads(u.email);
-      totalRead += docs.filter((d) => reads[d.id]).length;
+      for (const d of docs) {
+        if (!canUserSeeReadSignDoc(d, u.userType)) continue;
+        readsRequired++;
+        if (reads[d.id]) readsDone++;
+        if (d.requireAck !== false && requiresAckForCategory(d.category)) {
+          acksRequired++;
+          if (acks.some((a) => a.userEmail.toLowerCase() === u.email.toLowerCase() && a.docId === d.id)) acksDone++;
+        }
+      }
     }
-    const readingRate = totalAssignments > 0 ? Math.round((totalRead / totalAssignments) * 100) : 0;
-    return { acks, users, alerts, readingRate, totalRead, totalAssignments, docsCount: docs.length };
+    // Add Read & Sign assignments
+    const rs = loadReadSign();
+    for (const d of rs) {
+      readsRequired += d.assignedEmails.length;
+      acksRequired += d.assignedEmails.length;
+      for (const e of d.assignedEmails) {
+        if (acks.some((a) => a.userEmail.toLowerCase() === e && a.docId === d.id)) {
+          acksDone++; readsDone++;
+        }
+      }
+    }
+    return { acks, users, alerts, readsRequired, readsDone, acksRequired, acksDone, docsCount: docs.length };
   }, [tick]);
 
-
-  // Build bar groups
   const securityBars = [
     { label: "Total événements", value: events.length, color: "bg-slate-500", max: Math.max(events.length, 1) },
     { label: "En cours", value: open, color: "bg-orange-500", max: Math.max(events.length, 1) },
@@ -140,11 +162,12 @@ function AdminDashboard() {
     { label: "Non clôturés", value: safaOpen, color: "bg-orange-500", max: Math.max(safa.length, 1) },
     { label: "Clôturés", value: safaClosed, color: "bg-emerald-500", max: Math.max(safa.length, 1) },
   ];
+  // Use X/Y display (no percent)
   const indicatorBars = [
-    { label: "Utilisateurs suivis", value: users.length, color: "bg-indigo-500", max: Math.max(users.length, docsCount, 1) },
-    { label: "Documents diffusés", value: docsCount, color: "bg-blue-500", max: Math.max(users.length, docsCount, 1) },
-    { label: "Accusés enregistrés", value: acks.length, color: "bg-emerald-500", max: Math.max(acks.length, totalAssignments, 1) },
-    { label: "Lectures effectuées", value: totalRead, color: "bg-teal-500", max: Math.max(acks.length, totalAssignments, 1) },
+    { label: "Utilisateurs suivis", display: String(users.length), value: users.length, color: "bg-indigo-500", max: Math.max(users.length, docsCount, 1) },
+    { label: "Documents diffusés", display: String(docsCount), value: docsCount, color: "bg-blue-500", max: Math.max(users.length, docsCount, 1) },
+    { label: "Accusés enregistrés", display: `${acksDone} / ${acksRequired}`, value: acksDone, color: "bg-emerald-500", max: Math.max(acksRequired, 1) },
+    { label: "Lectures effectuées", display: `${readsDone} / ${readsRequired}`, value: readsDone, color: "bg-teal-500", max: Math.max(readsRequired, 1) },
   ];
 
   return (
@@ -155,29 +178,21 @@ function AdminDashboard() {
           icon={<Shield className="h-4 w-4" />}
           tone="from-red-600 to-rose-600"
           bars={securityBars}
+          onTitleClick={() => nav({ to: "/safety/events" })}
         />
         <BarPanel
           title="Écarts SAFA D03"
           icon={<Plane className="h-4 w-4" />}
           tone="from-blue-600 to-indigo-600"
           bars={safaBars}
+          onTitleClick={() => nav({ to: "/safety/safa-d03" })}
         />
         <BarPanel
           title="Indicateurs Documentaires"
           icon={<BookOpen className="h-4 w-4" />}
           tone="from-emerald-600 to-teal-600"
           bars={indicatorBars}
-          footer={
-            <div className="mt-3">
-              <div className="mb-1 flex items-center justify-between text-[11px]">
-                <span className="text-slate-600">Taux global de lecture</span>
-                <span className="font-semibold text-emerald-700">{readingRate}%</span>
-              </div>
-              <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
-                <div className="h-full bg-gradient-to-r from-emerald-500 to-teal-500" style={{ width: readingRate + "%" }} />
-              </div>
-            </div>
-          }
+          onTitleClick={() => setIndicatorsOpen(true)}
         />
       </div>
 
@@ -185,9 +200,7 @@ function AdminDashboard() {
         <h2 className="flex items-center gap-2 text-sm font-semibold text-slate-900">
           <AlertTriangle className="h-4 w-4 text-amber-500" />
           Alertes Lectures en retard (J+8)
-          <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-700">
-            {alerts.length}
-          </span>
+          <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-700">{alerts.length}</span>
         </h2>
         <div className="mt-3 overflow-hidden rounded-lg border border-slate-200">
           <table className="w-full text-sm">
@@ -212,28 +225,38 @@ function AdminDashboard() {
           </table>
         </div>
       </section>
+
+      <DocIndicatorsDialog open={indicatorsOpen} onOpenChange={setIndicatorsOpen} />
+      {/* avoid unused-vars warning */}
+      <span className="hidden">{acks.length}</span>
     </div>
   );
 }
 
-type Bar = { label: string; value: number; color: string; max: number };
+type Bar = { label: string; value: number; color: string; max: number; display?: string };
 
 function BarPanel({
-  title, icon, tone, bars, footer,
+  title, icon, tone, bars, footer, onTitleClick,
 }: {
   title: string;
   icon: React.ReactNode;
   tone: string;
   bars: Bar[];
   footer?: React.ReactNode;
+  onTitleClick?: () => void;
 }) {
   return (
     <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-      <div className={"flex items-center gap-2 bg-gradient-to-r px-4 py-2.5 text-white " + tone}>
+      <button
+        type="button"
+        onClick={onTitleClick}
+        disabled={!onTitleClick}
+        className={"flex w-full items-center gap-2 bg-gradient-to-r px-4 py-2.5 text-white " + tone + (onTitleClick ? " cursor-pointer hover:brightness-110" : "")}
+      >
         <span className="text-white/90">{icon}</span>
         <span className="text-xs font-semibold uppercase tracking-wide">{title}</span>
         <BarChart3 className="ml-auto h-3.5 w-3.5 text-white/70" />
-      </div>
+      </button>
       <div className="space-y-2.5 p-4">
         {bars.map((b) => {
           const pct = b.max > 0 ? Math.max(4, Math.round((b.value / b.max) * 100)) : 0;
@@ -241,7 +264,7 @@ function BarPanel({
             <div key={b.label}>
               <div className="mb-0.5 flex items-baseline justify-between gap-2 text-[11px]">
                 <span className="truncate text-slate-600">{b.label}</span>
-                <span className="font-semibold tabular-nums text-slate-900">{b.value}</span>
+                <span className="font-semibold tabular-nums text-slate-900">{b.display ?? b.value}</span>
               </div>
               <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100">
                 <div className={"h-full rounded-full " + b.color} style={{ width: pct + "%" }} />
@@ -254,4 +277,3 @@ function BarPanel({
     </div>
   );
 }
-

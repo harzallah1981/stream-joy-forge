@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Mail, Save, Plus, X } from "lucide-react";
+import { Mail, Save, Plus, X, Pencil, Trash2, RotateCcw, Eye } from "lucide-react";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -8,34 +8,44 @@ import { Label } from "@/components/ui/label";
 import { useAuth } from "@/lib/auth";
 import { usePageTitle } from "@/lib/page-title";
 import {
-  FORM_TYPES,
+  getFormTypes,
   loadRecipientsConfig,
   saveRecipientsConfig,
+  resetRecipientsFor,
   MAX_RECIPIENTS,
   type RecipientsConfig,
 } from "@/lib/forms/recipients-config";
+import {
+  loadForms, setFormLabel, hideForm, restoreForm, type FormDef,
+} from "@/lib/forms-store";
+import { archive } from "@/lib/archives-store";
 
 export const Route = createFileRoute("/admin/recipients")({
-  head: () => ({ meta: [{ title: "Destinataires des formulaires — Admin" }] }),
+  head: () => ({ meta: [{ title: "Formulaires & destinataires — Admin" }] }),
   component: RecipientsAdmin,
 });
 
 const isEmail = (s: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s.trim());
 
 function RecipientsAdmin() {
-  usePageTitle("Destinataires", "Configurer les destinataires par formulaire");
+  usePageTitle("Formulaires & destinataires", "Gestion des formulaires et de leurs destinataires");
   const { user } = useAuth();
   const [cfg, setCfg] = useState<RecipientsConfig>({});
+  const [forms, setForms] = useState<FormDef[]>([]);
+  const [refresh, setRefresh] = useState(0);
+  const [renameTarget, setRenameTarget] = useState<FormDef | null>(null);
 
-  useEffect(() => { setCfg(loadRecipientsConfig()); }, []);
+  useEffect(() => {
+    setCfg(loadRecipientsConfig());
+    setForms(loadForms());
+  }, [refresh]);
 
   if (user?.role !== "admin") {
-    return (
-      <div className="p-8">
-        <p className="text-sm text-slate-600">Accès réservé aux administrateurs.</p>
-      </div>
-    );
+    return <div className="p-8"><p className="text-sm text-slate-600">Accès réservé aux administrateurs.</p></div>;
   }
+
+  const visible = forms.filter((f) => !f.hidden);
+  const hidden = forms.filter((f) => f.hidden);
 
   const update = (id: string, key: "to" | "cc", i: number, v: string) => {
     setCfg((c) => {
@@ -45,7 +55,6 @@ function RecipientsAdmin() {
       return { ...c, [id]: { ...cur, [key]: list } };
     });
   };
-
   const addRow = (id: string, key: "to" | "cc") => {
     setCfg((c) => {
       const cur = c[id] ?? { to: [], cc: [] };
@@ -54,7 +63,6 @@ function RecipientsAdmin() {
       return { ...c, [id]: { ...cur, [key]: [...list, ""] } };
     });
   };
-
   const removeRow = (id: string, key: "to" | "cc", i: number) => {
     setCfg((c) => {
       const cur = c[id] ?? { to: [], cc: [] };
@@ -63,9 +71,8 @@ function RecipientsAdmin() {
   };
 
   const save = () => {
-    // Validate & strip empties
     const clean: RecipientsConfig = {};
-    for (const ft of FORM_TYPES) {
+    for (const ft of getFormTypes()) {
       const cur = cfg[ft.id] ?? { to: [], cc: [] };
       const to = (cur.to ?? []).map((s) => s.trim()).filter(Boolean);
       const cc = (cur.cc ?? []).map((s) => s.trim()).filter(Boolean);
@@ -79,24 +86,50 @@ function RecipientsAdmin() {
   };
 
   return (
-    <div className="p-4 md:p-6 lg:p-8">
+    <div className="p-4 md:p-6 lg:p-8 space-y-4">
       <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
         <div className="flex flex-wrap items-center gap-3 border-b border-slate-200 bg-white px-5 py-4">
           <h2 className="flex items-center gap-2 text-sm font-semibold text-slate-900">
             <Mail className="h-4 w-4 text-blue-600" />
-            DESTINATAIRES PAR FORMULAIRE
+            FORMULAIRES & DESTINATAIRES
           </h2>
           <Button onClick={save} className="ml-auto h-9 cursor-pointer gap-1.5 bg-blue-600 hover:bg-blue-700">
-            <Save className="h-4 w-4" /> Enregistrer
+            <Save className="h-4 w-4" /> Enregistrer destinataires
           </Button>
         </div>
 
         <div className="space-y-4 bg-slate-50 p-4">
-          {FORM_TYPES.map((ft) => {
+          {visible.map((ft) => {
             const cur = cfg[ft.id] ?? { to: [], cc: [] };
             return (
               <div key={ft.id} className="rounded-lg border border-slate-200 bg-white p-4">
-                <h3 className="mb-3 text-sm font-semibold text-slate-900">{ft.label}</h3>
+                <div className="mb-3 flex flex-wrap items-center gap-2">
+                  <h3 className="text-sm font-semibold text-slate-900">{ft.label}</h3>
+                  <a href={`/forms/${ft.slug}`} className="inline-flex items-center gap-1 rounded-md border border-slate-200 px-2 py-0.5 text-[11px] text-slate-600 hover:bg-slate-50">
+                    <Eye className="h-3 w-3" /> Ouvrir
+                  </a>
+                  <div className="ml-auto flex gap-1">
+                    <Button size="sm" variant="outline" className="h-7 gap-1 text-xs" onClick={() => setRenameTarget(ft)}>
+                      <Pencil className="h-3 w-3" /> Renommer
+                    </Button>
+                    <Button size="sm" variant="outline" className="h-7 gap-1 text-xs" onClick={() => {
+                      resetRecipientsFor(ft.id);
+                      setRefresh((r) => r + 1);
+                      toast.success("Destinataires réinitialisés");
+                    }}>
+                      <RotateCcw className="h-3 w-3" /> Refaire
+                    </Button>
+                    <Button size="sm" variant="outline" className="h-7 gap-1 text-xs text-red-600 hover:bg-red-50" onClick={() => {
+                      if (!window.confirm(`Supprimer le formulaire « ${ft.label} » ? Il sera archivé.`)) return;
+                      archive({ kind: "form", category: "form", title: ft.label, reference: ft.id, archivedBy: user?.email ?? "admin", payload: ft });
+                      hideForm(ft.id);
+                      setRefresh((r) => r + 1);
+                      toast.success("Formulaire supprimé et archivé");
+                    }}>
+                      <Trash2 className="h-3 w-3" /> Supprimer
+                    </Button>
+                  </div>
+                </div>
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                   {(["to", "cc"] as const).map((key) => {
                     const list = cur[key] ?? [];
@@ -115,23 +148,16 @@ function RecipientsAdmin() {
                               placeholder={key === "to" ? "destinataire@exemple.com" : "copie@exemple.com"}
                             />
                             {list.length > 0 && (
-                              <button
-                                type="button"
-                                onClick={() => removeRow(ft.id, key, i)}
-                                className="cursor-pointer rounded-md p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-600"
-                                title="Retirer"
-                              >
+                              <button type="button" onClick={() => removeRow(ft.id, key, i)}
+                                className="cursor-pointer rounded-md p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-600" title="Retirer">
                                 <X className="h-4 w-4" />
                               </button>
                             )}
                           </div>
                         ))}
                         {list.length < MAX_RECIPIENTS && (
-                          <button
-                            type="button"
-                            onClick={() => addRow(ft.id, key)}
-                            className="inline-flex cursor-pointer items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-blue-600 hover:bg-blue-50"
-                          >
+                          <button type="button" onClick={() => addRow(ft.id, key)}
+                            className="inline-flex cursor-pointer items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-blue-600 hover:bg-blue-50">
                             <Plus className="h-3.5 w-3.5" /> Ajouter
                           </button>
                         )}
@@ -145,9 +171,60 @@ function RecipientsAdmin() {
         </div>
       </div>
 
-      <p className="mt-3 text-xs text-slate-500">
+      {hidden.length > 0 && (
+        <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+          <div className="border-b border-slate-200 px-5 py-3 text-sm font-semibold text-slate-700">
+            Formulaires supprimés ({hidden.length})
+          </div>
+          <ul className="divide-y divide-slate-100">
+            {hidden.map((f) => (
+              <li key={f.id} className="flex items-center gap-3 px-5 py-2 text-sm">
+                <span className="text-slate-700">{f.defaultLabel}</span>
+                <span className="text-xs text-slate-400">({f.id})</span>
+                <Button size="sm" variant="outline" className="ml-auto h-7 gap-1 text-xs" onClick={() => {
+                  restoreForm(f.id); setRefresh((r) => r + 1); toast.success("Formulaire restauré");
+                }}>
+                  <RotateCcw className="h-3 w-3" /> Restaurer
+                </Button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      <p className="text-xs text-slate-500">
         Une copie automatique vers l'utilisateur connecté est toujours ajoutée à l'envoi (en plus des CC ci-dessus).
       </p>
+
+      {renameTarget && (
+        <RenameDialog
+          form={renameTarget}
+          onCancel={() => setRenameTarget(null)}
+          onSave={(label) => {
+            setFormLabel(renameTarget.id, label);
+            setRenameTarget(null); setRefresh((r) => r + 1);
+            toast.success("Formulaire renommé");
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+function RenameDialog({ form, onCancel, onSave }: { form: FormDef; onCancel: () => void; onSave: (label: string) => void }) {
+  const [v, setV] = useState(form.label);
+  return (
+    <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4">
+      <div className="w-full max-w-md rounded-xl border border-slate-200 bg-white p-5 shadow-xl">
+        <h3 className="mb-3 text-sm font-semibold">Renommer le formulaire</h3>
+        <Label className="text-xs">Nouveau nom</Label>
+        <Input value={v} onChange={(e) => setV(e.target.value)} className="mt-1" />
+        <p className="mt-1 text-[11px] text-slate-500">Original : {form.defaultLabel}</p>
+        <div className="mt-4 flex justify-end gap-2">
+          <Button variant="outline" size="sm" onClick={onCancel}>Annuler</Button>
+          <Button size="sm" onClick={() => onSave(v)} className="bg-blue-600 hover:bg-blue-700">Enregistrer</Button>
+        </div>
+      </div>
     </div>
   );
 }

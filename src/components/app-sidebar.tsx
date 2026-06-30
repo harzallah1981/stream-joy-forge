@@ -8,6 +8,29 @@ import { useAuth } from "@/lib/auth";
 import { canSeeGroup, canSeeMenuNode } from "@/lib/permissions";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { loadForms } from "@/lib/forms-store";
+
+// Map sidebar menu keys -> dynamic form ids (so admin renames propagate to nav)
+const FORM_KEY_TO_ID: Record<string, string> = {
+  ahm_650: "ahm-650",
+  dg_incident: "dg-incident",
+  ios_428_01_checklist: "ios-428-01",
+};
+
+function resolveLabel(t: (k: string) => string, key: string): string {
+  const formId = FORM_KEY_TO_ID[key];
+  if (formId) {
+    const f = loadForms().find((x) => x.id === formId);
+    if (f) return f.label;
+  }
+  return t(key);
+}
+
+function isHiddenFormKey(key: string): boolean {
+  const formId = FORM_KEY_TO_ID[key];
+  if (!formId) return false;
+  return loadForms().find((f) => f.id === formId)?.hidden ?? false;
+}
 
 function hasActiveDescendant(node: MenuNode, pathname: string): boolean {
   if (node.to && node.to === pathname) return true;
@@ -21,7 +44,8 @@ function NavItem({ node, depth, pathname }: { node: MenuNode; depth: number; pat
   const childActive = node.children && hasActiveDescendant(node, pathname);
   const [open, setOpen] = useState(!!childActive);
   if (!canSeeMenuNode(node, user)) return null;
-  const visibleChildren = node.children?.filter((c) => canSeeMenuNode(c, user)) ?? [];
+  if (isHiddenFormKey(node.key)) return null;
+  const visibleChildren = node.children?.filter((c) => canSeeMenuNode(c, user) && !isHiddenFormKey(c.key)) ?? [];
 
   if (node.children?.length) {
     if (visibleChildren.length === 0) return null;
@@ -37,7 +61,7 @@ function NavItem({ node, depth, pathname }: { node: MenuNode; depth: number; pat
           )}
           style={{ paddingLeft: 12 + depth * 12 }}
         >
-          <span className="truncate">{t(node.key)}</span>
+          <span className="truncate">{resolveLabel(t, node.key)}</span>
           {open ? (
             <ChevronDown className="h-4 w-4 shrink-0 text-slate-400" />
           ) : (
@@ -66,7 +90,7 @@ function NavItem({ node, depth, pathname }: { node: MenuNode; depth: number; pat
       )}
       style={{ paddingLeft: 12 + depth * 12 }}
     >
-      <span className="truncate">{t(node.key)}</span>
+      <span className="truncate">{resolveLabel(t, node.key)}</span>
     </Link>
   );
 }
