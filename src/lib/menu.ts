@@ -3,7 +3,6 @@ import {
   FileText,
   FolderOpen,
   ClipboardList,
-  
   ShieldAlert,
   Settings,
   LayoutDashboard,
@@ -18,7 +17,7 @@ export type MenuNode = {
 
 export type MenuGroup = {
   key: string;
-  label?: string; // section label (uppercase)
+  label?: string;
   icon?: LucideIcon;
   items: MenuNode[];
 };
@@ -91,8 +90,6 @@ export const MENU_GROUPS: MenuGroup[] = [
     ],
   },
 
-  // "Personnel & Formation" section removed per request
-
   {
     key: "safety",
     label: "safety",
@@ -112,13 +109,12 @@ export const MENU_GROUPS: MenuGroup[] = [
       { key: "credentials", to: stub("credentials") },
       { key: "accuses", to: stub("accuses-reception") },
       { key: "form_recipients", to: "/admin/recipients" },
+      { key: "archives", to: "/admin/archives" },
     ],
   },
 ];
 
-// Legacy export (compat with anything still importing MENU)
 export const MENU = MENU_GROUPS.flatMap((g) => g.items);
-
 export const DASHBOARD_ICON = LayoutDashboard;
 export const FORMS_ICON = ClipboardList;
 export const DOCS_ICON = FileText;

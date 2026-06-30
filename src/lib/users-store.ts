@@ -12,21 +12,28 @@ export const AVAILABLE_MODULES: { key: string; label: string }[] = [
 
 export type StoredUser = {
   id: string;
-  email: string;          // primary email (login)
-  emails: string[];       // T5: up to 3 emails (notifications/relances)
+  email: string;
+  emails: string[];
   username: string;
-  // Legacy role kept for back-compat with existing auth code.
   role: "admin" | "internal" | "external";
   userType: UserType;
   modules: string[];
   org: string;
-  workplace: string;      // T18: required at user creation
-  // T29: principal admin (super) vs specific admin (limited)
+  workplace: string;
   adminScope?: "principal" | "specific";
   createdAt: string;
 };
 
 const KEY = "tunisair_users_v1";
+
+// Account quotas (per spec)
+export const MAX_ADMINS = 3;
+export const MAX_MANAGERS = 100;
+// internal_standard and external are unlimited
+
+export class UserQuotaError extends Error {
+  constructor(msg: string) { super(msg); this.name = "UserQuotaError"; }
+}
 
 function roleFromType(t: UserType): StoredUser["role"] {
   if (t === "admin") return "admin";
@@ -72,9 +79,30 @@ export function loadUsers(): StoredUser[] {
 export function saveUsers(u: StoredUser[]) {
   localStorage.setItem(KEY, JSON.stringify(u));
 }
-export function addUser(u: Omit<StoredUser, "id" | "createdAt" | "role"> & { role?: StoredUser["role"] }) {
+
+// Counts include seed accounts when called by callers that pass them; here we
+// count only stored users — the UI is responsible for merging with seeds when
+// it wants to enforce against the union.
+function countByType(users: StoredUser[], t: UserType) {
+  return users.filter((u) => u.userType === t).length;
+}
+
+export function checkQuota(t: UserType, currentExtra = 0): string | null {
   const users = loadUsers();
+  if (t === "admin" && countByType(users, "admin") + currentExtra >= MAX_ADMINS) {
+    return `Limite atteinte : maximum ${MAX_ADMINS} comptes admin.`;
+  }
+  if (t === "internal_manager" && countByType(users, "internal_manager") + currentExtra >= MAX_MANAGERS) {
+    return `Limite atteinte : maximum ${MAX_MANAGERS} comptes gestionnaire.`;
+  }
+  return null;
+}
+
+export function addUser(u: Omit<StoredUser, "id" | "createdAt" | "role"> & { role?: StoredUser["role"] }) {
   const next = normalize(u as never);
+  const err = checkQuota(next.userType);
+  if (err) throw new UserQuotaError(err);
+  const users = loadUsers();
   users.push(next);
   saveUsers(users);
   try { import("./auth").then((m) => m.markMustChange(next.email)); } catch {}
@@ -86,6 +114,11 @@ export function updateUser(id: string, patch: Partial<StoredUser>) {
   if (idx < 0) return;
   const merged = { ...users[idx], ...patch } as StoredUser;
   if (patch.userType) merged.role = roleFromType(merged.userType);
+  // Enforce quota when promoting to admin/manager
+  if (patch.userType && patch.userType !== users[idx].userType) {
+    const err = checkQuota(merged.userType, -1); // exclude the current row from the count
+    if (err) throw new UserQuotaError(err);
+  }
   users[idx] = merged;
   saveUsers(users);
 }
