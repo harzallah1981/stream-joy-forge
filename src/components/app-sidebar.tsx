@@ -90,7 +90,7 @@ function NavItem({ node, depth, pathname }: { node: MenuNode; depth: number; pat
       )}
       style={{ paddingLeft: 12 + depth * 12 }}
     >
-      <span className="truncate">{t(node.key)}</span>
+      <span className="truncate">{resolveLabel(t, node.key)}</span>
     </Link>
   );
 }
