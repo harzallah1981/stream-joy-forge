@@ -17,7 +17,12 @@ const FORM_KEY_TO_ID: Record<string, string> = {
   ios_428_01_checklist: "ios-428-01",
 };
 
-function resolveLabel(t: (k: string) => string, key: string): string {
+function resolveLabel(t: (k: string) => string, node: MenuNode): string {
+  const key = node.key;
+  if (key.startsWith("custom_")) {
+    const anyLabel = (node as unknown as { label?: string }).label;
+    if (anyLabel) return anyLabel;
+  }
   const formId = FORM_KEY_TO_ID[key];
   if (formId) {
     const f = loadForms().find((x) => x.id === formId);
@@ -25,6 +30,7 @@ function resolveLabel(t: (k: string) => string, key: string): string {
   }
   return t(key);
 }
+
 
 function isHiddenFormKey(key: string): boolean {
   const formId = FORM_KEY_TO_ID[key];
