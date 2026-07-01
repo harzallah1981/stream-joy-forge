@@ -226,6 +226,29 @@ function RecipientsAdmin() {
           }}
         />
       )}
+
+      {createOpen && (
+        <CreateFormDialog
+          onCancel={() => setCreateOpen(false)}
+          onCreate={(label, fields) => {
+            const def = addCustomForm({ label, fields });
+            setCreateOpen(false); setRefresh((r) => r + 1);
+            toast.success(`Formulaire « ${def.label} » créé`);
+          }}
+        />
+      )}
+
+      {fieldsTarget && (
+        <FieldsDialog
+          form={fieldsTarget}
+          onCancel={() => setFieldsTarget(null)}
+          onSave={(fields) => {
+            updateFormFields(fieldsTarget.id, fields);
+            setFieldsTarget(null); setRefresh((r) => r + 1);
+            toast.success("Champs enregistrés");
+          }}
+        />
+      )}
     </div>
   );
 }
@@ -247,3 +270,107 @@ function RenameDialog({ form, onCancel, onSave }: { form: FormDef; onCancel: () 
     </div>
   );
 }
+
+const FIELD_TYPES: { v: FormFieldType; label: string }[] = [
+  { v: "text", label: "Texte court" },
+  { v: "textarea", label: "Texte long" },
+  { v: "number", label: "Nombre" },
+  { v: "date", label: "Date" },
+  { v: "time", label: "Heure" },
+  { v: "email", label: "Email" },
+  { v: "select", label: "Liste déroulante" },
+  { v: "checkbox", label: "Case à cocher" },
+];
+
+function FieldsEditor({ value, onChange }: { value: FormField[]; onChange: (f: FormField[]) => void }) {
+  const update = (i: number, patch: Partial<FormField>) => {
+    const next = [...value]; next[i] = { ...next[i], ...patch }; onChange(next);
+  };
+  const remove = (i: number) => onChange(value.filter((_, idx) => idx !== i));
+  const add = () => onChange([...value, { id: `f_${Date.now()}_${value.length}`, label: "Nouveau champ", type: "text" }]);
+  const move = (i: number, dir: -1 | 1) => {
+    const j = i + dir; if (j < 0 || j >= value.length) return;
+    const next = [...value]; [next[i], next[j]] = [next[j], next[i]]; onChange(next);
+  };
+  return (
+    <div className="space-y-2">
+      {value.length === 0 && <p className="text-xs text-slate-500">Aucun champ. Ajoutez-en un ci-dessous.</p>}
+      {value.map((f, i) => (
+        <div key={f.id} className="rounded-md border border-slate-200 bg-slate-50 p-2">
+          <div className="flex flex-wrap items-center gap-1.5">
+            <Input value={f.label} onChange={(e) => update(i, { label: e.target.value })} placeholder="Libellé" className="h-8 flex-1 min-w-[160px] text-sm" />
+            <select value={f.type} onChange={(e) => update(i, { type: e.target.value as FormFieldType })} className="h-8 rounded-md border border-slate-200 bg-white px-2 text-xs">
+              {FIELD_TYPES.map((t) => <option key={t.v} value={t.v}>{t.label}</option>)}
+            </select>
+            <label className="inline-flex items-center gap-1 text-[11px] text-slate-600">
+              <input type="checkbox" checked={!!f.required} onChange={(e) => update(i, { required: e.target.checked })} /> Requis
+            </label>
+            <Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => move(i, -1)}>↑</Button>
+            <Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => move(i, 1)}>↓</Button>
+            <Button size="sm" variant="outline" className="h-7 px-2 text-xs text-red-600" onClick={() => remove(i)}>Suppr.</Button>
+          </div>
+          {f.type === "select" && (
+            <Input
+              className="mt-1.5 h-8 text-xs"
+              placeholder="Options séparées par des virgules"
+              value={(f.options ?? []).join(", ")}
+              onChange={(e) => update(i, { options: e.target.value.split(",").map((s) => s.trim()).filter(Boolean) })}
+            />
+          )}
+          <Input
+            className="mt-1.5 h-8 text-xs"
+            placeholder="Texte d'aide (optionnel)"
+            value={f.placeholder ?? ""}
+            onChange={(e) => update(i, { placeholder: e.target.value })}
+          />
+        </div>
+      ))}
+      <Button size="sm" variant="outline" onClick={add} className="h-8 gap-1 text-xs">
+        <Plus className="h-3 w-3" /> Ajouter un champ
+      </Button>
+    </div>
+  );
+}
+
+function CreateFormDialog({ onCancel, onCreate }: { onCancel: () => void; onCreate: (label: string, fields: FormField[]) => void }) {
+  const [label, setLabel] = useState("");
+  const [fields, setFields] = useState<FormField[]>([]);
+  return (
+    <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4">
+      <div className="w-full max-w-2xl max-h-[85vh] overflow-y-auto rounded-xl border border-slate-200 bg-white p-5 shadow-xl">
+        <h3 className="mb-3 text-sm font-semibold">Nouveau formulaire personnalisé</h3>
+        <Label className="text-xs">Nom du formulaire</Label>
+        <Input value={label} onChange={(e) => setLabel(e.target.value)} placeholder="Ex : Rapport d'anomalie piste" className="mt-1" />
+        <div className="mt-4">
+          <Label className="mb-2 block text-xs uppercase text-slate-500">Champs</Label>
+          <FieldsEditor value={fields} onChange={setFields} />
+        </div>
+        <div className="mt-4 flex justify-end gap-2">
+          <Button variant="outline" size="sm" onClick={onCancel}>Annuler</Button>
+          <Button size="sm" onClick={() => {
+            if (!label.trim()) { toast.error("Nom requis"); return; }
+            onCreate(label.trim(), fields);
+          }} className="bg-blue-600 hover:bg-blue-700">Créer</Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function FieldsDialog({ form, onCancel, onSave }: { form: FormDef; onCancel: () => void; onSave: (fields: FormField[]) => void }) {
+  const [fields, setFields] = useState<FormField[]>(form.fields ?? []);
+  return (
+    <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4">
+      <div className="w-full max-w-2xl max-h-[85vh] overflow-y-auto rounded-xl border border-slate-200 bg-white p-5 shadow-xl">
+        <h3 className="mb-1 text-sm font-semibold">Modifier les champs</h3>
+        <p className="mb-3 text-[11px] text-slate-500">{form.label}</p>
+        <FieldsEditor value={fields} onChange={setFields} />
+        <div className="mt-4 flex justify-end gap-2">
+          <Button variant="outline" size="sm" onClick={onCancel}>Annuler</Button>
+          <Button size="sm" onClick={() => onSave(fields)} className="bg-blue-600 hover:bg-blue-700">Enregistrer</Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
