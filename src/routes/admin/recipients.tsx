@@ -98,9 +98,13 @@ function RecipientsAdmin() {
             <Mail className="h-4 w-4 text-blue-600" />
             FORMULAIRES & DESTINATAIRES
           </h2>
-          <Button onClick={save} className="ml-auto h-9 cursor-pointer gap-1.5 bg-blue-600 hover:bg-blue-700">
+          <Button variant="outline" onClick={() => setCreateOpen(true)} className="ml-auto h-9 cursor-pointer gap-1.5">
+            <FilePlus2 className="h-4 w-4" /> Nouveau formulaire
+          </Button>
+          <Button onClick={save} className="h-9 cursor-pointer gap-1.5 bg-blue-600 hover:bg-blue-700">
             <Save className="h-4 w-4" /> Enregistrer destinataires
           </Button>
+
         </div>
 
         <div className="space-y-4 bg-slate-50 p-4">
