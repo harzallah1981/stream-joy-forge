@@ -45,7 +45,13 @@ function NavItem({ node, depth, pathname }: { node: MenuNode; depth: number; pat
   const [open, setOpen] = useState(!!childActive);
   if (!canSeeMenuNode(node, user)) return null;
   if (isHiddenFormKey(node.key)) return null;
-  const visibleChildren = node.children?.filter((c) => canSeeMenuNode(c, user) && !isHiddenFormKey(c.key)) ?? [];
+  let visibleChildren = node.children?.filter((c) => canSeeMenuNode(c, user) && !isHiddenFormKey(c.key)) ?? [];
+  if (node.key === "forms") {
+    const customs = loadForms().filter((f) => f.custom && !f.hidden);
+    const extra: MenuNode[] = customs.map((f) => ({ key: `custom_${f.id}`, to: `/forms/c/${f.slug}`, label: f.label } as unknown as MenuNode));
+    visibleChildren = [...visibleChildren, ...extra];
+  }
+
 
   if (node.children?.length) {
     if (visibleChildren.length === 0) return null;
