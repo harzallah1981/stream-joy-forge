@@ -1,6 +1,6 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Mail, Save, Plus, X, Pencil, Trash2, RotateCcw, Eye } from "lucide-react";
+import { Mail, Save, Plus, X, Pencil, Trash2, RotateCcw, Eye, FilePlus2, Settings2 } from "lucide-react";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -16,9 +16,11 @@ import {
   type RecipientsConfig,
 } from "@/lib/forms/recipients-config";
 import {
-  loadForms, setFormLabel, hideForm, restoreForm, type FormDef,
+  loadForms, setFormLabel, restoreForm, deleteForm, addCustomForm, updateFormFields,
+  type FormDef, type FormField, type FormFieldType,
 } from "@/lib/forms-store";
 import { archive } from "@/lib/archives-store";
+
 
 export const Route = createFileRoute("/admin/recipients")({
   head: () => ({ meta: [{ title: "Formulaires & destinataires — Admin" }] }),
