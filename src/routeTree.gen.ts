@@ -22,6 +22,7 @@ import { Route as FormsDgIncidentRouteImport } from './routes/forms/dg-incident'
 import { Route as FormsAhm650RouteImport } from './routes/forms/ahm-650'
 import { Route as AdminRecipientsRouteImport } from './routes/admin/recipients'
 import { Route as AdminArchivesRouteImport } from './routes/admin/archives'
+import { Route as FormsCSlugRouteImport } from './routes/forms/c.$slug'
 
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
@@ -88,6 +89,11 @@ const AdminArchivesRoute = AdminArchivesRouteImport.update({
   path: '/admin/archives',
   getParentRoute: () => rootRouteImport,
 } as any)
+const FormsCSlugRoute = FormsCSlugRouteImport.update({
+  id: '/forms/c/$slug',
+  path: '/forms/c/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -103,6 +109,7 @@ export interface FileRoutesByFullPath {
   '/safety/events': typeof SafetyEventsRoute
   '/safety/safa-d03': typeof SafetySafaD03Route
   '/safety/spi': typeof SafetySpiRoute
+  '/forms/c/$slug': typeof FormsCSlugRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -118,6 +125,7 @@ export interface FileRoutesByTo {
   '/safety/events': typeof SafetyEventsRoute
   '/safety/safa-d03': typeof SafetySafaD03Route
   '/safety/spi': typeof SafetySpiRoute
+  '/forms/c/$slug': typeof FormsCSlugRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -134,6 +142,7 @@ export interface FileRoutesById {
   '/safety/events': typeof SafetyEventsRoute
   '/safety/safa-d03': typeof SafetySafaD03Route
   '/safety/spi': typeof SafetySpiRoute
+  '/forms/c/$slug': typeof FormsCSlugRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -151,6 +160,7 @@ export interface FileRouteTypes {
     | '/safety/events'
     | '/safety/safa-d03'
     | '/safety/spi'
+    | '/forms/c/$slug'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -166,6 +176,7 @@ export interface FileRouteTypes {
     | '/safety/events'
     | '/safety/safa-d03'
     | '/safety/spi'
+    | '/forms/c/$slug'
   id:
     | '__root__'
     | '/'
@@ -181,6 +192,7 @@ export interface FileRouteTypes {
     | '/safety/events'
     | '/safety/safa-d03'
     | '/safety/spi'
+    | '/forms/c/$slug'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -197,6 +209,7 @@ export interface RootRouteChildren {
   SafetyEventsRoute: typeof SafetyEventsRoute
   SafetySafaD03Route: typeof SafetySafaD03Route
   SafetySpiRoute: typeof SafetySpiRoute
+  FormsCSlugRoute: typeof FormsCSlugRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -292,6 +305,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminArchivesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/forms/c/$slug': {
+      id: '/forms/c/$slug'
+      path: '/forms/c/$slug'
+      fullPath: '/forms/c/$slug'
+      preLoaderRoute: typeof FormsCSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -309,17 +329,8 @@ const rootRouteChildren: RootRouteChildren = {
   SafetyEventsRoute: SafetyEventsRoute,
   SafetySafaD03Route: SafetySafaD03Route,
   SafetySpiRoute: SafetySpiRoute,
+  FormsCSlugRoute: FormsCSlugRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
