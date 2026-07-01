@@ -36,6 +36,9 @@ function RecipientsAdmin() {
   const [forms, setForms] = useState<FormDef[]>([]);
   const [refresh, setRefresh] = useState(0);
   const [renameTarget, setRenameTarget] = useState<FormDef | null>(null);
+  const [fieldsTarget, setFieldsTarget] = useState<FormDef | null>(null);
+  const [createOpen, setCreateOpen] = useState(false);
+
 
   useEffect(() => {
     setCfg(loadRecipientsConfig());
