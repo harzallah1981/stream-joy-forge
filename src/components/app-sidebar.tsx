@@ -17,7 +17,12 @@ const FORM_KEY_TO_ID: Record<string, string> = {
   ios_428_01_checklist: "ios-428-01",
 };
 
-function resolveLabel(t: (k: string) => string, key: string): string {
+function resolveLabel(t: (k: string) => string, node: MenuNode): string {
+  const key = node.key;
+  if (key.startsWith("custom_")) {
+    const anyLabel = (node as unknown as { label?: string }).label;
+    if (anyLabel) return anyLabel;
+  }
   const formId = FORM_KEY_TO_ID[key];
   if (formId) {
     const f = loadForms().find((x) => x.id === formId);
@@ -25,6 +30,7 @@ function resolveLabel(t: (k: string) => string, key: string): string {
   }
   return t(key);
 }
+
 
 function isHiddenFormKey(key: string): boolean {
   const formId = FORM_KEY_TO_ID[key];
@@ -45,7 +51,13 @@ function NavItem({ node, depth, pathname }: { node: MenuNode; depth: number; pat
   const [open, setOpen] = useState(!!childActive);
   if (!canSeeMenuNode(node, user)) return null;
   if (isHiddenFormKey(node.key)) return null;
-  const visibleChildren = node.children?.filter((c) => canSeeMenuNode(c, user) && !isHiddenFormKey(c.key)) ?? [];
+  let visibleChildren = node.children?.filter((c) => canSeeMenuNode(c, user) && !isHiddenFormKey(c.key)) ?? [];
+  if (node.key === "forms") {
+    const customs = loadForms().filter((f) => f.custom && !f.hidden);
+    const extra: MenuNode[] = customs.map((f) => ({ key: `custom_${f.id}`, to: `/forms/c/${f.slug}`, label: f.label } as unknown as MenuNode));
+    visibleChildren = [...visibleChildren, ...extra];
+  }
+
 
   if (node.children?.length) {
     if (visibleChildren.length === 0) return null;
@@ -61,7 +73,7 @@ function NavItem({ node, depth, pathname }: { node: MenuNode; depth: number; pat
           )}
           style={{ paddingLeft: 12 + depth * 12 }}
         >
-          <span className="truncate">{resolveLabel(t, node.key)}</span>
+          <span className="truncate">{resolveLabel(t, node)}</span>
           {open ? (
             <ChevronDown className="h-4 w-4 shrink-0 text-slate-400" />
           ) : (
@@ -90,7 +102,7 @@ function NavItem({ node, depth, pathname }: { node: MenuNode; depth: number; pat
       )}
       style={{ paddingLeft: 12 + depth * 12 }}
     >
-      <span className="truncate">{resolveLabel(t, node.key)}</span>
+      <span className="truncate">{resolveLabel(t, node)}</span>
     </Link>
   );
 }

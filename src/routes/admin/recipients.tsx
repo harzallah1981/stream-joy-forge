@@ -1,6 +1,6 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Mail, Save, Plus, X, Pencil, Trash2, RotateCcw, Eye } from "lucide-react";
+import { Mail, Save, Plus, X, Pencil, Trash2, RotateCcw, Eye, FilePlus2, Settings2 } from "lucide-react";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -16,9 +16,11 @@ import {
   type RecipientsConfig,
 } from "@/lib/forms/recipients-config";
 import {
-  loadForms, setFormLabel, hideForm, restoreForm, type FormDef,
+  loadForms, setFormLabel, restoreForm, deleteForm, addCustomForm, updateFormFields,
+  type FormDef, type FormField, type FormFieldType,
 } from "@/lib/forms-store";
 import { archive } from "@/lib/archives-store";
+
 
 export const Route = createFileRoute("/admin/recipients")({
   head: () => ({ meta: [{ title: "Formulaires & destinataires — Admin" }] }),
@@ -34,6 +36,9 @@ function RecipientsAdmin() {
   const [forms, setForms] = useState<FormDef[]>([]);
   const [refresh, setRefresh] = useState(0);
   const [renameTarget, setRenameTarget] = useState<FormDef | null>(null);
+  const [fieldsTarget, setFieldsTarget] = useState<FormDef | null>(null);
+  const [createOpen, setCreateOpen] = useState(false);
+
 
   useEffect(() => {
     setCfg(loadRecipientsConfig());
@@ -93,9 +98,13 @@ function RecipientsAdmin() {
             <Mail className="h-4 w-4 text-blue-600" />
             FORMULAIRES & DESTINATAIRES
           </h2>
-          <Button onClick={save} className="ml-auto h-9 cursor-pointer gap-1.5 bg-blue-600 hover:bg-blue-700">
+          <Button variant="outline" onClick={() => setCreateOpen(true)} className="ml-auto h-9 cursor-pointer gap-1.5">
+            <FilePlus2 className="h-4 w-4" /> Nouveau formulaire
+          </Button>
+          <Button onClick={save} className="h-9 cursor-pointer gap-1.5 bg-blue-600 hover:bg-blue-700">
             <Save className="h-4 w-4" /> Enregistrer destinataires
           </Button>
+
         </div>
 
         <div className="space-y-4 bg-slate-50 p-4">
@@ -105,13 +114,19 @@ function RecipientsAdmin() {
               <div key={ft.id} className="rounded-lg border border-slate-200 bg-white p-4">
                 <div className="mb-3 flex flex-wrap items-center gap-2">
                   <h3 className="text-sm font-semibold text-slate-900">{ft.label}</h3>
-                  <a href={`/forms/${ft.slug}`} className="inline-flex items-center gap-1 rounded-md border border-slate-200 px-2 py-0.5 text-[11px] text-slate-600 hover:bg-slate-50">
+                  {ft.custom && <span className="rounded bg-emerald-50 px-1.5 py-0.5 text-[10px] font-bold uppercase text-emerald-700">Personnalisé</span>}
+                  <Link to={ft.custom ? "/forms/c/$slug" : ("/forms/" + ft.slug) as any} params={ft.custom ? { slug: ft.slug } as any : undefined as any} className="inline-flex items-center gap-1 rounded-md border border-slate-200 px-2 py-0.5 text-[11px] text-slate-600 hover:bg-slate-50">
                     <Eye className="h-3 w-3" /> Ouvrir
-                  </a>
-                  <div className="ml-auto flex gap-1">
+                  </Link>
+                  <div className="ml-auto flex flex-wrap gap-1">
                     <Button size="sm" variant="outline" className="h-7 gap-1 text-xs" onClick={() => setRenameTarget(ft)}>
                       <Pencil className="h-3 w-3" /> Renommer
                     </Button>
+                    {ft.custom && (
+                      <Button size="sm" variant="outline" className="h-7 gap-1 text-xs" onClick={() => setFieldsTarget(ft)}>
+                        <Settings2 className="h-3 w-3" /> Modifier les champs
+                      </Button>
+                    )}
                     <Button size="sm" variant="outline" className="h-7 gap-1 text-xs" onClick={() => {
                       resetRecipientsFor(ft.id);
                       setRefresh((r) => r + 1);
@@ -120,16 +135,20 @@ function RecipientsAdmin() {
                       <RotateCcw className="h-3 w-3" /> Refaire
                     </Button>
                     <Button size="sm" variant="outline" className="h-7 gap-1 text-xs text-red-600 hover:bg-red-50" onClick={() => {
-                      if (!window.confirm(`Supprimer le formulaire « ${ft.label} » ? Il sera archivé.`)) return;
+                      const msg = ft.custom
+                        ? `Supprimer définitivement le formulaire personnalisé « ${ft.label} » ?`
+                        : `Supprimer le formulaire « ${ft.label} » ? Il sera archivé.`;
+                      if (!window.confirm(msg)) return;
                       archive({ kind: "form", category: "form", title: ft.label, reference: ft.id, archivedBy: user?.email ?? "admin", payload: ft });
-                      hideForm(ft.id);
+                      deleteForm(ft.id);
                       setRefresh((r) => r + 1);
-                      toast.success("Formulaire supprimé et archivé");
+                      toast.success("Formulaire supprimé");
                     }}>
                       <Trash2 className="h-3 w-3" /> Supprimer
                     </Button>
                   </div>
                 </div>
+
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                   {(["to", "cc"] as const).map((key) => {
                     const list = cur[key] ?? [];
@@ -207,6 +226,29 @@ function RecipientsAdmin() {
           }}
         />
       )}
+
+      {createOpen && (
+        <CreateFormDialog
+          onCancel={() => setCreateOpen(false)}
+          onCreate={(label, fields) => {
+            const def = addCustomForm({ label, fields });
+            setCreateOpen(false); setRefresh((r) => r + 1);
+            toast.success(`Formulaire « ${def.label} » créé`);
+          }}
+        />
+      )}
+
+      {fieldsTarget && (
+        <FieldsDialog
+          form={fieldsTarget}
+          onCancel={() => setFieldsTarget(null)}
+          onSave={(fields) => {
+            updateFormFields(fieldsTarget.id, fields);
+            setFieldsTarget(null); setRefresh((r) => r + 1);
+            toast.success("Champs enregistrés");
+          }}
+        />
+      )}
     </div>
   );
 }
@@ -228,3 +270,107 @@ function RenameDialog({ form, onCancel, onSave }: { form: FormDef; onCancel: () 
     </div>
   );
 }
+
+const FIELD_TYPES: { v: FormFieldType; label: string }[] = [
+  { v: "text", label: "Texte court" },
+  { v: "textarea", label: "Texte long" },
+  { v: "number", label: "Nombre" },
+  { v: "date", label: "Date" },
+  { v: "time", label: "Heure" },
+  { v: "email", label: "Email" },
+  { v: "select", label: "Liste déroulante" },
+  { v: "checkbox", label: "Case à cocher" },
+];
+
+function FieldsEditor({ value, onChange }: { value: FormField[]; onChange: (f: FormField[]) => void }) {
+  const update = (i: number, patch: Partial<FormField>) => {
+    const next = [...value]; next[i] = { ...next[i], ...patch }; onChange(next);
+  };
+  const remove = (i: number) => onChange(value.filter((_, idx) => idx !== i));
+  const add = () => onChange([...value, { id: `f_${Date.now()}_${value.length}`, label: "Nouveau champ", type: "text" }]);
+  const move = (i: number, dir: -1 | 1) => {
+    const j = i + dir; if (j < 0 || j >= value.length) return;
+    const next = [...value]; [next[i], next[j]] = [next[j], next[i]]; onChange(next);
+  };
+  return (
+    <div className="space-y-2">
+      {value.length === 0 && <p className="text-xs text-slate-500">Aucun champ. Ajoutez-en un ci-dessous.</p>}
+      {value.map((f, i) => (
+        <div key={f.id} className="rounded-md border border-slate-200 bg-slate-50 p-2">
+          <div className="flex flex-wrap items-center gap-1.5">
+            <Input value={f.label} onChange={(e) => update(i, { label: e.target.value })} placeholder="Libellé" className="h-8 flex-1 min-w-[160px] text-sm" />
+            <select value={f.type} onChange={(e) => update(i, { type: e.target.value as FormFieldType })} className="h-8 rounded-md border border-slate-200 bg-white px-2 text-xs">
+              {FIELD_TYPES.map((t) => <option key={t.v} value={t.v}>{t.label}</option>)}
+            </select>
+            <label className="inline-flex items-center gap-1 text-[11px] text-slate-600">
+              <input type="checkbox" checked={!!f.required} onChange={(e) => update(i, { required: e.target.checked })} /> Requis
+            </label>
+            <Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => move(i, -1)}>↑</Button>
+            <Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => move(i, 1)}>↓</Button>
+            <Button size="sm" variant="outline" className="h-7 px-2 text-xs text-red-600" onClick={() => remove(i)}>Suppr.</Button>
+          </div>
+          {f.type === "select" && (
+            <Input
+              className="mt-1.5 h-8 text-xs"
+              placeholder="Options séparées par des virgules"
+              value={(f.options ?? []).join(", ")}
+              onChange={(e) => update(i, { options: e.target.value.split(",").map((s) => s.trim()).filter(Boolean) })}
+            />
+          )}
+          <Input
+            className="mt-1.5 h-8 text-xs"
+            placeholder="Texte d'aide (optionnel)"
+            value={f.placeholder ?? ""}
+            onChange={(e) => update(i, { placeholder: e.target.value })}
+          />
+        </div>
+      ))}
+      <Button size="sm" variant="outline" onClick={add} className="h-8 gap-1 text-xs">
+        <Plus className="h-3 w-3" /> Ajouter un champ
+      </Button>
+    </div>
+  );
+}
+
+function CreateFormDialog({ onCancel, onCreate }: { onCancel: () => void; onCreate: (label: string, fields: FormField[]) => void }) {
+  const [label, setLabel] = useState("");
+  const [fields, setFields] = useState<FormField[]>([]);
+  return (
+    <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4">
+      <div className="w-full max-w-2xl max-h-[85vh] overflow-y-auto rounded-xl border border-slate-200 bg-white p-5 shadow-xl">
+        <h3 className="mb-3 text-sm font-semibold">Nouveau formulaire personnalisé</h3>
+        <Label className="text-xs">Nom du formulaire</Label>
+        <Input value={label} onChange={(e) => setLabel(e.target.value)} placeholder="Ex : Rapport d'anomalie piste" className="mt-1" />
+        <div className="mt-4">
+          <Label className="mb-2 block text-xs uppercase text-slate-500">Champs</Label>
+          <FieldsEditor value={fields} onChange={setFields} />
+        </div>
+        <div className="mt-4 flex justify-end gap-2">
+          <Button variant="outline" size="sm" onClick={onCancel}>Annuler</Button>
+          <Button size="sm" onClick={() => {
+            if (!label.trim()) { toast.error("Nom requis"); return; }
+            onCreate(label.trim(), fields);
+          }} className="bg-blue-600 hover:bg-blue-700">Créer</Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function FieldsDialog({ form, onCancel, onSave }: { form: FormDef; onCancel: () => void; onSave: (fields: FormField[]) => void }) {
+  const [fields, setFields] = useState<FormField[]>(form.fields ?? []);
+  return (
+    <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4">
+      <div className="w-full max-w-2xl max-h-[85vh] overflow-y-auto rounded-xl border border-slate-200 bg-white p-5 shadow-xl">
+        <h3 className="mb-1 text-sm font-semibold">Modifier les champs</h3>
+        <p className="mb-3 text-[11px] text-slate-500">{form.label}</p>
+        <FieldsEditor value={fields} onChange={setFields} />
+        <div className="mt-4 flex justify-end gap-2">
+          <Button variant="outline" size="sm" onClick={onCancel}>Annuler</Button>
+          <Button size="sm" onClick={() => onSave(fields)} className="bg-blue-600 hover:bg-blue-700">Enregistrer</Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
