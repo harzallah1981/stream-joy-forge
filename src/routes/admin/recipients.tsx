@@ -107,13 +107,19 @@ function RecipientsAdmin() {
               <div key={ft.id} className="rounded-lg border border-slate-200 bg-white p-4">
                 <div className="mb-3 flex flex-wrap items-center gap-2">
                   <h3 className="text-sm font-semibold text-slate-900">{ft.label}</h3>
-                  <a href={`/forms/${ft.slug}`} className="inline-flex items-center gap-1 rounded-md border border-slate-200 px-2 py-0.5 text-[11px] text-slate-600 hover:bg-slate-50">
+                  {ft.custom && <span className="rounded bg-emerald-50 px-1.5 py-0.5 text-[10px] font-bold uppercase text-emerald-700">Personnalisé</span>}
+                  <Link to={ft.custom ? "/forms/c/$slug" : ("/forms/" + ft.slug) as any} params={ft.custom ? { slug: ft.slug } as any : undefined as any} className="inline-flex items-center gap-1 rounded-md border border-slate-200 px-2 py-0.5 text-[11px] text-slate-600 hover:bg-slate-50">
                     <Eye className="h-3 w-3" /> Ouvrir
-                  </a>
-                  <div className="ml-auto flex gap-1">
+                  </Link>
+                  <div className="ml-auto flex flex-wrap gap-1">
                     <Button size="sm" variant="outline" className="h-7 gap-1 text-xs" onClick={() => setRenameTarget(ft)}>
                       <Pencil className="h-3 w-3" /> Renommer
                     </Button>
+                    {ft.custom && (
+                      <Button size="sm" variant="outline" className="h-7 gap-1 text-xs" onClick={() => setFieldsTarget(ft)}>
+                        <Settings2 className="h-3 w-3" /> Modifier les champs
+                      </Button>
+                    )}
                     <Button size="sm" variant="outline" className="h-7 gap-1 text-xs" onClick={() => {
                       resetRecipientsFor(ft.id);
                       setRefresh((r) => r + 1);
@@ -122,16 +128,20 @@ function RecipientsAdmin() {
                       <RotateCcw className="h-3 w-3" /> Refaire
                     </Button>
                     <Button size="sm" variant="outline" className="h-7 gap-1 text-xs text-red-600 hover:bg-red-50" onClick={() => {
-                      if (!window.confirm(`Supprimer le formulaire « ${ft.label} » ? Il sera archivé.`)) return;
+                      const msg = ft.custom
+                        ? `Supprimer définitivement le formulaire personnalisé « ${ft.label} » ?`
+                        : `Supprimer le formulaire « ${ft.label} » ? Il sera archivé.`;
+                      if (!window.confirm(msg)) return;
                       archive({ kind: "form", category: "form", title: ft.label, reference: ft.id, archivedBy: user?.email ?? "admin", payload: ft });
-                      hideForm(ft.id);
+                      deleteForm(ft.id);
                       setRefresh((r) => r + 1);
-                      toast.success("Formulaire supprimé et archivé");
+                      toast.success("Formulaire supprimé");
                     }}>
                       <Trash2 className="h-3 w-3" /> Supprimer
                     </Button>
                   </div>
                 </div>
+
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                   {(["to", "cc"] as const).map((key) => {
                     const list = cur[key] ?? [];
