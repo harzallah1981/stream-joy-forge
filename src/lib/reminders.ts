@@ -41,7 +41,7 @@ function daysBetween(a: string, b: number): number {
   return Math.floor((b - new Date(a).getTime()) / 86400000);
 }
 
-export function runReminderCheck(currentUserEmail: string | undefined) {
+export async function runReminderCheck(currentUserEmail: string | undefined) {
   if (typeof window === "undefined") return;
   const fired = loadFired();
   const now = Date.now();
