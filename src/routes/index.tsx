@@ -198,6 +198,23 @@ function AdminDashboard() {
         />
       </div>
 
+      <div className="flex flex-wrap items-center gap-2">
+        <button
+          type="button"
+          onClick={() => setIndicatorsOpen(true)}
+          className="inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700 hover:bg-emerald-100"
+        >
+          <BarChart3 className="h-3.5 w-3.5" /> Indicateurs documentaires
+        </button>
+        <button
+          type="button"
+          onClick={() => setRatesOpen(true)}
+          className="inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-700 hover:bg-blue-100"
+        >
+          <BookOpen className="h-3.5 w-3.5" /> Taux global de lecture par document
+        </button>
+      </div>
+
       <section className="rounded-xl border border-slate-200 bg-white shadow-sm">
         <button
           type="button"
