@@ -96,6 +96,8 @@ function computeOverdueAlerts(users: StoredUser[]) {
 function AdminDashboard() {
   const nav = useNavigate();
   const [indicatorsOpen, setIndicatorsOpen] = useState(false);
+  const [ratesOpen, setRatesOpen] = useState(false);
+  const [alertsOpen, setAlertsOpen] = useState(true);
   const [tick, setTick] = useState(0);
   useEffect(() => {
     const id = setInterval(() => setTick((t) => t + 1), 5000);
