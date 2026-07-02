@@ -14,6 +14,7 @@ import { canUserSeeReadSignDoc, getAllDocs, requiresAckForCategory } from "@/lib
 import { loadReads } from "@/lib/notifications";
 import { loadSafa, SAFA_CURRENT_YEAR } from "@/lib/safa-store";
 import { DocIndicatorsDialog } from "@/components/doc-indicators-dialog";
+import { GlobalReadingRateDialog } from "@/components/global-reading-rate-dialog";
 import { loadReadSign } from "@/lib/read-sign-store";
 
 export const Route = createFileRoute("/")({
@@ -96,6 +97,8 @@ function computeOverdueAlerts(users: StoredUser[]) {
 function AdminDashboard() {
   const nav = useNavigate();
   const [indicatorsOpen, setIndicatorsOpen] = useState(false);
+  const [ratesOpen, setRatesOpen] = useState(false);
+  const [alertsOpen, setAlertsOpen] = useState(true);
   const [tick, setTick] = useState(0);
   useEffect(() => {
     const id = setInterval(() => setTick((t) => t + 1), 5000);
@@ -196,37 +199,64 @@ function AdminDashboard() {
         />
       </div>
 
-      <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-        <h2 className="flex items-center gap-2 text-sm font-semibold text-slate-900">
+      <div className="flex flex-wrap items-center gap-2">
+        <button
+          type="button"
+          onClick={() => setIndicatorsOpen(true)}
+          className="inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700 hover:bg-emerald-100"
+        >
+          <BarChart3 className="h-3.5 w-3.5" /> Indicateurs documentaires
+        </button>
+        <button
+          type="button"
+          onClick={() => setRatesOpen(true)}
+          className="inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-700 hover:bg-blue-100"
+        >
+          <BookOpen className="h-3.5 w-3.5" /> Taux global de lecture par document
+        </button>
+      </div>
+
+      <section className="rounded-xl border border-slate-200 bg-white shadow-sm">
+        <button
+          type="button"
+          onClick={() => setAlertsOpen((v) => !v)}
+          className="flex w-full cursor-pointer items-center gap-2 rounded-t-xl px-5 py-3 text-left text-sm font-semibold text-slate-900 hover:bg-slate-50"
+        >
           <AlertTriangle className="h-4 w-4 text-amber-500" />
           Alertes Lectures en retard (J+8)
           <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-700">{alerts.length}</span>
-        </h2>
-        <div className="mt-3 overflow-hidden rounded-lg border border-slate-200">
-          <table className="w-full text-sm">
-            <thead className="bg-slate-50 text-xs uppercase text-slate-500">
-              <tr>
-                <th className="px-4 py-2 text-left font-semibold">Utilisateur</th>
-                <th className="px-4 py-2 text-left font-semibold">Document</th>
-                <th className="px-4 py-2 text-right font-semibold">Jours de retard</th>
-              </tr>
-            </thead>
-            <tbody>
-              {alerts.length === 0 ? (
-                <tr><td colSpan={3} className="py-6 text-center text-sm text-slate-500">Aucune alerte. ✓</td></tr>
-              ) : alerts.slice(0, 25).map((a) => (
-                <tr key={a.id} className="border-t">
-                  <td className="px-4 py-2 text-slate-900">{a.username} <span className="text-xs text-slate-500">({a.email})</span></td>
-                  <td className="px-4 py-2 text-slate-700">{a.docTitle}</td>
-                  <td className="px-4 py-2 text-right font-mono font-semibold text-red-600">{a.daysOverdue} j</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+          <span className="ml-auto text-xs text-slate-500">{alertsOpen ? "▲ Masquer" : "▼ Afficher"}</span>
+        </button>
+        {alertsOpen && (
+          <div className="border-t border-slate-100 p-4">
+            <div className="overflow-hidden rounded-lg border border-slate-200">
+              <table className="w-full text-sm">
+                <thead className="bg-slate-50 text-xs uppercase text-slate-500">
+                  <tr>
+                    <th className="px-4 py-2 text-left font-semibold">Utilisateur</th>
+                    <th className="px-4 py-2 text-left font-semibold">Document</th>
+                    <th className="px-4 py-2 text-right font-semibold">Jours de retard</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {alerts.length === 0 ? (
+                    <tr><td colSpan={3} className="py-6 text-center text-sm text-slate-500">Aucune alerte. ✓</td></tr>
+                  ) : alerts.slice(0, 25).map((a) => (
+                    <tr key={a.id} className="border-t">
+                      <td className="px-4 py-2 text-slate-900">{a.username} <span className="text-xs text-slate-500">({a.email})</span></td>
+                      <td className="px-4 py-2 text-slate-700">{a.docTitle}</td>
+                      <td className="px-4 py-2 text-right font-mono font-semibold text-red-600">{a.daysOverdue} j</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
       </section>
 
       <DocIndicatorsDialog open={indicatorsOpen} onOpenChange={setIndicatorsOpen} />
+      <GlobalReadingRateDialog open={ratesOpen} onOpenChange={setRatesOpen} />
       {/* avoid unused-vars warning */}
       <span className="hidden">{acks.length}</span>
     </div>

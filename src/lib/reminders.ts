@@ -41,31 +41,45 @@ function daysBetween(a: string, b: number): number {
   return Math.floor((b - new Date(a).getTime()) / 86400000);
 }
 
-export function runReminderCheck(currentUserEmail: string | undefined) {
+export async function runReminderCheck(currentUserEmail: string | undefined) {
   if (typeof window === "undefined") return;
   const fired = loadFired();
   const now = Date.now();
   const users = loadUsers();
   const docs = getAllDocs().filter((d) => d.requireAck !== false && requiresAckForCategory(d.category));
 
-  // 1) Per-user reminders for the *current* signed-in user (silent toast batch).
+  // 1) Per-user in-app reminders, in English, one per stage (J+3 / J+5 / J+7).
   if (currentUserEmail) {
+    const { pushReminder } = await import("./user-reminders");
+    const currentUser = users.find((x) => x.email.toLowerCase() === currentUserEmail.toLowerCase());
+    const displayName = currentUser?.username ?? currentUserEmail;
     const reads = loadReads(currentUserEmail);
     let toastedCount = 0;
     for (const doc of docs) {
       if (reads[doc.id]) continue;
       const days = daysBetween(doc.date, now);
-      for (const stage of STAGES) {
+      for (let i = 0; i < STAGES.length; i++) {
+        const stage = STAGES[i];
         const k = `${currentUserEmail}|${doc.id}|${stage}`;
         if (days >= stage && !fired[k]) {
           fired[k] = new Date().toISOString();
           toastedCount++;
+          pushReminder(
+            currentUserEmail,
+            {
+              docId: doc.id,
+              docTitle: doc.title,
+              docReference: doc.reference ?? "",
+              category: doc.category,
+            },
+            `System · Reminder ${i + 1} (J+${stage}) — Dear ${displayName}, you have a document to read: "${doc.title}". Please open it and acknowledge receipt.`,
+          );
         }
       }
     }
     if (toastedCount > 0) {
-      toast.warning(`${toastedCount} rappel(s) lecture en attente`, {
-        description: "Consultez la cloche pour la liste complète.",
+      toast.warning(`${toastedCount} pending reading reminder(s)`, {
+        description: "Open the bell icon to see the full list.",
       });
     }
   }
