@@ -14,6 +14,7 @@ import { canUserSeeReadSignDoc, getAllDocs, requiresAckForCategory } from "@/lib
 import { loadReads } from "@/lib/notifications";
 import { loadSafa, SAFA_CURRENT_YEAR } from "@/lib/safa-store";
 import { DocIndicatorsDialog } from "@/components/doc-indicators-dialog";
+import { GlobalReadingRateDialog } from "@/components/global-reading-rate-dialog";
 import { loadReadSign } from "@/lib/read-sign-store";
 
 export const Route = createFileRoute("/")({
